@@ -1,0 +1,143 @@
+
+import { createClient } from "@supabase/supabase-js";
+import { createHash, randomUUID } from "node:crypto";
+import { encrypt, decrypt } from "./crypto.ts";
+export function admin() {
+  const url = Deno.env.get("SUPABASE_URL"),
+    key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Supabase ainda não configurado.");
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (input, init) =>
+        fetch(input, { ...init, signal: AbortSignal.timeout(15000) }),
+    },
+  });
+}
+export function publicAuth() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (input, init) =>
+          fetch(input, { ...init, signal: AbortSignal.timeout(15000) }),
+      },
+    },
+  );
+}
+export function originCheck(req:Request){const origin=req.headers.get('origin');if(origin && origin!==Deno.env.get('APP_ORIGIN'))throw new Error('Origem não permitida');}
+export async function master(req: Request, campaignId: string) {
+  const db = admin(),
+    token = req.headers.get("authorization")?.replace(/^Bearer /, "");
+  if (!token) throw new Error("Entre novamente");
+  const { data, error } = await db.auth.getUser(token);
+  if (error || !data.user) throw new Error("Entre novamente");
+  const { data: m } = await db
+    .from("campaign_members")
+    .select("role")
+    .eq("campaign_id", campaignId)
+    .eq("user_id", data.user.id)
+    .single();
+  if (m?.role !== "master") throw new Error("Somente o mestre");
+  return { db, user: data.user };
+}
+export const hash = (s: string) => createHash("sha256").update(s).digest("hex");
+export async function throttle(key: string, max = 10) {
+  const { data, error } = await admin().rpc("throttle", {
+    k: hash(key),
+    max_attempts: max,
+  });
+  if (error || !data) throw new Error("Muitas tentativas. Aguarde 15 minutos.");
+}
+export async function provision(
+  campaign: string,
+  username: string,
+  password: string,
+  character: object,
+  claim?: string,
+  actor?: string,
+) {
+  const db = admin(),
+    identity = `${randomUUID()}@auth.alvorecer.invalid`;
+  const reserve=await db.rpc("reserve_auth_identity",{identity});if(reserve.error)throw new Error("Não foi possível preparar a conta");
+  const { data, error } = await db.auth.admin.createUser({
+    email: identity,
+    password,
+    email_confirm: true,
+    app_metadata:{alvorecer_managed:true},
+  });
+  if (error || !data.user)
+    throw new Error("Não foi possível criar a conta. Verifique a senha.");
+  const u = data.user.id;
+  const { data: ch, error: e } = await db.rpc("provision_player", {
+    c: campaign,
+    u,
+    uname: username,
+    identity,
+    cipher: encrypt(password, u),
+    d: character,
+    claim: claim || null,
+    actor: actor || null,
+  });
+  if (e) {
+    const rollback = await db.auth.admin.deleteUser(u);
+    if (rollback.error)
+      throw new Error("Cadastro pendente de reparo administrativo.");
+    throw new Error(
+      e.code === "23505"
+        ? "Username já utilizado."
+        : "Cadastro não concluído. Verifique os campos.",
+    );
+  }
+  return ch;
+}
+export async function credential(campaign: string, userId: string) {
+  const db = admin();
+  const { data: m } = await db
+    .from("campaign_members")
+    .select("role")
+    .eq("campaign_id", campaign)
+    .eq("user_id", userId)
+    .single();
+  if (m?.role !== "player") throw new Error("Jogador não encontrado");
+  const { data: v, error } = await db
+    .from("credential_vault")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+  if (error || !v) throw new Error("Credencial indisponível");
+  if (v.pending_ciphertext) {
+    if (Date.now() - Date.parse(v.locked_at) < 60000)
+      throw new Error("Alteração de senha em andamento. Aguarde um minuto.");
+    const pending = decrypt(v.pending_ciphertext, userId);
+    const probe = publicAuth();
+    let valid = await probe.auth.signInWithPassword({
+      email: v.identity,
+      password: pending,
+    });
+    let success = !valid.error;
+    if (valid.data.session) await probe.auth.signOut();
+    if (!success) {
+      valid = await probe.auth.signInWithPassword({
+        email: v.identity,
+        password: decrypt(v.ciphertext, userId),
+      });
+      if (valid.error)
+        throw new Error("Reconciliação pendente. Tente novamente mais tarde.");
+      await probe.auth.signOut();
+    }
+    const done = await db.rpc("finish_credential", {
+      u: userId,
+      expected: v.pending_ciphertext,
+      success,
+    });
+    if (done.error) throw new Error("Reconciliação pendente");
+    return {
+      password: success ? pending : decrypt(v.ciphertext, userId),
+      identity: v.identity,
+    };
+  }
+  return { password: decrypt(v.ciphertext, userId), identity: v.identity };
+}

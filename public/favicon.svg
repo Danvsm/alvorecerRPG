@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Símbolo do Alvorecer</title>
+  <defs>
+    <linearGradient id="crystal" x1="12" y1="10" x2="50" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f2c66d"/>
+      <stop offset=".55" stop-color="#d02a43"/>
+      <stop offset="1" stop-color="#6c1024"/>
+    </linearGradient>
+    <radialGradient id="sun">
+      <stop stop-color="#fff4c7"/>
+      <stop offset=".45" stop-color="#f2c66d"/>
+      <stop offset="1" stop-color="#d02a43"/>
+    </radialGradient>
+  </defs>
+  <path d="M32 3 56 32 32 61 8 32Z" fill="#121217" stroke="url(#crystal)" stroke-width="2.5"/>
+  <path d="M32 7v50M11 32h42M32 7 19 32l13 25 13-25Z" fill="none" stroke="#f2c66d" stroke-opacity=".4"/>
+  <path d="M15 38h34" stroke="#f2c66d" stroke-width="2" stroke-linecap="round"/>
+  <path d="M20 38a12 12 0 0 1 24 0Z" fill="url(#sun)"/>
+  <path d="m32 14 2.1 7.9L42 24l-7.9 2.1L32 34l-2.1-7.9L22 24l7.9-2.1Z" fill="#fff4c7"/>
+  <circle cx="32" cy="24" r="2.3" fill="#fff"/>
+</svg>
