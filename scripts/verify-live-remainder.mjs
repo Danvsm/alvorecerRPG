@@ -84,18 +84,16 @@ try {
     resolveEvent = resolve;
     rejectEvent = reject;
   });
-  const channel = player
-    .channel("verify-" + randomUUID())
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "campaign_events",
-        filter: "campaign_id=eq." + c,
-      },
-      resolveEvent,
-    );
+  const channel = player.channel("verify-" + randomUUID()).on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "campaign_events",
+      filter: "campaign_id=eq." + c,
+    },
+    resolveEvent,
+  );
   await new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(Error("Realtime subscribe timeout")),
@@ -150,18 +148,16 @@ try {
   );
   let resolveBack;
   const backEvent = new Promise((resolve) => (resolveBack = resolve));
-  const back = master
-    .channel("verify-" + randomUUID())
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "campaign_events",
-        filter: "campaign_id=eq." + c,
-      },
-      resolveBack,
-    );
+  const back = master.channel("verify-" + randomUUID()).on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "campaign_events",
+      filter: "campaign_id=eq." + c,
+    },
+    resolveBack,
+  );
   await new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(Error("Realtime subscribe timeout")),
@@ -238,14 +234,32 @@ try {
     ).error,
   );
   const portrait = ch.id + "/" + randomUUID() + ".webp";
-  ok(
-    await player.storage
-      .from("portraits")
-      .upload(portrait, image, { contentType: "image/webp" }),
+  assert.ok(
+    (
+      await player.storage
+        .from("portraits")
+        .upload(portrait, image, { contentType: "image/webp" })
+    ).error,
   );
-  ok(await player.storage.from("portraits").remove([portrait]));
+  const galleryAvatar = ok(
+    await player
+      .from("campaign_avatars")
+      .select("storage_path")
+      .eq("active", true)
+      .limit(1)
+      .single(),
+  );
+  assert.ok(
+    ok(
+      await player.storage
+        .from("portraits")
+        .createSignedUrl(galleryAvatar.storage_path, 60),
+    ).signedUrl,
+  );
   ok(await master.storage.from("item-media").remove([media]));
-  console.log("PASS Storage privado, WebP, tamanho e permissões");
+  console.log(
+    "PASS Storage privado, galeria sem upload do jogador, WebP, tamanho e permissões",
+  );
   console.log("LIVE_REMAINDER_COMPLETE");
 } finally {
   for (const cl of clients) {

@@ -4,6 +4,7 @@ import {
   changeCredential,
   credential,
   hash,
+  member,
   master,
   originCheck,
   provision,
@@ -20,6 +21,10 @@ const base = z.object({
     "cancel_invite",
     "self_password",
     "delete_avatar",
+    "disable_player",
+    "enable_player",
+    "delete_player",
+    "delete_invite",
   ]),
   campaign: z.string().uuid(),
   userId: z.string().uuid().optional(),
@@ -35,12 +40,18 @@ const base = z.object({
   hours: z.number().int().min(1).max(720).optional(),
   inviteId: z.string().uuid().optional(),
   avatarId: z.string().uuid().optional(),
+  deleteCharacters: z.boolean().optional(),
+  confirmation: z.string().max(20).optional(),
 });
 export async function POST(req: Request) {
   try {
     originCheck(req);
     const d = base.parse(await req.json());
-    const { db, user } = await master(req, d.campaign);
+    const context =
+      d.action === "self_password"
+        ? await member(req, d.campaign)
+        : await master(req, d.campaign);
+    const { db, user } = context;
     let result: object = {};
     if (d.action === "create") {
       if (!d.username || !d.password)
@@ -97,6 +108,83 @@ export async function POST(req: Request) {
       if (log.error)
         throw new Error("Senha alterada, mas o histórico ficou pendente");
     }
+    if (d.action === "disable_player" || d.action === "enable_player") {
+      if (!d.userId || d.userId === user.id)
+        throw new Error("Jogador inválido");
+      const { data: target } = await db
+        .from("campaign_members")
+        .select("user_id,role")
+        .eq("campaign_id", d.campaign)
+        .eq("user_id", d.userId)
+        .single();
+      if (target?.role !== "player") throw new Error("Jogador não encontrado");
+      const enabled = d.action === "enable_player";
+      const authUpdate = await db.auth.admin.updateUserById(d.userId, {
+        ban_duration: enabled ? "none" : "876000h",
+      });
+      if (authUpdate.error)
+        throw new Error("Não foi possível alterar o acesso");
+      const update = await db
+        .from("campaign_members")
+        .update({
+          access_active: enabled,
+          disabled_at: enabled ? null : new Date().toISOString(),
+          archived_at: enabled ? null : new Date().toISOString(),
+        })
+        .eq("campaign_id", d.campaign)
+        .eq("user_id", d.userId);
+      if (update.error)
+        throw new Error(
+          "Acesso alterado no login, mas a campanha precisa de reparo",
+        );
+      const event = await db.rpc("record_event", {
+        c: d.campaign,
+        ch: null,
+        action: enabled ? "player_enabled" : "player_disabled",
+        detail: { user_id: d.userId },
+        actor: user.id,
+      });
+      if (event.error)
+        throw new Error("Acesso alterado, mas o histórico ficou pendente");
+    }
+    if (d.action === "delete_player") {
+      if (!d.userId || d.userId === user.id)
+        throw new Error("Jogador inválido");
+      if (d.confirmation !== "EXCLUIR")
+        throw new Error("Digite EXCLUIR para confirmar");
+      const prepared = await db.rpc("prepare_delete_player", {
+        c: d.campaign,
+        target_user: d.userId,
+        remove_characters: Boolean(d.deleteCharacters),
+        actor: user.id,
+      });
+      if (prepared.error) throw new Error(prepared.error.message);
+      const deleted = await db.auth.admin.deleteUser(d.userId);
+      if (deleted.error)
+        throw new Error(
+          "A conta foi desativada, mas a exclusão do login ficou pendente",
+        );
+      if (d.deleteCharacters) {
+        for (const character of prepared.data?.characters || []) {
+          const removal = await db
+            .from("characters")
+            .delete()
+            .eq("id", character.id);
+          if (removal.error)
+            throw new Error(
+              "A conta foi excluída, mas um personagem foi preservado por segurança",
+            );
+          await db.rpc("record_event", {
+            c: d.campaign,
+            ch: null,
+            action: "character_deleted",
+            detail: { id: character.id, name: character.name },
+            actor: user.id,
+          });
+        }
+      }
+      result = { deleted: true, ...prepared.data };
+    }
     if (d.action === "delete_avatar") {
       if (!d.avatarId) throw new Error("Avatar inválido");
       const { data: avatar, error: avatarError } = await db
@@ -131,6 +219,33 @@ export async function POST(req: Request) {
       });
       if (event.error)
         throw new Error("Avatar excluído, mas o histórico ficou pendente");
+    }
+    if (d.action === "delete_invite") {
+      if (!d.inviteId || d.confirmation !== "EXCLUIR")
+        throw new Error("Confirmação inválida");
+      const { data: invite, error: inviteError } = await db
+        .from("invites")
+        .select("id,cancelled,expires_at,used_by")
+        .eq("id", d.inviteId)
+        .eq("campaign_id", d.campaign)
+        .single();
+      if (
+        inviteError ||
+        !invite ||
+        invite.used_by ||
+        (!invite.cancelled && Date.parse(invite.expires_at) >= Date.now())
+      )
+        throw new Error("Este convite não está disponível para limpeza");
+      const deleted = await db.from("invites").delete().eq("id", invite.id);
+      if (deleted.error) throw new Error("Não foi possível excluir o convite");
+      await db.rpc("record_event", {
+        c: d.campaign,
+        ch: null,
+        action: "invite_deleted",
+        detail: { id: invite.id },
+        actor: user.id,
+      });
+      result = { deleted: true };
     }
     if (d.action === "invite") {
       const token = randomBytes(32).toString("hex");

@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import {
@@ -9,16 +8,48 @@ import {
   provision,
   throttle,
 } from "./server.ts";
-const schema = z.object({
-  action: z.enum(["login", "invite"]),
-  username: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-z0-9_]{3,32}$/),
-  password: z.string().min(6).max(72),
-  token: z.string().max(128).optional(),
-});
+const schema = z
+  .object({
+    action: z.enum(["login", "invite"]),
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9_]{3,32}$/),
+    password: z.string().min(6).max(72),
+    token: z.string().max(128).optional(),
+    fullName: z.string().trim().max(160).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional(),
+    birthDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .or(z.literal("")),
+    characterName: z.string().trim().max(120).optional(),
+    characterClass: z.string().trim().max(120).optional(),
+    characterRace: z.string().trim().max(120).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.action !== "invite") return;
+    if (!value.fullName || value.fullName.length < 3)
+      context.addIssue({
+        code: "custom",
+        path: ["fullName"],
+        message: "Nome obrigatório",
+      });
+    if (!value.email)
+      context.addIssue({
+        code: "custom",
+        path: ["email"],
+        message: "E-mail obrigatório",
+      });
+    if (!value.characterName)
+      context.addIssue({
+        code: "custom",
+        path: ["characterName"],
+        message: "Personagem obrigatório",
+      });
+  });
 export async function POST(req: Request) {
   try {
     originCheck(req);
@@ -35,7 +66,22 @@ export async function POST(req: Request) {
       });
       if (error) throw new Error("Convite inválido, expirado ou em uso");
       try {
-        await provision(c, d.username, d.password, { name: d.username }, claim);
+        await provision(
+          c,
+          d.username,
+          d.password,
+          {
+            name: d.characterName,
+            class: d.characterClass || "",
+            race: d.characterRace || "",
+            person: {
+              full_name: d.fullName,
+              email: d.email,
+              birth_date: d.birthDate || "",
+            },
+          },
+          claim,
+        );
       } catch (e) {
         await db
           .from("invites")
@@ -57,6 +103,17 @@ export async function POST(req: Request) {
           .eq("user_id", p.id)
           .single()
       : { data: null };
+    if (p) {
+      const { data: membership } = await db
+        .from("campaign_members")
+        .select("user_id")
+        .eq("user_id", p.id)
+        .eq("access_active", true)
+        .is("archived_at", null)
+        .limit(1)
+        .maybeSingle();
+      if (!membership) throw new Error("Acesso desativado. Fale com o Mestre.");
+    }
     const { data, error } = await publicAuth().auth.signInWithPassword({
       email: v?.identity || "unknown@auth.alvorecer.invalid",
       password: d.password,

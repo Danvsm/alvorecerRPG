@@ -8,6 +8,7 @@ export default function AvatarGallery({
   urls,
   selectedId,
   manager = false,
+  compact = false,
   busy,
   onSelect,
   onUpload,
@@ -18,6 +19,7 @@ export default function AvatarGallery({
   urls: Record<string, string>;
   selectedId?: string | null;
   manager?: boolean;
+  compact?: boolean;
   busy: boolean;
   onSelect?: (id: string) => Promise<void>;
   onUpload?: (file: File) => Promise<void>;
@@ -31,14 +33,16 @@ export default function AvatarGallery({
   return (
     <section className={manager ? "panel avatar-manager" : "avatar-picker"}>
       <div className="spread">
-        <div>
-          <h2>{manager ? "Galeria de avatares" : "Escolha seu avatar"}</h2>
-          <p>
-            {manager
-              ? "Cadastre as artes que poderão ser escolhidas pelos jogadores."
-              : "Selecione uma identidade para representar seu personagem."}
-          </p>
-        </div>
+        {!compact && (
+          <div>
+            <h2>{manager ? "Galeria de avatares" : "Escolha seu avatar"}</h2>
+            <p>
+              {manager
+                ? "Cadastre as artes que poderão ser escolhidas pelos jogadores."
+                : "Selecione uma identidade para representar seu personagem."}
+            </p>
+          </div>
+        )}
         {manager && onUpload && (
           <label className="button-label primary-label">
             <ImagePlus size={17} />

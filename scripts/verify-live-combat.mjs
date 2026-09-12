@@ -141,18 +141,16 @@ try {
   async function realtime(receiver, writer, label) {
     let resolveEvent;
     const event = new Promise((resolve) => (resolveEvent = resolve));
-    const channel = receiver
-      .channel("verify-" + randomUUID())
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "campaign_events",
-          filter: "campaign_id=eq." + c,
-        },
-        () => resolveEvent(),
-      );
+    const channel = receiver.channel("verify-" + randomUUID()).on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "campaign_events",
+        filter: "campaign_id=eq." + c,
+      },
+      () => resolveEvent(),
+    );
     let timer;
     await Promise.race([
       new Promise((resolve, reject) =>
@@ -243,10 +241,12 @@ try {
     ).error,
   );
   const portrait = ch.id + "/" + randomUUID() + ".webp";
-  ok(
-    await p1.storage
-      .from("portraits")
-      .upload(portrait, image, { contentType: "image/webp" }),
+  assert.ok(
+    (
+      await p1.storage
+        .from("portraits")
+        .upload(portrait, image, { contentType: "image/webp" })
+    ).error,
   );
   assert.ok(
     (
@@ -257,9 +257,25 @@ try {
         })
     ).error,
   );
-  ok(await p1.storage.from("portraits").remove([portrait]));
+  const galleryAvatar = ok(
+    await p1
+      .from("campaign_avatars")
+      .select("storage_path")
+      .eq("active", true)
+      .limit(1)
+      .single(),
+  );
+  assert.ok(
+    ok(
+      await p1.storage
+        .from("portraits")
+        .createSignedUrl(galleryAvatar.storage_path, 60),
+    ).signedUrl,
+  );
   ok(await master.storage.from("item-media").remove([path]));
-  console.log("PASS Storage: imagem, MIME, tamanho e propriedade");
+  console.log(
+    "PASS Storage: miniaturas do Mestre e galeria sem upload do jogador",
+  );
   await cmd(master, "combat_update", { id: enemy.id, remove: true });
   assert.ok(!(await snap(p1)).some((x) => x.id === enemy.id));
   await cmd(master, "room", { id: room, active: false });

@@ -31,7 +31,7 @@ export function originCheck(req: Request) {
   if (origin && origin !== Deno.env.get("APP_ORIGIN"))
     throw new Error("Origem não permitida");
 }
-export async function master(req: Request, campaignId: string) {
+export async function member(req: Request, campaignId: string) {
   const db = admin(),
     token = req.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!token) throw new Error("Entre novamente");
@@ -39,12 +39,18 @@ export async function master(req: Request, campaignId: string) {
   if (error || !data.user) throw new Error("Entre novamente");
   const { data: m } = await db
     .from("campaign_members")
-    .select("role")
+    .select("role,access_active,archived_at")
     .eq("campaign_id", campaignId)
     .eq("user_id", data.user.id)
     .single();
-  if (m?.role !== "master") throw new Error("Somente o mestre");
-  return { db, user: data.user };
+  if (!m || !m.access_active || m.archived_at)
+    throw new Error("Acesso à campanha desativado");
+  return { db, user: data.user, membership: m };
+}
+export async function master(req: Request, campaignId: string) {
+  const context = await member(req, campaignId);
+  if (context.membership.role !== "master") throw new Error("Somente o mestre");
+  return context;
 }
 export const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 export async function throttle(key: string, max = 10) {

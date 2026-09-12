@@ -23,6 +23,9 @@ import {
   ChevronRight,
   X,
   KeyRound,
+  WalletCards,
+  UserRound,
+  MoreHorizontal,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import { Brand, Empty } from "./Common";
@@ -31,7 +34,17 @@ import ConsumableActions from "./ConsumableActions";
 import ShopPanel from "./ShopPanel";
 import ItemThumbnail from "./ItemThumbnail";
 import AvatarGallery from "./AvatarGallery";
-import DracmaTransfer from "./DracmaTransfer";
+import AvatarPickerDialog from "./AvatarPickerDialog";
+import CharacterSheet from "./CharacterSheet";
+import InventoryPanel from "./InventoryPanel";
+import WalletPanel from "./WalletPanel";
+import ActivityTracker from "./ActivityTracker";
+import {
+  ActivityDashboard,
+  FeedbackDashboard,
+  FeedbackPrompt,
+} from "./SessionInsights";
+import CleanupPanel from "./CleanupPanel";
 import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
 import FormDialog from "./FormDialog";
@@ -58,6 +71,9 @@ const tables = [
   "campaign_members",
   "campaign_avatars",
   "dracma_transactions",
+  "dracma_charges",
+  "activity_sessions",
+  "session_feedback",
 ];
 const resourceNames: Row = {
   life: "Vida",
@@ -69,11 +85,50 @@ const resourceNames: Row = {
   mana: "Mana",
   stamina: "Fôlego",
 };
+const historyActions: Row = {
+  life: "Vida alterada",
+  mana: "Mana alterada",
+  stamina: "Fôlego alterado",
+  balance: "Saldo alterado",
+  notes: "Anotações atualizadas",
+  buy_advantage: "Vantagem adquirida",
+  credential_view: "Credencial consultada",
+  credential_change: "Senha de jogador alterada",
+  self_password_change: "Senha da conta alterada",
+  create_player: "Jogador criado",
+  avatar: "Avatar cadastrado ou atualizado",
+  avatar_select: "Avatar alterado",
+  avatar_delete: "Avatar excluído",
+  dracma_transfer: "Transferência de Dracmas",
+  dracma_adjustment: "Ajuste de Dracmas",
+  dracma_charge_created: "Cobrança enviada",
+  dracma_charge_paid: "Cobrança paga",
+  dracma_charge_refused: "Cobrança recusada",
+  dracma_reward_distributed: "Recompensa distribuída",
+  dracma_reversal: "Movimentação estornada",
+  purchase: "Compra realizada",
+  consume: "Consumível utilizado",
+  resource_maximum: "Máximo do recurso recalculado",
+  resource_config: "Regra de recurso alterada",
+  campaign_rule: "Padrão de recurso alterado",
+  session_feedback: "Feedback enviado",
+  player_disabled: "Acesso de jogador desativado",
+  player_enabled: "Acesso de jogador reativado",
+  player_delete_prepared: "Jogador excluído",
+  invite_deleted: "Convite expirado removido",
+  character_deleted: "Personagem excluído",
+  creature_deleted: "Modelo de criatura excluído",
+  creature_archived: "Modelo de criatura arquivado",
+  creature_restored: "Modelo de criatura reativado",
+  character_archived: "Personagem arquivado",
+  character_restored: "Personagem reativado",
+};
 const masterMenu = [
   ["Visão Geral", LayoutDashboard],
   ["Jogadores", Users],
   ["Personagens", Shield],
   ["Combate", Swords],
+  ["Carteira", WalletCards],
   ["Criaturas", Skull],
   ["Vantagens", Sparkles],
   ["Itens", Package],
@@ -82,16 +137,18 @@ const masterMenu = [
   ["Histórico", ScrollText],
   ["Convites", LinkIcon],
   ["Configurações", Settings],
+  ["Perfil", UserRound],
 ] as const;
 const playerMenu = [
   ["Início", LayoutDashboard],
   ["Minha Ficha", Shield],
-  ["Vantagens", Sparkles],
+  ["Combate", Swords],
+  ["Carteira", WalletCards],
   ["Inventário", Package],
+  ["Vantagens", Sparkles],
   ["Lojas", Coins],
   ["Histórico", ScrollText],
-  ["Combate", Swords],
-  ["Perfil", Users],
+  ["Perfil", UserRound],
 ] as const;
 export default function Game({ invite }: { invite?: string }) {
   const [session, setSession] = useState<Session | null>(null),
@@ -114,8 +171,12 @@ export default function Game({ invite }: { invite?: string }) {
     [passwords, setPasswords] = useState<Record<string, string>>({}),
     [inviteUrl, setInviteUrl] = useState(""),
     [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({}),
-    [recipients, setRecipients] = useState<Row[]>([]);
+    [recipients, setRecipients] = useState<Row[]>([]),
+    [avatarPicker, setAvatarPicker] = useState(false),
+    [historyLimit, setHistoryLimit] = useState(20),
+    [catalogFilter, setCatalogFilter] = useState("active");
   const requestVersion = useRef(0);
+  const onboardingPrompted = useRef(false);
   const isMaster =
     members.find((m) => m.campaign_id === campaign)?.role === "master";
   useEffect(() => {
@@ -176,13 +237,22 @@ export default function Game({ invite }: { invite?: string }) {
                 "campaign_members",
                 "campaign_avatars",
                 "dracma_transactions",
+                "dracma_charges",
+                "activity_sessions",
+                "session_feedback",
               ].includes(t)
             )
               q = q.eq("campaign_id", c);
             if (t === "audit_logs")
               q = q.order("created_at", { ascending: false }).limit(200);
             if (t === "dracma_transactions")
-              q = q.order("created_at", { ascending: false }).limit(100);
+              q = q.order("created_at", { ascending: false }).limit(200);
+            if (
+              t === "dracma_charges" ||
+              t === "activity_sessions" ||
+              t === "session_feedback"
+            )
+              q = q.order("created_at", { ascending: false }).limit(200);
             return q;
           }),
         ),
@@ -230,6 +300,7 @@ export default function Game({ invite }: { invite?: string }) {
     setSelected("");
     setRoom("");
     setPasswords({});
+    onboardingPrompted.current = false;
     load(campaign);
     let timer: ReturnType<typeof setTimeout>;
     const channel = browserDb()
@@ -269,6 +340,20 @@ export default function Game({ invite }: { invite?: string }) {
     };
   }, [campaign, session?.user.id, load]);
   useEffect(() => {
+    if (
+      !campaign ||
+      loading ||
+      isMaster ||
+      !character ||
+      character.avatar_id ||
+      onboardingPrompted.current
+    )
+      return;
+    onboardingPrompted.current = true;
+    setPage("Perfil");
+    setAvatarPicker(true);
+  }, [campaign, loading, isMaster, character]);
+  useEffect(() => {
     let valid = true;
     Promise.all(
       rows("campaign_avatars").map(async (avatar) => {
@@ -293,7 +378,7 @@ export default function Game({ invite }: { invite?: string }) {
     const timer = setTimeout(() => setPasswords({}), 30000);
     return () => clearTimeout(timer);
   }, [passwords]);
-  async function run(fn: () => Promise<void>) {
+  async function run(fn: () => Promise<unknown>) {
     if (busy) return;
     setBusy(true);
     setError("");
@@ -305,8 +390,21 @@ export default function Game({ invite }: { invite?: string }) {
       setBusy(false);
     }
   }
+  async function perform<T>(fn: () => Promise<T>): Promise<T> {
+    if (busy) throw new Error("Aguarde a operação atual");
+    setBusy(true);
+    setError("");
+    try {
+      return await fn();
+    } catch (caught) {
+      setError((caught as Error).message);
+      throw caught;
+    } finally {
+      setBusy(false);
+    }
+  }
   async function action(op: string, d: Row) {
-    const { error } = await browserDb().rpc("game_action", {
+    const { data: result, error } = await browserDb().rpc("game_action", {
       c: campaign,
       op,
       d,
@@ -314,6 +412,29 @@ export default function Game({ invite }: { invite?: string }) {
     if (error) throw new Error(error.message);
     await load(campaign);
     setMessage("Alteração salva");
+    return result || {};
+  }
+  async function walletAction(op: string, d: Row) {
+    const { data: result, error } = await browserDb().rpc("wallet_action", {
+      c: campaign,
+      op,
+      d,
+    });
+    if (error) throw new Error(error.message);
+    await load(campaign);
+    setMessage("Carteira atualizada");
+    return result || {};
+  }
+  async function lifecycle(op: string, d: Row) {
+    const { data: result, error } = await browserDb().rpc("lifecycle_action", {
+      c: campaign,
+      op,
+      d,
+    });
+    if (error) throw new Error(error.message);
+    await load(campaign);
+    setMessage(op === "delete" ? "Registro excluído" : "Alteração salva");
+    return result || {};
   }
   function quick(id: string) {
     return (
@@ -419,6 +540,12 @@ export default function Game({ invite }: { invite?: string }) {
           username: d.username,
           password: d.password,
           token: invite,
+          fullName: d.fullName,
+          email: d.email,
+          birthDate: d.birthDate,
+          characterName: d.characterName,
+          characterClass: d.characterClass,
+          characterRace: d.characterRace,
         }),
       });
       const s = await r.json();
@@ -448,7 +575,10 @@ export default function Game({ invite }: { invite?: string }) {
           ? "purple"
           : "gold";
     return (
-      <div className="resource" key={r.key}>
+      <div
+        className={`resource${combatId ? " combat-resource" : ""}`}
+        key={r.key}
+      >
         <div className="spread">
           <span>
             {r.key === "life" ? (
@@ -470,7 +600,10 @@ export default function Game({ invite }: { invite?: string }) {
         </div>
         {editable && (
           <div className="stepper">
-            {[-10, -5, -1, ...(isMaster ? [1, 5, 10] : [])].map((n) => (
+            {(combatId
+              ? [-5, -1, ...(isMaster ? [1, 5] : [])]
+              : [-10, -5, -1, ...(isMaster ? [1, 5, 10] : [])]
+            ).map((n) => (
               <button
                 disabled={busy}
                 key={n}
@@ -531,9 +664,13 @@ export default function Game({ invite }: { invite?: string }) {
           type: "password",
           required: true,
         },
+        { key: "fullName", label: "Nome completo da pessoa" },
+        { key: "email", label: "E-mail da pessoa", type: "email" },
+        { key: "birthDate", label: "Nascimento (opcional)", type: "date" },
         { key: "name", label: "Nome do personagem", required: true },
         { key: "class", label: "Classe" },
         { key: "race", label: "Raça" },
+        { key: "level", label: "Nível", type: "number", value: 1 },
         ...["life", "mana", "stamina"].flatMap((k) => [
           {
             key: k,
@@ -570,8 +707,17 @@ export default function Game({ invite }: { invite?: string }) {
         },
       ],
       submit: async (d) => {
-        const { username, password, dracmas, ...ch } = d;
+        const {
+          username,
+          password,
+          dracmas,
+          fullName,
+          email,
+          birthDate,
+          ...ch
+        } = d;
         ch.dracmas_cents = parseDracmas(String(dracmas));
+        ch.person = { full_name: fullName, email, birth_date: birthDate };
         ch.attributes = Object.fromEntries(
           Object.entries(ch)
             .filter(([k]) => k.startsWith("attr_"))
@@ -609,71 +755,72 @@ export default function Game({ invite }: { invite?: string }) {
     );
   }
   function history(id?: string) {
+    const records = rows("audit_logs")
+      .filter((log) => !id || log.character_id === id)
+      .slice(0, historyLimit);
     return (
       <div className="list">
-        {rows("audit_logs")
-          .filter((l) => !id || l.character_id === id)
-          .map((l) => (
-            <div className="history-row" key={l.id}>
-              <time>{new Date(l.created_at).toLocaleString("pt-BR")}</time>
-              <div>
-                <b>
-                  {chars.find((c) => c.id === l.character_id)?.name ||
-                    "Campanha"}
-                </b>
-                <p>
-                  {(
-                    {
-                      life: "Vida",
-                      mana: "Mana",
-                      stamina: "Fôlego",
-                      balance: "Saldo",
-                      buy_advantage: "Compra de vantagem",
-                      credential_view: "Credencial consultada",
-                      credential_change: "Senha alterada",
-                      self_password_change: "Senha do Mestre alterada",
-                      create_player: "Jogador criado",
-                      avatar: "Avatar cadastrado ou atualizado",
-                      avatar_select: "Avatar selecionado",
-                      avatar_delete: "Avatar excluído",
-                      dracma_transfer: "Transferência de Dracmas",
-                      dracma_adjustment: "Ajuste de Dracmas",
-                    } as Row
-                  )[l.action] || l.action}{" "}
-                  {l.detail.delta !== undefined
-                    ? `${l.detail.delta > 0 ? "+" : ""}${l.detail.delta}`
-                    : ""}
-                  {l.detail.delta_cents !== undefined
-                    ? ` ${l.detail.delta_cents > 0 ? "+" : ""}${formatDracmas(l.detail.delta_cents)}`
-                    : ""}
-                  {l.detail.before !== undefined
-                    ? ` (${l.detail.before} → ${l.detail.after})`
-                    : ""}{" "}
-                  {l.detail.before_cents !== undefined
-                    ? ` (${formatDracmas(l.detail.before_cents)} → ${formatDracmas(l.detail.after_cents)})`
-                    : ""}{" "}
-                  {l.detail.reason || l.detail.name || ""}
-                  {l.detail.recovered &&
-                    Object.entries(l.detail.recovered)
-                      .map(
-                        ([key, value]) =>
-                          ` +${value} ${resourceNames[key] || key}`,
-                      )
-                      .join(", ")}
-                </p>
-              </div>
-              <small>
-                {(() => {
-                  const actor = rows("profiles").find(
-                    (p) => p.id === l.actor_id,
-                  );
-                  return actor?.display_name || actor?.username || "Mestre";
-                })()}
-              </small>
+        {records.map((l) => (
+          <div className="history-row" key={l.id}>
+            <time>{new Date(l.created_at).toLocaleString("pt-BR")}</time>
+            <div>
+              <b>
+                {chars.find((c) => c.id === l.character_id)?.name ||
+                  l.character_label ||
+                  "Campanha"}
+              </b>
+              <p>
+                {historyActions[l.action] ||
+                  "Informação da campanha atualizada"}{" "}
+                {l.detail.delta !== undefined
+                  ? `${l.detail.delta > 0 ? "+" : ""}${l.detail.delta}`
+                  : ""}
+                {l.detail.delta_cents !== undefined
+                  ? ` ${l.detail.delta_cents > 0 ? "+" : ""}${formatDracmas(l.detail.delta_cents)}`
+                  : ""}
+                {l.detail.before !== undefined
+                  ? ` (${l.detail.before} → ${l.detail.after})`
+                  : ""}{" "}
+                {l.detail.before_cents !== undefined
+                  ? ` (${formatDracmas(l.detail.before_cents)} → ${formatDracmas(l.detail.after_cents)})`
+                  : ""}{" "}
+                {l.detail.reason ||
+                  (l.action !== "avatar_select" ? l.detail.name : "") ||
+                  ""}
+                {l.detail.recovered &&
+                  Object.entries(l.detail.recovered)
+                    .map(
+                      ([key, value]) =>
+                        ` +${value} ${resourceNames[key] || key}`,
+                    )
+                    .join(", ")}
+              </p>
             </div>
-          ))}
+            <small>
+              {(() => {
+                const actor = rows("profiles").find((p) => p.id === l.actor_id);
+                return (
+                  actor?.display_name ||
+                  actor?.username ||
+                  l.actor_label ||
+                  "Sistema"
+                );
+              })()}
+            </small>
+          </div>
+        ))}
         {!rows("audit_logs").length && (
           <Empty text="As alterações da sessão aparecerão aqui." />
+        )}
+        {records.length <
+          rows("audit_logs").filter((log) => !id || log.character_id === id)
+            .length && (
+          <button
+            className="load-more"
+            onClick={() => setHistoryLimit((limit) => limit + 20)}
+          >
+            Carregar mais
+          </button>
         )}
       </div>
     );
@@ -689,7 +836,7 @@ export default function Game({ invite }: { invite?: string }) {
   if (!session)
     return (
       <main className="auth">
-        <div className="auth-panel">
+        <div className={`auth-panel${invite ? " invite-auth" : ""}`}>
           <Brand />
           <div className="auth-symbol">
             <Swords size={40} />
@@ -716,6 +863,59 @@ export default function Game({ invite }: { invite?: string }) {
             </div>
           ) : (
             <form onSubmit={login}>
+              {invite && (
+                <fieldset className="invite-section">
+                  <legend>Seus dados</legend>
+                  <label>
+                    Nome completo
+                    <input
+                      name="fullName"
+                      required
+                      minLength={3}
+                      maxLength={160}
+                      autoComplete="name"
+                    />
+                  </label>
+                  <label>
+                    E-mail
+                    <input
+                      name="email"
+                      type="email"
+                      required
+                      maxLength={254}
+                      autoComplete="email"
+                    />
+                  </label>
+                  <label>
+                    Data de nascimento <small>Opcional</small>
+                    <input name="birthDate" type="date" autoComplete="bday" />
+                  </label>
+                </fieldset>
+              )}
+              {invite && (
+                <fieldset className="invite-section">
+                  <legend>Seu personagem</legend>
+                  <label>
+                    Nome do personagem
+                    <input name="characterName" required maxLength={120} />
+                  </label>
+                  <div className="invite-pair">
+                    <label>
+                      Classe
+                      <input name="characterClass" maxLength={120} />
+                    </label>
+                    <label>
+                      Raça
+                      <input name="characterRace" maxLength={120} />
+                    </label>
+                  </div>
+                </fieldset>
+              )}
+              {invite && (
+                <p className="eyebrow invite-credentials-title">
+                  CREDENCIAIS DE ACESSO
+                </p>
+              )}
               <label>
                 Username
                 <input
@@ -749,9 +949,6 @@ export default function Game({ invite }: { invite?: string }) {
                       autoComplete="new-password"
                     />
                   </label>
-                  <p className="notice">
-                    Não compartilha a seu username e senha com ninguém.
-                  </p>
                 </>
               )}
               <button className="primary" disabled={busy}>
@@ -784,6 +981,7 @@ export default function Game({ invite }: { invite?: string }) {
         } as React.CSSProperties
       }
     >
+      <ActivityTracker campaign={campaign} userId={session.user.id} />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <Brand logo={currentCampaign?.theme?.logo} />
         <div className="campaign-switch">
@@ -820,12 +1018,31 @@ export default function Game({ invite }: { invite?: string }) {
           )}
         </nav>
         <div className="sidebar-foot">
-          <span>
-            {displayName} · {isMaster ? "Mestre" : "Jogador"}
-          </span>
+          <button
+            className="sidebar-account"
+            onClick={() => navigate("Perfil")}
+          >
+            {!isMaster && avatarUrls[character?.avatar_id] ? (
+              <img
+                src={avatarUrls[character.avatar_id]}
+                alt=""
+                onClick={() => setAvatarPicker(true)}
+              />
+            ) : (
+              <span className="sidebar-avatar">
+                <UserRound size={16} />
+              </span>
+            )}
+            <span>
+              <strong>{displayName}</strong>
+              <small>
+                {isMaster ? "Mestre" : `@${ownProfile?.username || "jogador"}`}
+              </small>
+            </span>
+          </button>
           <button onClick={() => browserDb().auth.signOut()}>
             <LogOut size={17} />
-            Sair
+            <span className="visually-hidden">Sair</span>
           </button>
         </div>
       </aside>
@@ -959,6 +1176,38 @@ export default function Game({ invite }: { invite?: string }) {
                   </button>
                 </div>
               )}
+              {isMaster ? (
+                <div className="insights-grid">
+                  <ActivityDashboard
+                    sessions={rows("activity_sessions")}
+                    profiles={rows("profiles")}
+                    characters={chars}
+                  />
+                  <FeedbackDashboard feedback={rows("session_feedback")} />
+                </div>
+              ) : (
+                <FeedbackPrompt
+                  feedback={rows("session_feedback").find(
+                    (item) =>
+                      item.user_id === session.user.id &&
+                      new Date(
+                        item.feedback_date + "T12:00:00",
+                      ).toDateString() === new Date().toDateString(),
+                  )}
+                  submit={async (rating, comment) => {
+                    const { error } = await browserDb().rpc(
+                      "submit_session_feedback",
+                      {
+                        c: campaign,
+                        score: rating,
+                        note: comment,
+                      },
+                    );
+                    if (error) throw new Error(error.message);
+                    await load(campaign);
+                  }}
+                />
+              )}
               <h2>
                 {isMaster ? "Personagens da campanha" : "Meus personagens"}
               </h2>
@@ -997,7 +1246,7 @@ export default function Game({ invite }: { invite?: string }) {
               {history()}
             </>
           )}
-          {["Personagens", "Minha Ficha", "Inventário"].includes(page) && (
+          {page === "Personagens" && isMaster && (
             <>
               <div className="toolbar">
                 <select
@@ -1048,57 +1297,48 @@ export default function Game({ invite }: { invite?: string }) {
                     {characterHeader(character)}
                     <div className="actions">
                       {isMaster && (
-                        <button
-                          onClick={() =>
-                            edit(
-                              "Editar personagem",
-                              [
-                                {
-                                  key: "name",
-                                  label: "Nome",
-                                  value: character.name,
-                                  required: true,
-                                },
-                                {
-                                  key: "class",
-                                  label: "Classe",
-                                  value: character.class,
-                                },
-                                {
-                                  key: "race",
-                                  label: "Raça",
-                                  value: character.race,
-                                },
-                                {
-                                  key: "information",
-                                  label: "Informações adicionais",
-                                  type: "json",
-                                  value: character.information,
-                                },
-                              ],
-                              "character",
-                              { character_id: character.id },
-                            )
-                          }
-                        >
-                          Editar ficha
-                        </button>
+                        <>
+                          <button
+                            onClick={() =>
+                              edit(
+                                "Editar personagem",
+                                [
+                                  {
+                                    key: "name",
+                                    label: "Nome",
+                                    value: character.name,
+                                    required: true,
+                                  },
+                                  {
+                                    key: "class",
+                                    label: "Classe",
+                                    value: character.class,
+                                  },
+                                  {
+                                    key: "race",
+                                    label: "Raça",
+                                    value: character.race,
+                                  },
+                                  {
+                                    key: "information",
+                                    label: "Informações adicionais",
+                                    type: "json",
+                                    value: character.information,
+                                  },
+                                ],
+                                "character",
+                                { character_id: character.id },
+                              )
+                            }
+                          >
+                            Editar ficha
+                          </button>
+                          <button onClick={() => setAvatarPicker(true)}>
+                            Alterar avatar
+                          </button>
+                        </>
                       )}
                     </div>
-                    <AvatarGallery
-                      avatars={rows("campaign_avatars")}
-                      urls={avatarUrls}
-                      selectedId={character.avatar_id}
-                      busy={busy}
-                      onSelect={(avatarId) =>
-                        run(() =>
-                          action("avatar_select", {
-                            character_id: character.id,
-                            avatar_id: avatarId,
-                          }),
-                        )
-                      }
-                    />
                     {isMaster && (
                       <ResourceConfiguration
                         character={character}
@@ -1436,12 +1676,164 @@ export default function Game({ invite }: { invite?: string }) {
                   </section>
                   <h2>Histórico do personagem</h2>
                   {history(character.id)}
+                  <details className="danger-more panel">
+                    <summary>
+                      <MoreHorizontal size={17} /> Mais ações
+                    </summary>
+                    <div className="actions">
+                      <button
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Arquivar ${character.name}? Ele sairá das listas principais.`,
+                            )
+                          )
+                            void run(() =>
+                              lifecycle("archive", {
+                                entity: "character",
+                                id: character.id,
+                              }),
+                            );
+                        }}
+                      >
+                        Arquivar personagem
+                      </button>
+                      <button
+                        onClick={() =>
+                          void run(async () => {
+                            const { data: preview, error: previewError } =
+                              await browserDb().rpc("lifecycle_preview", {
+                                c: campaign,
+                                entity: "character",
+                                target: character.id,
+                              });
+                            if (previewError)
+                              throw new Error(previewError.message);
+                            setForm({
+                              title: `Excluir ${preview.name}?`,
+                              fields: [
+                                {
+                                  key: "confirmation",
+                                  label: `Digite EXCLUIR para confirmar. Inventário: ${preview.inventory}. Transações preservadas: ${preview.transactions}.`,
+                                  required: true,
+                                },
+                              ],
+                              submit: async (values) => {
+                                if (values.confirmation !== "EXCLUIR")
+                                  throw new Error(
+                                    "Digite EXCLUIR para confirmar",
+                                  );
+                                await lifecycle("delete", {
+                                  entity: "character",
+                                  id: character.id,
+                                });
+                                setForm(null);
+                              },
+                            });
+                          })
+                        }
+                      >
+                        Excluir definitivamente
+                      </button>
+                    </div>
+                  </details>
                 </>
               ) : (
                 <Empty text="Nenhum personagem cadastrado." />
               )}
             </>
           )}
+          {page === "Minha Ficha" &&
+            !isMaster &&
+            (character ? (
+              <>
+                {chars.length > 1 && (
+                  <div className="toolbar compact-toolbar">
+                    <select
+                      aria-label="Personagem"
+                      value={character.id}
+                      onChange={(event) => setSelected(event.target.value)}
+                    >
+                      {chars.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <CharacterSheet
+                  character={character}
+                  avatarUrl={avatarUrls[character.avatar_id]}
+                  resources={resources(character.id)}
+                  attributes={rows("attributes")}
+                  values={rows("character_attributes")}
+                  advantages={rows("advantages")}
+                  ownedAdvantages={rows("character_advantages")}
+                  resourceControl={(resource) =>
+                    resourcePanel(character.id, resource)
+                  }
+                  openWallet={() => navigate("Carteira")}
+                />
+              </>
+            ) : (
+              <Empty text="O mestre ainda não cadastrou seu personagem." />
+            ))}
+          {page === "Inventário" &&
+            !isMaster &&
+            (character ? (
+              <>
+                {chars.length > 1 && (
+                  <div className="toolbar compact-toolbar">
+                    <select
+                      aria-label="Personagem"
+                      value={character.id}
+                      onChange={(event) => setSelected(event.target.value)}
+                    >
+                      {chars.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <InventoryPanel
+                  character={character}
+                  inventory={rows("character_items")}
+                  items={rows("items")}
+                  effects={rows("item_effects")}
+                  busy={busy}
+                  master={false}
+                  useItem={async (entry) => {
+                    await run(() =>
+                      action("consume", {
+                        character_id: character.id,
+                        inventory_id: entry.id,
+                        request_id: crypto.randomUUID(),
+                      }),
+                    );
+                  }}
+                  editNotes={() =>
+                    edit(
+                      "Anotações",
+                      [
+                        {
+                          key: "notes",
+                          label: "Pistas, lugares, NPCs, missões e descobertas",
+                          type: "textarea",
+                          value: character.notes,
+                        },
+                      ],
+                      "notes",
+                      { character_id: character.id },
+                    )
+                  }
+                />
+              </>
+            ) : (
+              <Empty text="Nenhum inventário disponível." />
+            ))}
           {page === "Jogadores" && isMaster && (
             <>
               <div className="toolbar">
@@ -1462,8 +1854,15 @@ export default function Game({ invite }: { invite?: string }) {
                   return (
                     <section className="panel" key={m.user_id}>
                       <div className="spread">
-                        <h2>{p?.username}</h2>
-                        <span className="badge">Jogador</span>
+                        <div>
+                          <h2>{p?.full_name || p?.username}</h2>
+                          <small>@{p?.username}</small>
+                        </div>
+                        <span
+                          className={`badge${m.access_active ? "" : " disabled-badge"}`}
+                        >
+                          {m.access_active ? "Ativo" : "Acesso desativado"}
+                        </span>
                       </div>
                       <p>
                         {chars
@@ -1471,6 +1870,21 @@ export default function Game({ invite }: { invite?: string }) {
                           .map((c) => c.name)
                           .join(", ") || "Sem personagem"}
                       </p>
+                      {(p?.personal_email || p?.birth_date) && (
+                        <p className="private-data">
+                          {p.personal_email && (
+                            <span>E-mail: {p.personal_email}</span>
+                          )}
+                          {p.birth_date && (
+                            <span>
+                              Nascimento:{" "}
+                              {new Date(
+                                p.birth_date + "T12:00:00",
+                              ).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </p>
+                      )}
                       <div className="credential">
                         <code>{passwords[m.user_id] || "••••••••"}</code>
                         <button
@@ -1540,6 +1954,81 @@ export default function Game({ invite }: { invite?: string }) {
                           Alterar senha
                         </button>
                       </div>
+                      <details className="danger-more">
+                        <summary>
+                          <MoreHorizontal size={16} /> Mais ações
+                        </summary>
+                        <div className="actions">
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              void run(async () => {
+                                await admin(
+                                  m.access_active
+                                    ? "disable_player"
+                                    : "enable_player",
+                                  { userId: m.user_id },
+                                );
+                                await load(campaign);
+                              })
+                            }
+                          >
+                            {m.access_active
+                              ? "Desativar acesso"
+                              : "Reativar acesso"}
+                          </button>
+                          <button
+                            disabled={busy}
+                            onClick={() => {
+                              const linked = chars.filter(
+                                (item) => item.owner_id === m.user_id,
+                              );
+                              setForm({
+                                title: `Excluir o jogador @${p?.username}?`,
+                                fields: [
+                                  {
+                                    key: "mode",
+                                    label: `Personagens vinculados: ${linked.map((item) => item.name).join(", ") || "nenhum"}`,
+                                    options: [
+                                      {
+                                        id: "keep",
+                                        name: "Excluir conta e manter personagens",
+                                      },
+                                      {
+                                        id: "delete",
+                                        name: "Excluir conta e personagens",
+                                      },
+                                    ],
+                                  },
+                                  {
+                                    key: "confirmation",
+                                    label: "Digite EXCLUIR para confirmar",
+                                    required: true,
+                                  },
+                                ],
+                                submit: async (values) => {
+                                  if (values.confirmation !== "EXCLUIR")
+                                    throw new Error(
+                                      "Digite EXCLUIR para confirmar",
+                                    );
+                                  await admin("delete_player", {
+                                    userId: m.user_id,
+                                    deleteCharacters: values.mode === "delete",
+                                    confirmation: values.confirmation,
+                                  });
+                                  await load(campaign);
+                                  setForm(null);
+                                  setMessage(
+                                    "Jogador excluído; o histórico financeiro foi preservado",
+                                  );
+                                },
+                              });
+                            }}
+                          >
+                            Excluir jogador
+                          </button>
+                        </div>
+                      </details>
                     </section>
                   );
                 })}
@@ -1793,7 +2282,15 @@ export default function Game({ invite }: { invite?: string }) {
               )}
               {isMaster && (
                 <div className="toolbar">
-                  <p>Conteúdo da campanha</p>
+                  <select
+                    aria-label="Filtrar conteúdo"
+                    value={catalogFilter}
+                    onChange={(event) => setCatalogFilter(event.target.value)}
+                  >
+                    <option value="active">Ativos</option>
+                    <option value="archived">Arquivados</option>
+                    <option value="all">Todos</option>
+                  </select>
                   <button className="primary" onClick={() => catalogForm(page)}>
                     <Plus size={18} />
                     Criar{" "}
@@ -1813,7 +2310,15 @@ export default function Game({ invite }: { invite?: string }) {
                       ? "items"
                       : "creature_templates",
                 )
-                  .filter((a) => isMaster || a.active)
+                  .filter((a) =>
+                    !isMaster
+                      ? a.active
+                      : catalogFilter === "all"
+                        ? true
+                        : catalogFilter === "active"
+                          ? a.active
+                          : !a.active,
+                  )
                   .map((a) => (
                     <article className="panel catalog-card" key={a.id}>
                       <div className="spread">
@@ -1891,19 +2396,62 @@ export default function Game({ invite }: { invite?: string }) {
                             <button
                               onClick={() =>
                                 run(() =>
-                                  command(
-                                    page === "Vantagens"
-                                      ? "advantage"
-                                      : page === "Itens"
-                                        ? "item"
-                                        : "creature",
-                                    { id: a.id, active: !a.active },
-                                  ),
+                                  lifecycle(a.active ? "archive" : "restore", {
+                                    entity:
+                                      page === "Vantagens"
+                                        ? "advantage"
+                                        : page === "Itens"
+                                          ? "item"
+                                          : "creature",
+                                    id: a.id,
+                                  }),
                                 )
                               }
                             >
                               {a.active ? "Arquivar" : "Reativar"}
                             </button>
+                            <details className="inline-more">
+                              <summary aria-label="Mais ações">
+                                <MoreHorizontal size={16} />
+                              </summary>
+                              <button
+                                onClick={() =>
+                                  void run(async () => {
+                                    const entity =
+                                      page === "Vantagens"
+                                        ? "advantage"
+                                        : page === "Itens"
+                                          ? "item"
+                                          : "creature";
+                                    const {
+                                      data: preview,
+                                      error: previewError,
+                                    } = await browserDb().rpc(
+                                      "lifecycle_preview",
+                                      { c: campaign, entity, target: a.id },
+                                    );
+                                    if (previewError)
+                                      throw new Error(previewError.message);
+                                    const dependencies = Object.entries(preview)
+                                      .filter(([key]) => key !== "name")
+                                      .map(([key, value]) => `${key}: ${value}`)
+                                      .join(" · ");
+                                    if (
+                                      !confirm(
+                                        `Excluir definitivamente ${preview.name}? ${dependencies}`,
+                                      )
+                                    )
+                                      return;
+                                    await lifecycle("delete", {
+                                      entity,
+                                      id: a.id,
+                                    });
+                                  })
+                                }
+                              >
+                                Excluir definitivamente
+                              </button>
+                            </details>
                           </>
                         ) : (
                           page === "Vantagens" && (
@@ -2051,103 +2599,30 @@ export default function Game({ invite }: { invite?: string }) {
               }
             />
           )}
+          {page === "Carteira" && (
+            <WalletPanel
+              master={Boolean(isMaster)}
+              currentUserId={session.user.id}
+              masterBalance={ownMember?.dracmas_cents || 0}
+              characters={chars}
+              recipients={recipients}
+              transactions={rows("dracma_transactions")}
+              charges={rows("dracma_charges")}
+              avatarUrls={avatarUrls}
+              busy={busy}
+              transfer={(values) =>
+                perform(() => action("transfer_dracmas", values))
+              }
+              wallet={(operation, values) =>
+                perform(() => walletAction(operation, values))
+              }
+              adjust={(values) =>
+                perform(() => action("adjust_dracmas", values))
+              }
+            />
+          )}
           {page === "Configurações" && isMaster && (
             <>
-              <section className="panel master-account">
-                <div>
-                  <p className="eyebrow">MINHA CONTA DE MESTRE</p>
-                  <h2>{displayName}</h2>
-                  <p>
-                    Username de acesso: <strong>{ownProfile?.username}</strong>
-                  </p>
-                </div>
-                <div className="actions">
-                  <button
-                    onClick={() =>
-                      setForm({
-                        title: "Alterar minha senha",
-                        fields: [
-                          {
-                            key: "currentPassword",
-                            label: "Senha atual",
-                            type: "password",
-                            required: true,
-                          },
-                          {
-                            key: "password",
-                            label: "Nova senha",
-                            type: "password",
-                            required: true,
-                          },
-                          {
-                            key: "confirm",
-                            label: "Confirmar nova senha",
-                            type: "password",
-                            required: true,
-                          },
-                        ],
-                        submit: async (values) => {
-                          if (values.password !== values.confirm)
-                            throw new Error("As novas senhas não coincidem");
-                          await admin("self_password", {
-                            currentPassword: values.currentPassword,
-                            password: values.password,
-                          });
-                          setForm(null);
-                          setMessage("Sua senha foi alterada");
-                        },
-                      })
-                    }
-                  >
-                    <KeyRound size={17} /> Alterar minha senha
-                  </button>
-                  <button
-                    onClick={() =>
-                      setForm({
-                        title: "Ajustar meu saldo de Mestre",
-                        fields: [
-                          {
-                            key: "delta",
-                            label:
-                              "Valor a adicionar ou remover (ex: 100,00 ou -25,50)",
-                            required: true,
-                          },
-                          { key: "reason", label: "Motivo", required: true },
-                        ],
-                        submit: async (values) => {
-                          const deltaCents = parseDracmas(
-                            String(values.delta),
-                            true,
-                          );
-                          if (!deltaCents)
-                            throw new Error(
-                              "Informe um valor diferente de zero",
-                            );
-                          await action("adjust_dracmas", {
-                            target_type: "master",
-                            delta_cents: deltaCents,
-                            reason: values.reason,
-                            request_id: crypto.randomUUID(),
-                          });
-                          setForm(null);
-                        },
-                      })
-                    }
-                  >
-                    <Coins size={17} /> Ajustar meu saldo
-                  </button>
-                </div>
-              </section>
-              <DracmaTransfer
-                master
-                currentUserId={session.user.id}
-                masterBalance={ownMember?.dracmas_cents || 0}
-                characters={chars}
-                recipients={recipients}
-                transactions={rows("dracma_transactions")}
-                busy={busy}
-                send={(values) => action("transfer_dracmas", values)}
-              />
               <AvatarGallery
                 manager
                 avatars={rows("campaign_avatars")}
@@ -2339,6 +2814,44 @@ export default function Game({ invite }: { invite?: string }) {
                   Alterar tema e logo
                 </button>
               </section>
+              <CleanupPanel
+                busy={busy}
+                preview={() =>
+                  perform(async () => {
+                    const { data: result, error: previewError } =
+                      await browserDb().rpc("cleanup_preview", { c: campaign });
+                    if (previewError) throw new Error(previewError.message);
+                    return result || {};
+                  })
+                }
+                remove={(entries) =>
+                  perform(async () => {
+                    for (const entry of entries) {
+                      if (entry.entity === "avatar") {
+                        await admin("delete_avatar", { avatarId: entry.id });
+                      } else if (entry.entity === "invite") {
+                        await admin("delete_invite", {
+                          inviteId: entry.id,
+                          confirmation: "EXCLUIR",
+                        });
+                      } else {
+                        const { error: lifecycleError } = await browserDb().rpc(
+                          "lifecycle_action",
+                          {
+                            c: campaign,
+                            op: "delete",
+                            d: { entity: entry.entity, id: entry.id },
+                          },
+                        );
+                        if (lifecycleError)
+                          throw new Error(lifecycleError.message);
+                      }
+                    }
+                    await load(campaign);
+                    setMessage(`${entries.length} registro(s) removido(s)`);
+                  })
+                }
+              />
             </>
           )}
           {page === "Campanha" && (
@@ -2377,29 +2890,116 @@ export default function Game({ invite }: { invite?: string }) {
             </section>
           )}
           {page === "Perfil" && (
-            <>
-              <section className="panel">
-                <p className="eyebrow">MINHA CONTA</p>
-                <h2>{displayName}</h2>
-                <p>
-                  Username: <strong>{ownProfile?.username}</strong>
-                </p>
-                <p>Para alterar sua senha, fale com o Mestre.</p>
-                <button onClick={() => browserDb().auth.signOut()}>
-                  Sair da conta
+            <section className="panel profile-card">
+              <div className="profile-main">
+                {!isMaster && character && avatarUrls[character.avatar_id] ? (
+                  <button
+                    className="profile-avatar"
+                    aria-label="Alterar avatar"
+                    onClick={() => setAvatarPicker(true)}
+                  >
+                    <img
+                      src={avatarUrls[character.avatar_id]}
+                      alt={character.name}
+                    />
+                  </button>
+                ) : (
+                  <div className="profile-avatar empty-portrait">
+                    <UserRound size={34} />
+                  </div>
+                )}
+                <div>
+                  <p className="eyebrow">MINHA CONTA</p>
+                  <h2>
+                    {isMaster ? displayName : character?.name || displayName}
+                  </h2>
+                  <p>
+                    @{ownProfile?.username} {isMaster && "· Mestre"}
+                  </p>
+                  {ownProfile?.full_name && <p>{ownProfile.full_name}</p>}
+                </div>
+              </div>
+              <div className="profile-private">
+                {ownProfile?.personal_email && (
+                  <span>
+                    <small>E-mail</small>
+                    <strong>{ownProfile.personal_email}</strong>
+                  </span>
+                )}
+                {ownProfile?.birth_date && (
+                  <span>
+                    <small>Nascimento</small>
+                    <strong>
+                      {new Date(
+                        ownProfile.birth_date + "T12:00:00",
+                      ).toLocaleDateString("pt-BR")}
+                    </strong>
+                  </span>
+                )}
+                <span>
+                  <small>Saldo</small>
+                  <strong>
+                    {formatDracmas(
+                      isMaster
+                        ? ownMember?.dracmas_cents
+                        : character?.dracmas_cents,
+                    )}
+                  </strong>
+                </span>
+              </div>
+              <div className="actions">
+                {!isMaster && character && (
+                  <button onClick={() => setAvatarPicker(true)}>
+                    Alterar avatar
+                  </button>
+                )}
+                <button onClick={() => navigate("Carteira")}>
+                  Abrir Carteira
                 </button>
-              </section>
-              <DracmaTransfer
-                master={false}
-                currentUserId={session.user.id}
-                masterBalance={0}
-                characters={chars}
-                recipients={recipients}
-                transactions={rows("dracma_transactions")}
-                busy={busy}
-                send={(values) => action("transfer_dracmas", values)}
-              />
-            </>
+                <button
+                  onClick={() =>
+                    setForm({
+                      title: "Alterar minha senha",
+                      fields: [
+                        {
+                          key: "currentPassword",
+                          label: "Senha atual",
+                          type: "password",
+                          required: true,
+                        },
+                        {
+                          key: "password",
+                          label: "Nova senha",
+                          type: "password",
+                          required: true,
+                        },
+                        {
+                          key: "confirm",
+                          label: "Confirmar nova senha",
+                          type: "password",
+                          required: true,
+                        },
+                      ],
+                      submit: async (values) => {
+                        if (values.password !== values.confirm)
+                          throw new Error("As novas senhas não coincidem");
+                        await admin("self_password", {
+                          currentPassword: values.currentPassword,
+                          password: values.password,
+                        });
+                        setForm(null);
+                        setMessage("Sua senha foi alterada");
+                      },
+                    })
+                  }
+                >
+                  <KeyRound size={17} /> Alterar minha senha
+                </button>
+                <button onClick={() => browserDb().auth.signOut()}>
+                  <LogOut size={17} /> Sair da conta
+                </button>
+              </div>
+            </section>
           )}
         </main>
       </div>
@@ -2410,6 +3010,24 @@ export default function Game({ invite }: { invite?: string }) {
           busy={busy}
           run={run}
           generate={() => admin("generate")}
+        />
+      )}
+      {character && (
+        <AvatarPickerDialog
+          open={avatarPicker}
+          avatars={rows("campaign_avatars")}
+          urls={avatarUrls}
+          selectedId={character.avatar_id}
+          busy={busy}
+          close={() => setAvatarPicker(false)}
+          select={(avatarId) =>
+            perform(() =>
+              action("avatar_select", {
+                character_id: character.id,
+                avatar_id: avatarId,
+              }),
+            )
+          }
         />
       )}
     </div>
