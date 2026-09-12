@@ -1843,10 +1843,6 @@ export default function Game({ invite }: { invite?: string }) {
                   Criar jogador
                 </button>
               </div>
-              <p className="muted">
-                As senhas ficam ocultas e são escondidas novamente após 30
-                segundos.
-              </p>
               {rows("campaign_members")
                 .filter((m) => m.role === "player")
                 .map((m) => {
