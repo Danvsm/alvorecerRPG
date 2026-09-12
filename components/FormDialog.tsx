@@ -105,24 +105,25 @@ export default function FormDialog({
                   step={f.type === "number" ? 1 : undefined}
                 />
               )}
-              {f.type === "password" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    const input =
-                      e.currentTarget.parentElement?.querySelector("input");
-                    run(async () => {
-                      const r = await generate();
-                      if (input) {
-                        input.value = r.password;
-                        input.type = "text";
-                      }
-                    });
-                  }}
-                >
-                  Gerar senha
-                </button>
-              )}
+              {f.type === "password" &&
+                !["currentPassword", "confirm"].includes(f.key) && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const input =
+                        e.currentTarget.parentElement?.querySelector("input");
+                      run(async () => {
+                        const r = await generate();
+                        if (input) {
+                          input.value = r.password;
+                          input.type = "text";
+                        }
+                      });
+                    }}
+                  >
+                    Gerar senha
+                  </button>
+                )}
             </label>
           ))}
         </div>

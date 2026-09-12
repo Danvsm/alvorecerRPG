@@ -15,15 +15,17 @@ O modo `/dev` continua disponível com `npm run dev`. Em produção ele retorna 
 - Login por username e senha, sem email ou telefone do jogador.
 - Mestre inicial, criação de jogador completa e cadastro por convite único e expirável.
 - Credencial recuperável cifrada no Vault, disponível somente ao mestre pela função de servidor.
-- Ficha com foto, classe, raça, informações livres, anotações, recursos, atributos, vantagens e inventário.
+- Ficha com avatar escolhido da galeria da campanha, classe, raça, informações livres, anotações, recursos, atributos, vantagens e inventário.
 - Vida e Mana calculadas por atributo e multiplicador, com regra da campanha e substituição individual.
 - Cálculo automático opcional, máximo manual e ajuste da vida atual somente quando o novo máximo é menor.
 - Gastos de Vida, Mana e Fôlego pelo jogador; recuperação comum reservada ao mestre.
 - Consumíveis genéricos com efeitos de recuperação, uso atômico, quantidade e histórico.
 - Itens comuns, materiais, equipamentos, missões e consumíveis.
-- Lojas com catálogo, preço, estoque opcional, compra atômica, saldo e inventário em tempo real.
-- Miniaturas WebP privadas e retratos JPG, PNG ou WebP com regras de tamanho e propriedade.
-- XP, dinheiro, vantagens e inventário administráveis, com compras de vantagem atômicas.
+- Lojas com catálogo, preço em Dracmas, estoque opcional, compra atômica, saldo e inventário em tempo real.
+- Galeria de avatares WebP privada, administrada pelo Mestre e escolhida pelos jogadores.
+- Transferências de Dracmas em centavos inteiros entre jogadores e Mestre, com confirmação, histórico e operação atômica.
+- Miniaturas WebP privadas com otimização, limite de tamanho e carregamento sob demanda.
+- XP, Dracmas, vantagens e inventário administráveis, com compras de vantagem atômicas.
 - Atributos UUID dinâmicos, inclusive atributos individuais, ordem, renomeação e arquivamento.
 - Criaturas, NPCs e minions como modelos reutilizáveis.
 - Combates com múltiplas instâncias, aliados, inimigos, neutros, ocultação de números e estado por cor.

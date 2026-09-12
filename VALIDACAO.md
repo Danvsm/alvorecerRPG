@@ -8,7 +8,7 @@ npm test
 npm run build
 ```
 
-Resultado esperado: TypeScript sem erro, 11 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
+Resultado esperado: TypeScript sem erro, 13 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
 
 ## Testes no Supabase real
 
@@ -20,9 +20,10 @@ node --env-file=.env.local scripts/verify-live-combat.mjs
 node --env-file=.env.local scripts/verify-live-remainder.mjs
 node --env-file=.env.local scripts/verify-live-storage.mjs
 node --env-file=.env.local scripts/verify-live-credentials.mjs
+node --env-file=.env.local scripts/verify-live-avatar-dracmas.mjs
 ```
 
-Eles validam login, criação de jogador, convite de uso único, isolamento RLS, atributos, máximos calculados, multiplicador individual, limite do valor atual, saldo, poção, estoque, compra idempotente, criaturas, vida inimiga oculta, dois sentidos do Realtime, Storage privado e credenciais cifradas.
+Eles validam login, criação de jogador, convite de uso único, isolamento RLS, atributos, máximos calculados, multiplicador individual, limite do valor atual, Dracmas em centavos inteiros, transferências atômicas, galeria de avatares, poção, estoque, compra idempotente, criaturas, vida inimiga oculta, dois sentidos do Realtime, Storage privado e credenciais cifradas.
 
 Alguns scripts criam catálogos e salas de teste com nomes identificáveis. Use o painel do mestre para arquivar esses registros após uma rodada de validação.
 

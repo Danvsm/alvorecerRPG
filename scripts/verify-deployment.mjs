@@ -2,7 +2,8 @@ import fs from "node:fs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-const origin = "https://alvorecer-rose.vercel.app",
+const origin =
+    process.env.APP_TEST_ORIGIN || "https://alvorecer-rpg-vsm.vercel.app",
   setup = JSON.parse(fs.readFileSync(".setup-private.json"));
 async function post(path, body, token) {
   const r = await fetch(origin + path, {

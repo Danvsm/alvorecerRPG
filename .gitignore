@@ -10,3 +10,4 @@ node_modules/
 .env.production.local
 
 supabase/.temp/
+tsconfig.tsbuildinfo

@@ -1,6 +1,6 @@
 "use client";
 import { browserDb } from "./client";
-export async function uploadItemImage(file: File, campaign: string) {
+async function optimizedWebp(file: File, maximumEdge: number) {
   if (
     file.size > 5 * 1024 * 1024 ||
     !["image/webp", "image/jpeg", "image/png"].includes(file.type)
@@ -11,7 +11,7 @@ export async function uploadItemImage(file: File, campaign: string) {
     image.close();
     throw new Error("A imagem excede 16 megapixels");
   }
-  const scale = Math.min(1, 320 / Math.max(image.width, image.height));
+  const scale = Math.min(1, maximumEdge / Math.max(image.width, image.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(image.width * scale));
   canvas.height = Math.max(1, Math.round(image.height * scale));
@@ -27,9 +27,24 @@ export async function uploadItemImage(file: File, campaign: string) {
   );
   if (blob.type !== "image/webp" || blob.size > 262144)
     throw new Error("Não foi possível otimizar a imagem para WebP");
+  return blob;
+}
+
+export async function uploadItemImage(file: File, campaign: string) {
+  const blob = await optimizedWebp(file, 320);
   const path = `${campaign}/${crypto.randomUUID()}.webp`;
   const { error } = await browserDb()
     .storage.from("item-media")
+    .upload(path, blob, { contentType: "image/webp" });
+  if (error) throw error;
+  return path;
+}
+
+export async function uploadAvatarImage(file: File, campaign: string) {
+  const blob = await optimizedWebp(file, 512);
+  const path = `${campaign}/avatars/${crypto.randomUUID()}.webp`;
+  const { error } = await browserDb()
+    .storage.from("portraits")
     .upload(path, blob, { contentType: "image/webp" });
   if (error) throw error;
   return path;

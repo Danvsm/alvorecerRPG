@@ -1,4 +1,3 @@
-
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "node:crypto";
 import { encrypt, decrypt } from "./crypto.ts";
@@ -27,7 +26,11 @@ export function publicAuth() {
     },
   );
 }
-export function originCheck(req:Request){const origin=req.headers.get('origin');if(origin && origin!==Deno.env.get('APP_ORIGIN'))throw new Error('Origem não permitida');}
+export function originCheck(req: Request) {
+  const origin = req.headers.get("origin");
+  if (origin && origin !== Deno.env.get("APP_ORIGIN"))
+    throw new Error("Origem não permitida");
+}
 export async function master(req: Request, campaignId: string) {
   const db = admin(),
     token = req.headers.get("authorization")?.replace(/^Bearer /, "");
@@ -61,12 +64,13 @@ export async function provision(
 ) {
   const db = admin(),
     identity = `${randomUUID()}@auth.alvorecer.invalid`;
-  const reserve=await db.rpc("reserve_auth_identity",{identity});if(reserve.error)throw new Error("Não foi possível preparar a conta");
+  const reserve = await db.rpc("reserve_auth_identity", { identity });
+  if (reserve.error) throw new Error("Não foi possível preparar a conta");
   const { data, error } = await db.auth.admin.createUser({
     email: identity,
     password,
     email_confirm: true,
-    app_metadata:{alvorecer_managed:true},
+    app_metadata: { alvorecer_managed: true },
   });
   if (error || !data.user)
     throw new Error("Não foi possível criar a conta. Verifique a senha.");
@@ -93,7 +97,11 @@ export async function provision(
   }
   return ch;
 }
-export async function credential(campaign: string, userId: string) {
+export async function credential(
+  campaign: string,
+  userId: string,
+  playersOnly = true,
+) {
   const db = admin();
   const { data: m } = await db
     .from("campaign_members")
@@ -101,7 +109,10 @@ export async function credential(campaign: string, userId: string) {
     .eq("campaign_id", campaign)
     .eq("user_id", userId)
     .single();
-  if (m?.role !== "player") throw new Error("Jogador não encontrado");
+  if (!m || (playersOnly && m.role !== "player"))
+    throw new Error(
+      playersOnly ? "Jogador não encontrado" : "Conta não encontrada",
+    );
   const { data: v, error } = await db
     .from("credential_vault")
     .select("*")
@@ -140,4 +151,28 @@ export async function credential(campaign: string, userId: string) {
     };
   }
   return { password: decrypt(v.ciphertext, userId), identity: v.identity };
+}
+
+export async function changeCredential(
+  db: any,
+  userId: string,
+  password: string,
+) {
+  const cipher = encrypt(password, userId);
+  const lock = await db.rpc("lock_credential", { u: userId, cipher });
+  if (lock.error) throw new Error(lock.error.message);
+  const change = await db.auth.admin.updateUserById(userId, { password });
+  if (change.error)
+    throw new Error(
+      "Alteração pendente. Consulte a senha após um minuto para reconciliar.",
+    );
+  const done = await db.rpc("finish_credential", {
+    u: userId,
+    expected: cipher,
+    success: true,
+  });
+  if (done.error)
+    throw new Error(
+      "Senha alterada; confirmação pendente. Consulte após um minuto.",
+    );
 }

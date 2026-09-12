@@ -22,6 +22,7 @@ import {
   Skull,
   ChevronRight,
   X,
+  KeyRound,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import { Brand, Empty } from "./Common";
@@ -29,7 +30,10 @@ import ResourceConfiguration from "./ResourceConfiguration";
 import ConsumableActions from "./ConsumableActions";
 import ShopPanel from "./ShopPanel";
 import ItemThumbnail from "./ItemThumbnail";
-import { uploadItemImage } from "@/lib/media";
+import AvatarGallery from "./AvatarGallery";
+import DracmaTransfer from "./DracmaTransfer";
+import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
+import { formatDracmas, parseDracmas } from "@/lib/currency";
 import FormDialog from "./FormDialog";
 import type { Row, Field, Form } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
@@ -52,6 +56,8 @@ const tables = [
   "invites",
   "profiles",
   "campaign_members",
+  "campaign_avatars",
+  "dracma_transactions",
 ];
 const resourceNames: Row = {
   life: "Vida",
@@ -107,7 +113,8 @@ export default function Game({ invite }: { invite?: string }) {
     [connection, setConnection] = useState("Conectando"),
     [passwords, setPasswords] = useState<Record<string, string>>({}),
     [inviteUrl, setInviteUrl] = useState(""),
-    [portraits, setPortraits] = useState<Record<string, string>>({});
+    [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({}),
+    [recipients, setRecipients] = useState<Row[]>([]);
   const requestVersion = useRef(0);
   const isMaster =
     members.find((m) => m.campaign_id === campaign)?.role === "master";
@@ -118,6 +125,12 @@ export default function Game({ invite }: { invite?: string }) {
   const rows = (t: string) => data[t] || [];
   const chars = rows("characters").filter((c) => !c.archived);
   const character = chars.find((c) => c.id === selected) || chars[0];
+  const ownProfile = rows("profiles").find((p) => p.id === session?.user.id);
+  const displayName =
+    ownProfile?.display_name || ownProfile?.username || "Conta";
+  const ownMember = rows("campaign_members").find(
+    (member) => member.user_id === session?.user.id,
+  );
   useEffect(() => {
     if (!configured) {
       setReady(true);
@@ -146,37 +159,46 @@ export default function Game({ invite }: { invite?: string }) {
     setLoading(true);
     try {
       const db = browserDb();
-      const result = await Promise.all(
-        tables.map((t) => {
-          let q = db.from(t).select("*");
-          if (
-            [
-              "characters",
-              "attributes",
-              "advantages",
-              "items",
-              "creature_templates",
-              "combat_rooms",
-              "audit_logs",
-              "invites",
-              "campaign_members",
-            ].includes(t)
-          )
-            q = q.eq("campaign_id", c);
-          if (t === "audit_logs")
-            q = q.order("created_at", { ascending: false }).limit(200);
-          return q;
-        }),
-      );
+      const [result, snapshot, directory] = await Promise.all([
+        Promise.all(
+          tables.map((t) => {
+            let q = db.from(t).select("*");
+            if (
+              [
+                "characters",
+                "attributes",
+                "advantages",
+                "items",
+                "creature_templates",
+                "combat_rooms",
+                "audit_logs",
+                "invites",
+                "campaign_members",
+                "campaign_avatars",
+                "dracma_transactions",
+              ].includes(t)
+            )
+              q = q.eq("campaign_id", c);
+            if (t === "audit_logs")
+              q = q.order("created_at", { ascending: false }).limit(200);
+            if (t === "dracma_transactions")
+              q = q.order("created_at", { ascending: false }).limit(100);
+            return q;
+          }),
+        ),
+        db.rpc("combat_snapshot", { c }),
+        db.rpc("transfer_recipients", { c }),
+      ]);
       if (result.some((r) => r.error))
         throw new Error(result.find((r) => r.error)?.error?.message);
-      const snapshot = await db.rpc("combat_snapshot", { c });
       if (snapshot.error) throw snapshot.error;
+      if (directory.error) throw directory.error;
       if (version !== requestVersion.current) return;
       setData(
         Object.fromEntries(result.map((r, i) => [tables[i], r.data || []])),
       );
       setParticipants(snapshot.data || []);
+      setRecipients(directory.data || []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -249,21 +271,19 @@ export default function Game({ invite }: { invite?: string }) {
   useEffect(() => {
     let valid = true;
     Promise.all(
-      chars
-        .filter((c) => c.image)
-        .map(async (c) => {
-          const { data } = await browserDb()
-            .storage.from("portraits")
-            .createSignedUrl(c.image, 3600);
-          return [c.id, data?.signedUrl || ""];
-        }),
+      rows("campaign_avatars").map(async (avatar) => {
+        const { data } = await browserDb()
+          .storage.from("portraits")
+          .createSignedUrl(avatar.storage_path, 3600);
+        return [avatar.id, data?.signedUrl || ""];
+      }),
     ).then((r) => {
-      if (valid) setPortraits(Object.fromEntries(r));
+      if (valid) setAvatarUrls(Object.fromEntries(r));
     });
     return () => {
       valid = false;
     };
-  }, [data.characters]);
+  }, [data.campaign_avatars]);
   useEffect(() => {
     const timer = setTimeout(() => setMessage(""), 5000);
     return () => clearTimeout(timer);
@@ -529,7 +549,11 @@ export default function Game({ invite }: { invite?: string }) {
           },
         ]),
         { key: "xp", label: "XP", type: "number", value: 0 },
-        { key: "money", label: "Moedas", type: "number", value: 0 },
+        {
+          key: "dracmas",
+          label: "Dracmas (ex: 25,50)",
+          value: "0,00",
+        },
         ...rows("attributes")
           .filter((a) => !a.character_id && a.active)
           .map((a) => ({
@@ -546,7 +570,8 @@ export default function Game({ invite }: { invite?: string }) {
         },
       ],
       submit: async (d) => {
-        const { username, password, ...ch } = d;
+        const { username, password, dracmas, ...ch } = d;
+        ch.dracmas_cents = parseDracmas(String(dracmas));
         ch.attributes = Object.fromEntries(
           Object.entries(ch)
             .filter(([k]) => k.startsWith("attr_"))
@@ -555,15 +580,19 @@ export default function Game({ invite }: { invite?: string }) {
         await admin("create", { username, password, character: ch });
         await load(campaign);
         setForm(null);
-        setMessage("Jogador criado. Abra a ficha para adicionar sua imagem.");
+        setMessage("Jogador criado. Escolha um avatar na ficha.");
       },
     });
   }
   function characterHeader(ch: Row) {
     return (
       <div className="character-heading">
-        {portraits[ch.id] ? (
-          <img className="portrait" src={portraits[ch.id]} alt={ch.name} />
+        {avatarUrls[ch.avatar_id] ? (
+          <img
+            className="portrait"
+            src={avatarUrls[ch.avatar_id]}
+            alt={ch.name}
+          />
         ) : (
           <div className="portrait empty-portrait">
             <Shield size={35} />
@@ -602,14 +631,26 @@ export default function Game({ invite }: { invite?: string }) {
                       buy_advantage: "Compra de vantagem",
                       credential_view: "Credencial consultada",
                       credential_change: "Senha alterada",
+                      self_password_change: "Senha do Mestre alterada",
                       create_player: "Jogador criado",
+                      avatar: "Avatar cadastrado ou atualizado",
+                      avatar_select: "Avatar selecionado",
+                      avatar_delete: "Avatar excluído",
+                      dracma_transfer: "Transferência de Dracmas",
+                      dracma_adjustment: "Ajuste de Dracmas",
                     } as Row
                   )[l.action] || l.action}{" "}
                   {l.detail.delta !== undefined
                     ? `${l.detail.delta > 0 ? "+" : ""}${l.detail.delta}`
                     : ""}
+                  {l.detail.delta_cents !== undefined
+                    ? ` ${l.detail.delta_cents > 0 ? "+" : ""}${formatDracmas(l.detail.delta_cents)}`
+                    : ""}
                   {l.detail.before !== undefined
                     ? ` (${l.detail.before} → ${l.detail.after})`
+                    : ""}{" "}
+                  {l.detail.before_cents !== undefined
+                    ? ` (${formatDracmas(l.detail.before_cents)} → ${formatDracmas(l.detail.after_cents)})`
                     : ""}{" "}
                   {l.detail.reason || l.detail.name || ""}
                   {l.detail.recovered &&
@@ -622,8 +663,12 @@ export default function Game({ invite }: { invite?: string }) {
                 </p>
               </div>
               <small>
-                {rows("profiles").find((p) => p.id === l.actor_id)?.username ||
-                  "Mestre"}
+                {(() => {
+                  const actor = rows("profiles").find(
+                    (p) => p.id === l.actor_id,
+                  );
+                  return actor?.display_name || actor?.username || "Mestre";
+                })()}
               </small>
             </div>
           ))}
@@ -775,7 +820,9 @@ export default function Game({ invite }: { invite?: string }) {
           )}
         </nav>
         <div className="sidebar-foot">
-          <span>{isMaster ? "Mestre" : "Jogador"}</span>
+          <span>
+            {displayName} · {isMaster ? "Mestre" : "Jogador"}
+          </span>
           <button onClick={() => browserDb().auth.signOut()}>
             <LogOut size={17} />
             Sair
@@ -1000,41 +1047,6 @@ export default function Game({ invite }: { invite?: string }) {
                   <section className="panel">
                     {characterHeader(character)}
                     <div className="actions">
-                      <label className="button-label">
-                        Trocar foto
-                        <input
-                          hidden
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          disabled={busy}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            run(async () => {
-                              if (
-                                file.size > 5 * 1024 * 1024 ||
-                                ![
-                                  "image/jpeg",
-                                  "image/png",
-                                  "image/webp",
-                                ].includes(file.type)
-                              )
-                                throw new Error(
-                                  "Use JPG, PNG ou WEBP de até 5 MB",
-                                );
-                              const path = `${character.id}/${crypto.randomUUID()}.${file.type.split("/")[1]}`;
-                              const { error } = await browserDb()
-                                .storage.from("portraits")
-                                .upload(path, file);
-                              if (error) throw error;
-                              await command("image", {
-                                character_id: character.id,
-                                image: path,
-                              });
-                            });
-                          }}
-                        />
-                      </label>
                       {isMaster && (
                         <button
                           onClick={() =>
@@ -1073,6 +1085,20 @@ export default function Game({ invite }: { invite?: string }) {
                         </button>
                       )}
                     </div>
+                    <AvatarGallery
+                      avatars={rows("campaign_avatars")}
+                      urls={avatarUrls}
+                      selectedId={character.avatar_id}
+                      busy={busy}
+                      onSelect={(avatarId) =>
+                        run(() =>
+                          action("avatar_select", {
+                            character_id: character.id,
+                            avatar_id: avatarId,
+                          }),
+                        )
+                      }
+                    />
                     {isMaster && (
                       <ResourceConfiguration
                         character={character}
@@ -1093,45 +1119,86 @@ export default function Game({ invite }: { invite?: string }) {
                       )}
                     </div>
                     <div className="balances">
-                      {[
-                        ["xp", "XP", Star],
-                        ["money", "Moedas", Coins],
-                      ].map(([k, label, Icon]: any) => (
-                        <div key={k}>
-                          <Icon size={20} />
-                          <span>{label}</span>
-                          <strong>
-                            {character[k].toLocaleString("pt-BR")}
-                          </strong>
-                          {isMaster && (
-                            <button
-                              onClick={() =>
-                                edit(
-                                  `Alterar ${label}`,
-                                  [
-                                    {
-                                      key: "delta",
-                                      label:
-                                        "Quantidade a adicionar ou remover",
-                                      type: "number",
-                                      required: true,
-                                    },
-                                    {
-                                      key: "reason",
-                                      label: "Motivo",
-                                      required: true,
-                                    },
-                                  ],
-                                  "balance",
-                                  { character_id: character.id, key: k },
-                                )
-                              }
-                            >
-                              Alterar
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                      <div>
+                        <Star size={20} />
+                        <span>XP</span>
+                        <strong>{character.xp.toLocaleString("pt-BR")}</strong>
+                        {isMaster && (
+                          <button
+                            onClick={() =>
+                              edit(
+                                "Alterar XP",
+                                [
+                                  {
+                                    key: "delta",
+                                    label: "Quantidade a adicionar ou remover",
+                                    type: "number",
+                                    required: true,
+                                  },
+                                  {
+                                    key: "reason",
+                                    label: "Motivo",
+                                    required: true,
+                                  },
+                                ],
+                                "balance",
+                                { character_id: character.id, key: "xp" },
+                              )
+                            }
+                          >
+                            Alterar
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <Coins size={20} />
+                        <span>Dracmas</span>
+                        <strong>
+                          {formatDracmas(character.dracmas_cents)}
+                        </strong>
+                        {isMaster && (
+                          <button
+                            onClick={() =>
+                              setForm({
+                                title: `Alterar Dracmas de ${character.name}`,
+                                fields: [
+                                  {
+                                    key: "delta",
+                                    label:
+                                      "Valor a adicionar ou remover (ex: 25,50 ou -10,00)",
+                                    required: true,
+                                  },
+                                  {
+                                    key: "reason",
+                                    label: "Motivo",
+                                    required: true,
+                                  },
+                                ],
+                                submit: async (values) => {
+                                  const deltaCents = parseDracmas(
+                                    String(values.delta),
+                                    true,
+                                  );
+                                  if (!deltaCents)
+                                    throw new Error(
+                                      "Informe um valor diferente de zero",
+                                    );
+                                  await action("adjust_dracmas", {
+                                    target_type: "character",
+                                    target_character_id: character.id,
+                                    delta_cents: deltaCents,
+                                    reason: values.reason,
+                                    request_id: crypto.randomUUID(),
+                                  });
+                                  setForm(null);
+                                },
+                              })
+                            }
+                          >
+                            Alterar
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </section>
                   <section className="panel">
@@ -1986,6 +2053,137 @@ export default function Game({ invite }: { invite?: string }) {
           )}
           {page === "Configurações" && isMaster && (
             <>
+              <section className="panel master-account">
+                <div>
+                  <p className="eyebrow">MINHA CONTA DE MESTRE</p>
+                  <h2>{displayName}</h2>
+                  <p>
+                    Username de acesso: <strong>{ownProfile?.username}</strong>
+                  </p>
+                </div>
+                <div className="actions">
+                  <button
+                    onClick={() =>
+                      setForm({
+                        title: "Alterar minha senha",
+                        fields: [
+                          {
+                            key: "currentPassword",
+                            label: "Senha atual",
+                            type: "password",
+                            required: true,
+                          },
+                          {
+                            key: "password",
+                            label: "Nova senha",
+                            type: "password",
+                            required: true,
+                          },
+                          {
+                            key: "confirm",
+                            label: "Confirmar nova senha",
+                            type: "password",
+                            required: true,
+                          },
+                        ],
+                        submit: async (values) => {
+                          if (values.password !== values.confirm)
+                            throw new Error("As novas senhas não coincidem");
+                          await admin("self_password", {
+                            currentPassword: values.currentPassword,
+                            password: values.password,
+                          });
+                          setForm(null);
+                          setMessage("Sua senha foi alterada");
+                        },
+                      })
+                    }
+                  >
+                    <KeyRound size={17} /> Alterar minha senha
+                  </button>
+                  <button
+                    onClick={() =>
+                      setForm({
+                        title: "Ajustar meu saldo de Mestre",
+                        fields: [
+                          {
+                            key: "delta",
+                            label:
+                              "Valor a adicionar ou remover (ex: 100,00 ou -25,50)",
+                            required: true,
+                          },
+                          { key: "reason", label: "Motivo", required: true },
+                        ],
+                        submit: async (values) => {
+                          const deltaCents = parseDracmas(
+                            String(values.delta),
+                            true,
+                          );
+                          if (!deltaCents)
+                            throw new Error(
+                              "Informe um valor diferente de zero",
+                            );
+                          await action("adjust_dracmas", {
+                            target_type: "master",
+                            delta_cents: deltaCents,
+                            reason: values.reason,
+                            request_id: crypto.randomUUID(),
+                          });
+                          setForm(null);
+                        },
+                      })
+                    }
+                  >
+                    <Coins size={17} /> Ajustar meu saldo
+                  </button>
+                </div>
+              </section>
+              <DracmaTransfer
+                master
+                currentUserId={session.user.id}
+                masterBalance={ownMember?.dracmas_cents || 0}
+                characters={chars}
+                recipients={recipients}
+                transactions={rows("dracma_transactions")}
+                busy={busy}
+                send={(values) => action("transfer_dracmas", values)}
+              />
+              <AvatarGallery
+                manager
+                avatars={rows("campaign_avatars")}
+                urls={avatarUrls}
+                busy={busy}
+                onUpload={(file) =>
+                  run(async () => {
+                    const path = await uploadAvatarImage(file, campaign);
+                    try {
+                      await action("avatar", {
+                        name:
+                          file.name.replace(/\.[^.]+$/, "").slice(0, 80) ||
+                          "Avatar",
+                        storage_path: path,
+                      });
+                    } catch (caught) {
+                      await browserDb()
+                        .storage.from("portraits")
+                        .remove([path]);
+                      throw caught;
+                    }
+                  })
+                }
+                onArchive={(avatar) =>
+                  run(() =>
+                    action("avatar", { id: avatar.id, active: !avatar.active }),
+                  )
+                }
+                onDelete={(avatar) =>
+                  run(async () => {
+                    await admin("delete_avatar", { avatarId: avatar.id });
+                    await load(campaign);
+                    setMessage("Avatar excluído");
+                  })
+                }
+              />
               <ResourceConfiguration
                 campaign
                 resources={[]}
@@ -2179,18 +2377,29 @@ export default function Game({ invite }: { invite?: string }) {
             </section>
           )}
           {page === "Perfil" && (
-            <section className="panel">
-              <h2>
-                {
-                  rows("profiles").find((p) => p.id === session.user.id)
-                    ?.username
-                }
-              </h2>
-              <p>Para alterar sua senha, fale com o mestre da campanha.</p>
-              <button onClick={() => browserDb().auth.signOut()}>
-                Sair da conta
-              </button>
-            </section>
+            <>
+              <section className="panel">
+                <p className="eyebrow">MINHA CONTA</p>
+                <h2>{displayName}</h2>
+                <p>
+                  Username: <strong>{ownProfile?.username}</strong>
+                </p>
+                <p>Para alterar sua senha, fale com o Mestre.</p>
+                <button onClick={() => browserDb().auth.signOut()}>
+                  Sair da conta
+                </button>
+              </section>
+              <DracmaTransfer
+                master={false}
+                currentUserId={session.user.id}
+                masterBalance={0}
+                characters={chars}
+                recipients={recipients}
+                transactions={rows("dracma_transactions")}
+                busy={busy}
+                send={(values) => action("transfer_dracmas", values)}
+              />
+            </>
           )}
         </main>
       </div>

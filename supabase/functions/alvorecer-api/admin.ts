@@ -1,8 +1,15 @@
-
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
-import { credential, hash, master, originCheck, provision } from "./server.ts";
-import { encrypt, generatePassword } from "./crypto.ts";
+import {
+  changeCredential,
+  credential,
+  hash,
+  master,
+  originCheck,
+  provision,
+  publicAuth,
+} from "./server.ts";
+import { generatePassword } from "./crypto.ts";
 const base = z.object({
   action: z.enum([
     "create",
@@ -11,6 +18,8 @@ const base = z.object({
     "generate",
     "invite",
     "cancel_invite",
+    "self_password",
+    "delete_avatar",
   ]),
   campaign: z.string().uuid(),
   userId: z.string().uuid().optional(),
@@ -21,9 +30,11 @@ const base = z.object({
     .regex(/^[a-z0-9_]{3,32}$/)
     .optional(),
   password: z.string().min(6).max(72).optional(),
+  currentPassword: z.string().min(6).max(72).optional(),
   character: z.record(z.unknown()).optional(),
   hours: z.number().int().min(1).max(720).optional(),
   inviteId: z.string().uuid().optional(),
+  avatarId: z.string().uuid().optional(),
 });
 export async function POST(req: Request) {
   try {
@@ -51,25 +62,7 @@ export async function POST(req: Request) {
       await credential(d.campaign, d.userId);
       if (d.action === "password") {
         if (!d.password) throw new Error("Informe a senha");
-        const cipher = encrypt(d.password, d.userId);
-        const lock = await db.rpc("lock_credential", { u: d.userId, cipher });
-        if (lock.error) throw new Error(lock.error.message);
-        const change = await db.auth.admin.updateUserById(d.userId, {
-          password: d.password,
-        });
-        if (change.error)
-          throw new Error(
-            "Alteração pendente. Consulte a senha após um minuto para reconciliar.",
-          );
-        const done = await db.rpc("finish_credential", {
-          u: d.userId,
-          expected: cipher,
-          success: true,
-        });
-        if (done.error)
-          throw new Error(
-            "Senha alterada; confirmação pendente. Consulte após um minuto.",
-          );
+        await changeCredential(db, d.userId, d.password);
       }
       const log = await db.from("audit_logs").insert({
         campaign_id: d.campaign,
@@ -82,6 +75,62 @@ export async function POST(req: Request) {
         result = {
           password: (await credential(d.campaign, d.userId)).password,
         };
+    }
+    if (d.action === "self_password") {
+      if (!d.password || !d.currentPassword)
+        throw new Error("Informe a senha atual e a nova senha");
+      const current = await credential(d.campaign, user.id, false);
+      const probe = publicAuth();
+      const verified = await probe.auth.signInWithPassword({
+        email: current.identity,
+        password: d.currentPassword,
+      });
+      if (verified.error) throw new Error("Senha atual incorreta");
+      if (verified.data.session) await probe.auth.signOut();
+      await changeCredential(db, user.id, d.password);
+      const log = await db.from("audit_logs").insert({
+        campaign_id: d.campaign,
+        actor_id: user.id,
+        action: "self_password_change",
+        detail: {},
+      });
+      if (log.error)
+        throw new Error("Senha alterada, mas o histórico ficou pendente");
+    }
+    if (d.action === "delete_avatar") {
+      if (!d.avatarId) throw new Error("Avatar inválido");
+      const { data: avatar, error: avatarError } = await db
+        .from("campaign_avatars")
+        .select("id,storage_path")
+        .eq("id", d.avatarId)
+        .eq("campaign_id", d.campaign)
+        .single();
+      if (avatarError || !avatar) throw new Error("Avatar não encontrado");
+      const { count } = await db
+        .from("characters")
+        .select("id", { count: "exact", head: true })
+        .eq("avatar_id", avatar.id);
+      if (count)
+        throw new Error("Troque o avatar dos personagens antes de excluí-lo");
+      const removed = await db.storage
+        .from("portraits")
+        .remove([avatar.storage_path]);
+      if (removed.error) throw new Error("Não foi possível excluir a imagem");
+      const deleted = await db
+        .from("campaign_avatars")
+        .delete()
+        .eq("id", avatar.id);
+      if (deleted.error)
+        throw new Error("Não foi possível excluir o cadastro do avatar");
+      const event = await db.rpc("record_event", {
+        c: d.campaign,
+        ch: null,
+        action: "avatar_delete",
+        detail: { avatar_id: avatar.id },
+        actor: user.id,
+      });
+      if (event.error)
+        throw new Error("Avatar excluído, mas o histórico ficou pendente");
     }
     if (d.action === "invite") {
       const token = randomBytes(32).toString("hex");

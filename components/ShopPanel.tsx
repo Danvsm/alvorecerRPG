@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Row, Form } from "@/lib/types";
 import ItemThumbnail from "./ItemThumbnail";
 import { uploadItemImage } from "@/lib/media";
+import { formatDracmas, parseDracmas } from "@/lib/currency";
 export default function ShopPanel({
   shops,
   products,
@@ -74,10 +75,11 @@ export default function ShopPanel({
           value: p.description,
         },
         {
-          key: "price",
-          label: "Preço em moedas",
-          type: "number",
-          value: p.price ?? 0,
+          key: "price_text",
+          label: "Preço em Dracmas",
+          value: p.id
+            ? formatDracmas(p.price_cents).replace(" Dracmas", "")
+            : "0,00",
           required: true,
         },
         {
@@ -98,6 +100,7 @@ export default function ShopPanel({
       submit: async (d) => {
         await save("product", {
           ...d,
+          price_cents: parseDracmas(String(d.price_text)),
           active: d.active === "true",
           id: p.id,
           shop_id: shop.id,
@@ -149,7 +152,7 @@ export default function ShopPanel({
                 >
                   {characters.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} · {c.money} moedas
+                      {c.name} · {formatDracmas(c.dracmas_cents)}
                     </option>
                   ))}
                 </select>
@@ -169,7 +172,7 @@ export default function ShopPanel({
                   />
                   <h2>{p.name}</h2>
                   <p>{p.description}</p>
-                  <strong>{p.price} moedas</strong>
+                  <strong>{formatDracmas(p.price_cents)}</strong>
                   <p>
                     {p.stock === null
                       ? "Estoque ilimitado"
@@ -201,11 +204,14 @@ export default function ShopPanel({
                     <button
                       className="primary"
                       disabled={
-                        busy || !buyer || buyer.money < p.price || p.stock === 0
+                        busy ||
+                        !buyer ||
+                        Number(buyer.dracmas_cents) < Number(p.price_cents) ||
+                        p.stock === 0
                       }
                       onClick={() =>
                         open({
-                          title: `Comprar ${p.name} por ${p.price} moedas?`,
+                          title: `Comprar ${p.name} por ${formatDracmas(p.price_cents)}?`,
                           fields: [],
                           submit: async () => {
                             await save("purchase", {
