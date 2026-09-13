@@ -37,7 +37,10 @@ export default function AvatarGallery({
   onDelete?: (avatar: Row) => Promise<void>;
 }) {
   const [uploadError, setUploadError] = useState("");
-  const visible = manager ? avatars : avatars.filter((avatar) => avatar.active);
+  const [search, setSearch] = useState("");
+  const available = manager ? avatars : avatars.filter((avatar) => avatar.active);
+  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+  const visible = available.filter((avatar) => normalize(avatar.name).includes(normalize(search.trim())));
 
   return (
     <section className={manager ? "panel avatar-manager" : "avatar-picker"}>
@@ -103,6 +106,9 @@ export default function AvatarGallery({
         </form>
       )}
 
+      <label>Pesquisar avatares
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome do avatar" />
+      </label>
       <div className="avatar-grid">
         {visible.map((avatar) => {
           const selected = avatar.id === selectedId;

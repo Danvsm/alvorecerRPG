@@ -1,8 +1,9 @@
 "use client";
 
-import { Coins, Shield, Sparkles, Star, TrendingUp } from "lucide-react";
+import { Coins, Shield, Sparkles } from "lucide-react";
 import { formatDracmas } from "@/lib/currency";
 import type { Row } from "@/lib/types";
+import ProgressionPanel from "./ProgressionPanel";
 
 export default function CharacterSheet({
   character,
@@ -14,6 +15,7 @@ export default function CharacterSheet({
   ownedAdvantages,
   resourceControl,
   openWallet,
+  refresh,
 }: {
   character: Row;
   avatarUrl?: string;
@@ -24,25 +26,8 @@ export default function CharacterSheet({
   ownedAdvantages: Row[];
   resourceControl: (resource: Row) => React.ReactNode;
   openWallet: () => void;
+  refresh: () => Promise<void>;
 }) {
-  const baseAttributes = attributes
-    .filter(
-      (attribute) =>
-        attribute.active &&
-        (!attribute.character_id || attribute.character_id === character.id),
-    )
-    .sort((a, b) => a.position - b.position);
-  const target = Number(character.level || 1) + 1;
-  const completed = baseAttributes.filter(
-    (attribute) =>
-      Number(
-        values.find(
-          (value) =>
-            value.character_id === character.id &&
-            value.attribute_id === attribute.id,
-        )?.value || 0,
-      ) >= target,
-  ).length;
   const mainAdvantages = ownedAdvantages
     .filter((owned) => owned.character_id === character.id)
     .map((owned) =>
@@ -79,42 +64,6 @@ export default function CharacterSheet({
       </section>
 
       <div className="sheet-summary-grid">
-        <section className="panel progression-card">
-          <div className="spread">
-            <div>
-              <p className="eyebrow">PROGRESSÃO</p>
-              <h3>Nível {character.level || 1}</h3>
-            </div>
-            <TrendingUp size={22} />
-          </div>
-          <div className="xp-pair">
-            <span>
-              <Star size={16} /> XP disponível{" "}
-              <strong>
-                {Number(character.xp || 0).toLocaleString("pt-BR")}
-              </strong>
-            </span>
-            <span>
-              XP total conquistado{" "}
-              <strong>
-                {Number(character.xp_total || character.xp || 0).toLocaleString(
-                  "pt-BR",
-                )}
-              </strong>
-            </span>
-          </div>
-          <div className="progress-line">
-            <span
-              style={{
-                width: `${baseAttributes.length ? (completed / baseAttributes.length) * 100 : 0}%`,
-              }}
-            />
-          </div>
-          <small>
-            {completed}/{baseAttributes.length} atributos no valor {target} ou
-            maior
-          </small>
-        </section>
 
         <section className="panel wallet-summary">
           <Coins size={22} />
@@ -126,26 +75,7 @@ export default function CharacterSheet({
         </section>
       </div>
 
-      <section className="panel sheet-attributes">
-        <div className="spread">
-          <h2>Atributos</h2>
-          <small>Próximo nível: {target}</small>
-        </div>
-        <div className="attribute-grid compact-attributes">
-          {baseAttributes.map((attribute) => (
-            <div className="attribute" key={attribute.id}>
-              <span>{attribute.name}</span>
-              <strong>
-                {values.find(
-                  (value) =>
-                    value.character_id === character.id &&
-                    value.attribute_id === attribute.id,
-                )?.value || 0}
-              </strong>
-            </div>
-          ))}
-        </div>
-      </section>
+      <ProgressionPanel character={character} attributes={attributes} values={values} refresh={refresh} />
 
       {(mainAdvantages.length > 0 || effects.length > 0) && (
         <div className="sheet-summary-grid">

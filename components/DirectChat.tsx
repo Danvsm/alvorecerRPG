@@ -1,0 +1,284 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { MessageCircle, X } from "lucide-react";
+import { browserDb } from "@/lib/client";
+import type { Row } from "@/lib/types";
+import ChatImage from "./ChatImage";
+import {optimizedWebp} from "@/lib/media";
+
+export default function DirectChat({
+  campaign,
+  identities,
+  actor,
+  master,
+  revision,
+  requestedPeer,
+}: {
+  campaign: string;
+  identities: Row[];
+  actor: string;
+  master: boolean;
+  revision: unknown;
+  requestedPeer?: { id: string; nonce: number };
+}) {
+  const [open, setOpen] = useState(false),
+    [conversations, setConversations] = useState<Row[]>([]),
+    [messages, setMessages] = useState<Row[]>([]),
+    [unread, setUnread] = useState(0),
+    [selected, setSelected] = useState(""),
+    [body, setBody] = useState(""),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [refresh, setRefresh] = useState(0),
+    [limit, setLimit] = useState(50);
+  const [position, setPosition] = useState({ right: true, y: 75 });
+  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const action = async (op: string, d: Row) => {
+    const r = await browserDb().rpc("social_action", {
+      c: campaign,
+      op,
+      d: { ...d, actor_id: actor },
+    });
+    if (r.error) throw new Error(r.error.message);
+    return r.data;
+  };
+  useEffect(() => {
+    if (!requestedPeer?.id || !actor) return;
+    let valid = true;
+    action("conversation", { recipient_id: requestedPeer.id })
+      .then((r) => {
+        if (valid) {
+          setSelected(r.id);
+          setOpen(true);
+          setRefresh((v) => v + 1);
+        }
+      })
+      .catch((e) => setError(e.message));
+    return () => {
+      valid = false;
+    };
+  }, [requestedPeer, actor]);
+  useEffect(() => {
+    let valid = true;
+    Promise.all([
+      browserDb()
+        .from("direct_conversations")
+        .select("*")
+        .eq("campaign_id", campaign)
+        .order("created_at", { ascending: false }),
+      browserDb().rpc("unread_messages", { c: campaign, actor }),
+    ]).then(([c, r]) => {
+      if (!valid) return;
+      const failed = [c, r].find((x) => x.error);
+      if (failed?.error) {
+        setError(failed.error.message);
+        return;
+      }
+      setConversations(c.data || []);
+      setUnread(Number(r.data || 0));
+    });
+    return () => {
+      valid = false;
+    };
+  }, [campaign, actor, revision, refresh]);
+  useEffect(() => {
+    if (!selected || !open) return;
+    let valid = true;
+    browserDb()
+      .from("direct_messages")
+      .select("*")
+      .eq("conversation_id", selected)
+      .order("created_at", { ascending: false })
+      .limit(limit)
+      .then(async (r) => {
+        if (!valid) return;
+        if (r.error) {
+          setError(r.error.message);
+          return;
+        }
+        setMessages((r.data || []).reverse());
+        if (
+          conversations.some(
+            (c) =>
+              c.id === selected && [c.first_id, c.second_id].includes(actor),
+          )
+        ) {
+          try {
+            await action("read", { conversation_id: selected });
+            const unreadResult = await browserDb().rpc("unread_messages", {
+              c: campaign,
+              actor,
+            });
+            if (!unreadResult.error && valid)
+              setUnread(Number(unreadResult.data || 0));
+          } catch (e) {
+            setError((e as Error).message);
+          }
+        }
+      });
+    return () => {
+      valid = false;
+    };
+  }, [selected, open, actor, revision, refresh, limit, conversations]);
+  const selectedConversation = conversations.find((c) => c.id === selected);
+  const canSend =
+    selectedConversation &&
+    [selectedConversation.first_id, selectedConversation.second_id].includes(
+      actor,
+    );
+  return (
+    <>
+      <button
+        className="chat-bubble"
+        style={{
+          top: `${position.y}%`,
+          left: position.right ? "auto" : 12,
+          right: position.right ? 12 : "auto",
+          touchAction: "none",
+        }}
+        aria-label={`Mensagens, ${unread} não lidas`}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drag.current = { x: e.clientX, y: e.clientY, moved: false };
+        }}
+        onPointerMove={(e) => {
+          if (!drag.current) return;
+          if (
+            Math.abs(e.clientX - drag.current.x) +
+              Math.abs(e.clientY - drag.current.y) >
+            8
+          )
+            drag.current.moved = true;
+          if (drag.current.moved)
+            setPosition({
+              right: e.clientX > window.innerWidth / 2,
+              y: Math.max(
+                10,
+                Math.min(85, (e.clientY / window.innerHeight) * 100),
+              ),
+            });
+        }}
+        onPointerUp={() => {
+          if (!drag.current?.moved) setOpen((v) => !v);
+          drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+      >
+        <MessageCircle />
+        {unread > 0 && <span>{unread}</span>}
+      </button>
+      {open && (
+        <aside className="chat-window" aria-label="Mensagens diretas">
+          <div className="spread">
+            <h2>Mensagens</h2>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Fechar mensagens"
+            >
+              <X />
+            </button>
+          </div>
+          <select
+            aria-label="Conversa"
+            value={selected}
+            onChange={(e) => {
+              setSelected(e.target.value);
+              setLimit(50);
+            }}
+          >
+            <option value="">Escolha uma conversa</option>
+            {conversations
+              .filter(
+                (c) => master || [c.first_id, c.second_id].includes(actor),
+              )
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {[c.first_id, c.second_id]
+                    .filter((id) => id !== actor)
+                    .map(
+                      (id) =>
+                        identities.find((i) => i.id === id)?.name ||
+                        "Perfil indisponível",
+                    )
+                    .join(" e ")}
+                </option>
+              ))}
+          </select>
+          <div className="chat-messages">
+            {messages.length >= limit && (
+              <button onClick={() => setLimit((n) => n + 50)}>
+                Carregar anteriores
+              </button>
+            )}
+            {messages.map((m) => (
+              <div
+                className={
+                  m.sender_id === actor ? "chat-message mine" : "chat-message"
+                }
+                key={m.id}
+              >
+                <small>
+                  {identities.find((i) => i.id === m.sender_id)?.name}
+                </small>
+                {m.media_id?<ChatImage id={m.media_id}/>:<p>{m.body}</p>}
+                <small>
+                  {new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </small>
+              </div>
+            ))}
+          </div>
+          {canSend && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (busy) return;
+                setBusy(true);
+                setError("");
+                try {
+                  await action("message", { conversation_id: selected, body });
+                  setBody("");
+                  setRefresh((v) => v + 1);
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <label>
+                Mensagem
+                <textarea
+                  required
+                  maxLength={4000}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                />
+              </label>
+              <button disabled={busy}>Enviar</button>
+              <label>Enviar imagem<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={async e=>{
+                const file=e.target.files?.[0];e.target.value="";if(!file||busy)return;setBusy(true);setError("");
+                try{const blob=await optimizedWebp(file,800);const db=browserDb();const r=await db.rpc("chat_media_action",{c:campaign,op:"reserve",d:{actor_id:actor,conversation_id:selected}});if(r.error)throw r.error;const upload=await db.storage.from("chat-media").upload(r.data.path,blob,{contentType:"image/webp"});if(upload.error)throw upload.error;const sent=await db.rpc("chat_media_action",{c:campaign,op:"send",d:{actor_id:actor,media_id:r.data.id}});if(sent.error)throw sent.error;setRefresh(v=>v+1)}catch(e){setError((e as Error).message)}finally{setBusy(false)}
+              }}/></label>
+            </form>
+          )}
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+        </aside>
+      )}
+    </>
+  );
+}

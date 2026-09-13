@@ -1,6 +1,6 @@
 "use client";
 import { browserDb } from "./client";
-async function optimizedWebp(file: File, maximumEdge: number) {
+export async function optimizedWebp(file: File, maximumEdge: number) {
   if (
     file.size > 5 * 1024 * 1024 ||
     !["image/webp", "image/jpeg", "image/png"].includes(file.type)

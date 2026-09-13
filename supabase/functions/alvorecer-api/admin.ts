@@ -194,22 +194,24 @@ export async function POST(req: Request) {
         .eq("campaign_id", d.campaign)
         .single();
       if (avatarError || !avatar) throw new Error("Avatar não encontrado");
-      const { count } = await db
+      const { count, error: usageError } = await db
         .from("characters")
         .select("id", { count: "exact", head: true })
         .eq("avatar_id", avatar.id);
-      if (count)
+      if (usageError) throw new Error("Não foi possível verificar o uso do avatar");
+      const identityUsage = await db.from("social_identities")
+        .select("id", { count: "exact", head: true }).eq("avatar_id", avatar.id);
+      if (identityUsage.error) throw new Error("Não foi possível verificar os perfis vinculados");
+      if (count || identityUsage.count)
         throw new Error("Troque o avatar dos personagens antes de excluí-lo");
-      const removed = await db.storage
-        .from("portraits")
-        .remove([avatar.storage_path]);
-      if (removed.error) throw new Error("Não foi possível excluir a imagem");
       const deleted = await db
         .from("campaign_avatars")
         .delete()
         .eq("id", avatar.id);
       if (deleted.error)
         throw new Error("Não foi possível excluir o cadastro do avatar");
+      const removed = await db.storage.from("portraits").remove([avatar.storage_path]);
+      if (removed.error) throw new Error("Cadastro excluído. A limpeza do arquivo ficou pendente");
       const event = await db.rpc("record_event", {
         c: d.campaign,
         ch: null,

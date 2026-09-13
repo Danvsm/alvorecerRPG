@@ -35,6 +35,13 @@ import ShopPanel from "./ShopPanel";
 import ItemThumbnail from "./ItemThumbnail";
 import AvatarGallery from "./AvatarGallery";
 import AvatarPickerDialog from "./AvatarPickerDialog";
+import CosmeticsPanel from "./CosmeticsPanel";
+import CommunityPanel from "./CommunityPanel";
+import IdentityBadge from "./IdentityBadge";
+import DirectChat from "./DirectChat";
+import NotificationBell from "./NotificationBell";
+import RewardsPanel from "./RewardsPanel";
+import PlayerDataDetails, { ageFromDate } from "./PlayerDataDetails";
 import CharacterSheet from "./CharacterSheet";
 import InventoryPanel from "./InventoryPanel";
 import WalletPanel from "./WalletPanel";
@@ -74,6 +81,11 @@ const tables = [
   "dracma_charges",
   "activity_sessions",
   "session_feedback",
+  "social_identities",
+  "cosmetics",
+  "cosmetic_grants",
+  "cosmetic_equipment",
+  "notifications",
 ];
 const resourceNames: Row = {
   life: "Vida",
@@ -125,7 +137,7 @@ const historyActions: Row = {
 };
 const masterMenu = [
   ["Visão Geral", LayoutDashboard],
-  ["Jogadores", Users],
+  ["Dados", Users],
   ["Personagens", Shield],
   ["Combate", Swords],
   ["Carteira", WalletCards],
@@ -138,6 +150,7 @@ const masterMenu = [
   ["Convites", LinkIcon],
   ["Configurações", Settings],
   ["Perfil", UserRound],
+  ["Comunidade", Users],
 ] as const;
 const playerMenu = [
   ["Início", LayoutDashboard],
@@ -149,8 +162,13 @@ const playerMenu = [
   ["Lojas", Coins],
   ["Histórico", ScrollText],
   ["Perfil", UserRound],
+  ["Comunidade", Users],
 ] as const;
 export default function Game({ invite }: { invite?: string }) {
+  const [speakingAs, setSpeakingAs] = useState("");
+  const [playerSearch, setPlayerSearch] = useState("");
+  const [expandedPlayer, setExpandedPlayer] = useState("");
+  const [chatPeer, setChatPeer] = useState<{ id: string; nonce: number }>();
   const [session, setSession] = useState<Session | null>(null),
     [ready, setReady] = useState(false),
     [members, setMembers] = useState<Row[]>([]),
@@ -187,6 +205,18 @@ export default function Game({ invite }: { invite?: string }) {
   const chars = rows("characters").filter((c) => !c.archived);
   const character = chars.find((c) => c.id === selected) || chars[0];
   const ownProfile = rows("profiles").find((p) => p.id === session?.user.id);
+  const ownIdentity = rows("social_identities").find(
+    (p) => p.user_id === session?.user.id && p.campaign_id === campaign,
+  );
+  const profileAvatar =
+    ownIdentity?.avatar_id || (!isMaster ? character?.avatar_id : null);
+  const socialActor =
+    (isMaster &&
+    rows("social_identities").some(
+      (i) => i.id === speakingAs && i.kind === "npc" && i.active,
+    )
+      ? speakingAs
+      : ownIdentity?.id) || "";
   const displayName =
     ownProfile?.display_name || ownProfile?.username || "Conta";
   const ownMember = rows("campaign_members").find(
@@ -220,7 +250,7 @@ export default function Game({ invite }: { invite?: string }) {
     setLoading(true);
     try {
       const db = browserDb();
-      const [result, snapshot, directory] = await Promise.all([
+      const [result, snapshot, directory, visuals] = await Promise.all([
         Promise.all(
           tables.map((t) => {
             let q = db.from(t).select("*");
@@ -240,6 +270,9 @@ export default function Game({ invite }: { invite?: string }) {
                 "dracma_charges",
                 "activity_sessions",
                 "session_feedback",
+                "social_identities",
+                "cosmetics",
+                "notifications",
               ].includes(t)
             )
               q = q.eq("campaign_id", c);
@@ -256,6 +289,7 @@ export default function Game({ invite }: { invite?: string }) {
         ),
         db.rpc("combat_snapshot", { c }),
         db.rpc("transfer_recipients", { c }),
+        db.rpc("combat_identities", { c }),
       ]);
       const failed = result.findIndex((r) => r.error);
       if (failed !== -1)
@@ -264,11 +298,12 @@ export default function Game({ invite }: { invite?: string }) {
         );
       if (snapshot.error) throw snapshot.error;
       if (directory.error) throw directory.error;
+      if (visuals.error) throw visuals.error;
       if (version !== requestVersion.current) return;
       setData(
         Object.fromEntries(result.map((r, i) => [tables[i], r.data || []])),
       );
-      setParticipants(snapshot.data || []);
+      setParticipants((snapshot.data || []).map((p:Row)=>({...p,...(visuals.data||[]).find((v:Row)=>v.participant_id===p.id)})));
       setRecipients(directory.data || []);
     } catch (e) {
       setError((e as Error).message);
@@ -1034,12 +1069,8 @@ export default function Game({ invite }: { invite?: string }) {
             className="sidebar-account"
             onClick={() => navigate("Perfil")}
           >
-            {!isMaster && avatarUrls[character?.avatar_id] ? (
-              <img
-                src={avatarUrls[character.avatar_id]}
-                alt=""
-                onClick={() => setAvatarPicker(true)}
-              />
+            {avatarUrls[profileAvatar] ? (
+              <img src={avatarUrls[profileAvatar]} alt="" />
             ) : (
               <span className="sidebar-avatar">
                 <UserRound size={16} />
@@ -1083,6 +1114,18 @@ export default function Game({ invite }: { invite?: string }) {
           >
             {connection}
           </small>
+          <NotificationBell
+            notifications={rows("notifications")}
+            save={async (op, d) => {
+              const r = await browserDb().rpc("identity_action", {
+                c: campaign,
+                op,
+                d,
+              });
+              if (r.error) throw new Error(r.error.message);
+              await load(campaign, true);
+            }}
+          />
         </header>
         <main className="content">
           <div className="page-heading">
@@ -1796,6 +1839,7 @@ export default function Game({ invite }: { invite?: string }) {
                     resourcePanel(character.id, resource)
                   }
                   openWallet={() => navigate("Carteira")}
+                  refresh={() => load(campaign, true)}
                 />
               </>
             ) : (
@@ -1856,197 +1900,280 @@ export default function Game({ invite }: { invite?: string }) {
             ) : (
               <Empty text="Nenhum inventário disponível." />
             ))}
-          {page === "Jogadores" && isMaster && (
+          {page === "Dados" && isMaster && (
             <>
+              <RewardsPanel campaign={campaign} characters={chars} cosmetics={rows("cosmetics")} refresh={()=>load(campaign,true)}/>
               <div className="toolbar">
-                <h2>Jogadores e credenciais</h2>
+                <h2>Dados dos jogadores</h2>
                 <button className="primary" onClick={newPlayer}>
                   <Plus size={18} />
                   Criar jogador
                 </button>
               </div>
+              <label>
+                Buscar por nome, username, personagem ou e-mail
+                <input
+                  type="search"
+                  value={playerSearch}
+                  onChange={(e) => setPlayerSearch(e.target.value)}
+                />
+              </label>
               {rows("campaign_members")
                 .filter((m) => m.role === "player")
+                .filter((m) => {
+                  const p = rows("profiles").find((p) => p.id === m.user_id);
+                  return [
+                    p?.full_name,
+                    p?.username,
+                    p?.personal_email,
+                    ...chars
+                      .filter((ch) => ch.owner_id === m.user_id)
+                      .map((ch) => ch.name),
+                  ]
+                    .join(" ")
+                    .toLocaleLowerCase("pt-BR")
+                    .includes(playerSearch.toLocaleLowerCase("pt-BR"));
+                })
                 .map((m) => {
                   const p = rows("profiles").find((p) => p.id === m.user_id);
                   return (
                     <section className="panel" key={m.user_id}>
-                      <div className="spread">
-                        <div>
-                          <h2>{p?.full_name || p?.username}</h2>
-                          <small>@{p?.username}</small>
-                        </div>
-                        <span
-                          className={`badge${m.access_active ? "" : " disabled-badge"}`}
-                        >
-                          {m.access_active ? "Ativo" : "Acesso desativado"}
+                      <button
+                        className="spread"
+                        aria-expanded={expandedPlayer === m.user_id}
+                        onClick={() =>
+                          setExpandedPlayer(
+                            expandedPlayer === m.user_id ? "" : m.user_id,
+                          )
+                        }
+                      >
+                        {rows("social_identities").find(
+                          (i) => i.user_id === m.user_id,
+                        ) && (
+                          <IdentityBadge
+                            identity={rows("social_identities").find(
+                              (i) => i.user_id === m.user_id,
+                            )!}
+                            cosmetics={rows("cosmetics")}
+                            equipment={rows("cosmetic_equipment")}
+                            urls={avatarUrls}
+                          />
+                        )}
+                        <span>
+                          {p?.full_name || p?.username} · @{p?.username}
                         </span>
-                      </div>
-                      <p>
+                        <small>
+                          {ageFromDate(p?.birth_date) ?? "Idade não informada"}
+                        </small>
+                        <span>{m.access_active ? "Ativo" : "Desativado"}</span>
+                      </button>
+                      <small>
                         {chars
-                          .filter((c) => c.owner_id === m.user_id)
-                          .map((c) => c.name)
+                          .filter((ch) => ch.owner_id === m.user_id)
+                          .map((ch) => ch.name)
                           .join(", ") || "Sem personagem"}
-                      </p>
-                      {(p?.personal_email || p?.birth_date) && (
-                        <p className="private-data">
-                          {p.personal_email && (
-                            <span>E-mail: {p.personal_email}</span>
-                          )}
-                          {p.birth_date && (
-                            <span>
-                              Nascimento:{" "}
-                              {new Date(
-                                p.birth_date + "T12:00:00",
-                              ).toLocaleDateString("pt-BR")}
-                            </span>
-                          )}
-                        </p>
-                      )}
-                      <div className="credential">
-                        <code>{passwords[m.user_id] || "••••••••"}</code>
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            run(async () => {
-                              if (passwords[m.user_id])
-                                setPasswords((p) => ({
-                                  ...p,
-                                  [m.user_id]: "",
-                                }));
-                              else {
-                                const v = await admin("show", {
-                                  userId: m.user_id,
-                                });
-                                setPasswords((p) => ({
-                                  ...p,
-                                  [m.user_id]: v.password,
-                                }));
+                      </small>
+                      {expandedPlayer === m.user_id && (
+                        <>
+                          {p && (
+                            <PlayerDataDetails
+                              profile={p}
+                              campaign={campaign}
+                              characters={chars.filter(
+                                (ch) => ch.owner_id === m.user_id,
+                              )}
+                              resources={rows("character_resources")}
+                              open={(f) =>
+                                setForm({
+                                  ...f,
+                                  submit: async (d) => {
+                                    await f.submit(d);
+                                    setForm(null);
+                                  },
+                                })
                               }
-                            })
-                          }
-                        >
-                          <Eye size={16} />
-                          {passwords[m.user_id] ? "Ocultar" : "Mostrar"}
-                        </button>
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            run(async () => {
-                              const v = await admin("show", {
-                                userId: m.user_id,
-                              });
-                              await navigator.clipboard.writeText(
-                                `Username: ${p?.username}\nSenha: ${v.password}`,
-                              );
-                              setMessage("Credenciais copiadas");
-                            })
-                          }
-                        >
-                          Copiar
-                        </button>
-                        <button
-                          onClick={() =>
-                            setForm({
-                              title: `Alterar senha de ${p?.username}`,
-                              fields: [
-                                {
-                                  key: "password",
-                                  label: "Nova senha",
-                                  type: "password",
-                                  required: true,
-                                },
-                              ],
-                              submit: async (d) => {
-                                await admin("password", {
-                                  userId: m.user_id,
-                                  password: d.password,
-                                });
-                                setPasswords({});
-                                setForm(null);
-                                setMessage("Senha alterada");
-                              },
-                            })
-                          }
-                        >
-                          Alterar senha
-                        </button>
-                      </div>
-                      <details className="danger-more">
-                        <summary>
-                          <MoreHorizontal size={16} /> Mais ações
-                        </summary>
-                        <div className="actions">
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              void run(async () => {
-                                await admin(
-                                  m.access_active
-                                    ? "disable_player"
-                                    : "enable_player",
-                                  { userId: m.user_id },
-                                );
-                                await load(campaign, true);
-                              })
-                            }
-                          >
-                            {m.access_active
-                              ? "Desativar acesso"
-                              : "Reativar acesso"}
-                          </button>
-                          <button
-                            disabled={busy}
-                            onClick={() => {
-                              const linked = chars.filter(
-                                (item) => item.owner_id === m.user_id,
-                              );
-                              setForm({
-                                title: `Excluir o jogador @${p?.username}?`,
-                                fields: [
-                                  {
-                                    key: "mode",
-                                    label: `Personagens vinculados: ${linked.map((item) => item.name).join(", ") || "nenhum"}`,
-                                    options: [
+                              refresh={() => load(campaign, true)}
+                              editCharacter={(id) => {
+                                setSelected(id);
+                                navigate("Personagens");
+                              }}
+                            />
+                          )}
+                          <details>
+                            <summary>Conta</summary>
+                            <div className="spread">
+                              <div>
+                                <h2>{p?.full_name || p?.username}</h2>
+                                <small>@{p?.username}</small>
+                              </div>
+                              <span
+                                className={`badge${m.access_active ? "" : " disabled-badge"}`}
+                              >
+                                {m.access_active
+                                  ? "Ativo"
+                                  : "Acesso desativado"}
+                              </span>
+                            </div>
+                            <p>
+                              {chars
+                                .filter((c) => c.owner_id === m.user_id)
+                                .map((c) => c.name)
+                                .join(", ") || "Sem personagem"}
+                            </p>
+                            {(p?.personal_email || p?.birth_date) && (
+                              <p className="private-data">
+                                {p.personal_email && (
+                                  <span>E-mail: {p.personal_email}</span>
+                                )}
+                                {p.birth_date && (
+                                  <span>
+                                    Nascimento:{" "}
+                                    {new Date(
+                                      p.birth_date + "T12:00:00",
+                                    ).toLocaleDateString("pt-BR")}
+                                  </span>
+                                )}
+                              </p>
+                            )}
+                            <div className="credential">
+                              <code>{passwords[m.user_id] || "••••••••"}</code>
+                              <button
+                                disabled={busy}
+                                onClick={() =>
+                                  run(async () => {
+                                    if (passwords[m.user_id])
+                                      setPasswords((p) => ({
+                                        ...p,
+                                        [m.user_id]: "",
+                                      }));
+                                    else {
+                                      const v = await admin("show", {
+                                        userId: m.user_id,
+                                      });
+                                      setPasswords((p) => ({
+                                        ...p,
+                                        [m.user_id]: v.password,
+                                      }));
+                                    }
+                                  })
+                                }
+                              >
+                                <Eye size={16} />
+                                {passwords[m.user_id] ? "Ocultar" : "Mostrar"}
+                              </button>
+                              <button
+                                disabled={busy}
+                                onClick={() =>
+                                  run(async () => {
+                                    const v = await admin("show", {
+                                      userId: m.user_id,
+                                    });
+                                    await navigator.clipboard.writeText(
+                                      `Username: ${p?.username}\nSenha: ${v.password}`,
+                                    );
+                                    setMessage("Credenciais copiadas");
+                                  })
+                                }
+                              >
+                                Copiar
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setForm({
+                                    title: `Alterar senha de ${p?.username}`,
+                                    fields: [
                                       {
-                                        id: "keep",
-                                        name: "Excluir conta e manter personagens",
-                                      },
-                                      {
-                                        id: "delete",
-                                        name: "Excluir conta e personagens",
+                                        key: "password",
+                                        label: "Nova senha",
+                                        type: "password",
+                                        required: true,
                                       },
                                     ],
-                                  },
-                                  {
-                                    key: "confirmation",
-                                    label: "Digite EXCLUIR para confirmar",
-                                    required: true,
-                                  },
-                                ],
-                                submit: async (values) => {
-                                  if (values.confirmation !== "EXCLUIR")
-                                    throw new Error(
-                                      "Digite EXCLUIR para confirmar",
+                                    submit: async (d) => {
+                                      await admin("password", {
+                                        userId: m.user_id,
+                                        password: d.password,
+                                      });
+                                      setPasswords({});
+                                      setForm(null);
+                                      setMessage("Senha alterada");
+                                    },
+                                  })
+                                }
+                              >
+                                Alterar senha
+                              </button>
+                            </div>
+                          </details>
+                          <details className="danger-more">
+                            <summary>
+                              <MoreHorizontal size={16} /> Administração
+                            </summary>
+                            <div className="actions">
+                              <button
+                                disabled={busy}
+                                onClick={() =>
+                                  void run(async () => {
+                                    await admin(
+                                      m.access_active
+                                        ? "disable_player"
+                                        : "enable_player",
+                                      { userId: m.user_id },
                                     );
-                                  await admin("delete_player", {
-                                    userId: m.user_id,
-                                    deleteCharacters: values.mode === "delete",
-                                    confirmation: values.confirmation,
-                                  });
-                                  await load(campaign, true);
-                                  setForm(null);
-                                  setMessage(
-                                    "Jogador excluído; o histórico financeiro foi preservado",
+                                    await load(campaign, true);
+                                  })
+                                }
+                              >
+                                {m.access_active
+                                  ? "Desativar acesso"
+                                  : "Reativar acesso"}
+                              </button>
+                              <button
+                                disabled={busy}
+                                onClick={() => {
+                                  const linked = chars.filter(
+                                    (item) => item.owner_id === m.user_id,
                                   );
-                                },
-                              });
-                            }}
-                          >
-                            Excluir jogador
-                          </button>
-                        </div>
-                      </details>
+                                  setForm({
+                                    title: `Excluir o jogador @${p?.username}?`,
+                                    fields: [
+                                      {
+                                        key: "mode",
+                                        label: `Personagens vinculados: ${linked.map((item) => item.name).join(", ") || "nenhum"}`,
+                                        options: [
+                                          {
+                                            id: "keep",
+                                            name: "Excluir conta e manter personagens",
+                                          },
+                                          {
+                                            id: "delete",
+                                            name: "Excluir conta e personagens",
+                                          },
+                                        ],
+                                      },
+                                    ],
+                                    submit: async (values) => {
+                                      await admin("delete_player", {
+                                        userId: m.user_id,
+                                        deleteCharacters:
+                                          values.mode === "delete",
+                                        confirmation: "EXCLUIR",
+                                      });
+                                      await load(campaign, true);
+                                      setForm(null);
+                                      setMessage(
+                                        "Jogador excluído; o histórico financeiro foi preservado",
+                                      );
+                                    },
+                                  });
+                                }}
+                              >
+                                Excluir jogador
+                              </button>
+                            </div>
+                          </details>
+                        </>
+                      )}
                     </section>
                   );
                 })}
@@ -2197,7 +2324,7 @@ export default function Game({ invite }: { invite?: string }) {
                           .map((p) => (
                             <div className="panel combat-card" key={p.id}>
                               <div className="spread">
-                                <h3>{p.name}</h3>
+                                {p.identity_id?<IdentityBadge identity={{...rows("social_identities").find(i=>i.id===p.identity_id),id:p.identity_id,name:p.name}} cosmetics={rows("cosmetics")} equipment={rows("cosmetic_equipment")} urls={avatarUrls}/>:<div className="identity-badge"><ItemThumbnail path={p.image_path} name={p.name}/><h3>{p.name}</h3></div>}
                                 <span className={`status ${p.state}`}>
                                   {
                                     (
@@ -2343,6 +2470,7 @@ export default function Game({ invite }: { invite?: string }) {
                         <h2>{a.name}</h2>
                         {!a.active && <span className="badge">Arquivado</span>}
                       </div>
+                      {page==="Criaturas"&&isMaster&&<><ItemThumbnail path={a.image_path} name={a.name}/><label className="button-label">Imagem da criatura<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(file)void run(async()=>{const path=await uploadItemImage(file,campaign);const r=await browserDb().rpc("set_creature_image",{c:campaign,target:a.id,path});if(r.error)throw new Error(r.error.message);await load(campaign,true)})}}/></label></>}
                       {page === "Itens" && (
                         <>
                           <ItemThumbnail path={a.image} name={a.name} />
@@ -2511,6 +2639,71 @@ export default function Game({ invite }: { invite?: string }) {
             </>
           )}
           {page === "Histórico" && history()}
+          {page === "Comunidade" && (
+            <>
+              {isMaster && (
+                <section className="panel">
+                  <label>
+                    Falar como
+                    <select
+                      value={socialActor}
+                      onChange={(e) => setSpeakingAs(e.target.value)}
+                    >
+                      <option value={ownIdentity?.id}>Pink</option>
+                      {rows("social_identities")
+                        .filter((i) => i.kind === "npc" && i.active)
+                        .map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {i.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <button
+                    onClick={() =>
+                      setForm({
+                        title: "Personagem do Mundo",
+                        fields: [
+                          { key: "name", label: "Nome", required: true },
+                          { key: "subtitle", label: "Função / título" },
+                          {
+                            key: "avatar_id",
+                            label: "Avatar",
+                            options: rows("campaign_avatars").filter(
+                              (a) => a.active,
+                            ),
+                          },
+                        ],
+                        submit: async (d) => {
+                          const r = await browserDb().rpc("identity_action", {
+                            c: campaign,
+                            op: "npc",
+                            d,
+                          });
+                          if (r.error) throw new Error(r.error.message);
+                          await load(campaign, true);
+                          setForm(null);
+                        },
+                      })
+                    }
+                  >
+                    Criar Personagem do Mundo
+                  </button>
+                </section>
+              )}
+              <CommunityPanel
+                campaign={campaign}
+                identities={rows("social_identities")}
+                cosmetics={rows("cosmetics")}
+                grants={rows("cosmetic_grants")}
+                equipment={rows("cosmetic_equipment")}
+                urls={avatarUrls}
+                actor={socialActor}
+                master={Boolean(isMaster)}
+                message={(id) => setChatPeer({ id, nonce: Date.now() })}
+              />
+            </>
+          )}
           {page === "Convites" && isMaster && (
             <>
               <div className="toolbar">
@@ -2932,116 +3125,88 @@ export default function Game({ invite }: { invite?: string }) {
             </section>
           )}
           {page === "Perfil" && (
-            <section className="panel profile-card">
-              <div className="profile-main">
-                {!isMaster && character && avatarUrls[character.avatar_id] ? (
+            <>
+              <section className="panel profile-card">
+                {ownIdentity && (
+                  <IdentityBadge
+                    identity={ownIdentity}
+                    cosmetics={rows("cosmetics")}
+                    equipment={rows("cosmetic_equipment")}
+                    urls={avatarUrls}
+                  />
+                )}
+                <p>@{ownProfile?.username} {isMaster&&"· Mestre"}</p>
+                <div className="actions">
+                  {ownIdentity && (
+                    <button onClick={() => setAvatarPicker(true)}>
+                      Trocar foto
+                    </button>
+                  )}
+                  <button onClick={() => navigate("Carteira")}>
+                    Abrir Carteira
+                  </button>
                   <button
-                    className="profile-avatar"
-                    aria-label="Alterar avatar"
-                    onClick={() => setAvatarPicker(true)}
+                    onClick={() =>
+                      setForm({
+                        title: "Alterar minha senha",
+                        fields: [
+                          {
+                            key: "currentPassword",
+                            label: "Senha atual",
+                            type: "password",
+                            required: true,
+                          },
+                          {
+                            key: "password",
+                            label: "Nova senha",
+                            type: "password",
+                            required: true,
+                          },
+                          {
+                            key: "confirm",
+                            label: "Confirmar nova senha",
+                            type: "password",
+                            required: true,
+                          },
+                        ],
+                        submit: async (values) => {
+                          if (values.password !== values.confirm)
+                            throw new Error("As novas senhas não coincidem");
+                          await admin("self_password", {
+                            currentPassword: values.currentPassword,
+                            password: values.password,
+                          });
+                          setForm(null);
+                          setMessage("Sua senha foi alterada");
+                        },
+                      })
+                    }
                   >
-                    <img
-                      src={avatarUrls[character.avatar_id]}
-                      alt={character.name}
-                    />
+                    <KeyRound size={17} /> Alterar minha senha
                   </button>
-                ) : (
-                  <div className="profile-avatar empty-portrait">
-                    <UserRound size={34} />
-                  </div>
-                )}
-                <div>
-                  <p className="eyebrow">MINHA CONTA</p>
-                  <h2>
-                    {isMaster ? displayName : character?.name || displayName}
-                  </h2>
-                  <p>
-                    @{ownProfile?.username} {isMaster && "· Mestre"}
-                  </p>
-                  {ownProfile?.full_name && <p>{ownProfile.full_name}</p>}
+                  <button onClick={() => browserDb().auth.signOut()}>
+                    <LogOut size={17} /> Sair da conta
+                  </button>
                 </div>
-              </div>
-              <div className="profile-private">
-                {ownProfile?.personal_email && (
-                  <span>
-                    <small>E-mail</small>
-                    <strong>{ownProfile.personal_email}</strong>
-                  </span>
-                )}
-                {ownProfile?.birth_date && (
-                  <span>
-                    <small>Nascimento</small>
-                    <strong>
-                      {new Date(
-                        ownProfile.birth_date + "T12:00:00",
-                      ).toLocaleDateString("pt-BR")}
-                    </strong>
-                  </span>
-                )}
-                <span>
-                  <small>Saldo</small>
-                  <strong>
-                    {formatDracmas(
-                      isMaster
-                        ? ownMember?.dracmas_cents
-                        : character?.dracmas_cents,
-                    )}
-                  </strong>
-                </span>
-              </div>
-              <div className="actions">
-                {!isMaster && character && (
-                  <button onClick={() => setAvatarPicker(true)}>
-                    Alterar avatar
-                  </button>
-                )}
-                <button onClick={() => navigate("Carteira")}>
-                  Abrir Carteira
-                </button>
-                <button
-                  onClick={() =>
-                    setForm({
-                      title: "Alterar minha senha",
-                      fields: [
-                        {
-                          key: "currentPassword",
-                          label: "Senha atual",
-                          type: "password",
-                          required: true,
-                        },
-                        {
-                          key: "password",
-                          label: "Nova senha",
-                          type: "password",
-                          required: true,
-                        },
-                        {
-                          key: "confirm",
-                          label: "Confirmar nova senha",
-                          type: "password",
-                          required: true,
-                        },
-                      ],
-                      submit: async (values) => {
-                        if (values.password !== values.confirm)
-                          throw new Error("As novas senhas não coincidem");
-                        await admin("self_password", {
-                          currentPassword: values.currentPassword,
-                          password: values.password,
-                        });
-                        setForm(null);
-                        setMessage("Sua senha foi alterada");
-                      },
-                    })
-                  }
-                >
-                  <KeyRound size={17} /> Alterar minha senha
-                </button>
-                <button onClick={() => browserDb().auth.signOut()}>
-                  <LogOut size={17} /> Sair da conta
-                </button>
-              </div>
-            </section>
+              </section>
+              <CosmeticsPanel
+                identity={ownIdentity}
+                cosmetics={rows("cosmetics")}
+                grants={rows("cosmetic_grants")}
+                equipment={rows("cosmetic_equipment")}
+                identities={rows("social_identities")}
+                master={Boolean(isMaster)}
+                save={async (op, d) => {
+                  const result = await browserDb().rpc("identity_action", {
+                    c: campaign,
+                    op,
+                    d,
+                  });
+                  if (result.error) throw new Error(result.error.message);
+                  await load(campaign, true);
+                }}
+              />
+            </>
           )}
         </main>
       </div>
@@ -3054,21 +3219,34 @@ export default function Game({ invite }: { invite?: string }) {
           generate={() => admin("generate")}
         />
       )}
-      {character && (
+      {ownIdentity && (
+        <DirectChat
+          campaign={campaign}
+          identities={rows("social_identities")}
+          actor={socialActor}
+          master={Boolean(isMaster)}
+          revision={data}
+          requestedPeer={chatPeer}
+        />
+      )}
+      {ownIdentity && (
         <AvatarPickerDialog
           open={avatarPicker}
           avatars={rows("campaign_avatars")}
           urls={avatarUrls}
-          selectedId={character.avatar_id}
+          selectedId={profileAvatar}
           busy={busy}
           close={() => setAvatarPicker(false)}
           select={(avatarId) =>
-            perform(() =>
-              action("avatar_select", {
-                character_id: character.id,
-                avatar_id: avatarId,
-              }),
-            )
+            perform(async () => {
+              const result = await browserDb().rpc("identity_action", {
+                c: campaign,
+                op: "avatar",
+                d: { identity_id: ownIdentity.id, avatar_id: avatarId },
+              });
+              if (result.error) throw new Error(result.error.message);
+              await load(campaign, true);
+            })
           }
         />
       )}

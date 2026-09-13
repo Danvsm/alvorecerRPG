@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import AvatarGallery from "./AvatarGallery";
 import type { Row } from "@/lib/types";
@@ -23,6 +23,11 @@ export default function AvatarPickerDialog({
   select: (id: string) => Promise<unknown>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [pendingId, setPendingId] = useState(selectedId || "");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (open) { setPendingId(selectedId || ""); setError(""); }
+  }, [open, selectedId]);
   useEffect(() => {
     if (open && !ref.current?.open) ref.current?.showModal();
     if (!open && ref.current?.open) ref.current.close();
@@ -56,13 +61,20 @@ export default function AvatarPickerDialog({
           compact
           avatars={avatars}
           urls={urls}
-          selectedId={selectedId}
+          selectedId={pendingId}
           busy={busy}
           onSelect={async (id) => {
-            await select(id);
-            close();
+            setPendingId(id);
           }}
         />
+      </div>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="dialog-actions">
+        <button disabled={busy} onClick={close}>Cancelar</button>
+        <button className="primary" disabled={busy || !avatars.some(a => a.id === pendingId && a.active)} onClick={async () => {
+          try { await select(pendingId); close(); }
+          catch (caught) { setError((caught as Error).message); }
+        }}>Confirmar</button>
       </div>
     </dialog>
   );

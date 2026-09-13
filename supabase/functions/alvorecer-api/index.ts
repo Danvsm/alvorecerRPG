@@ -2,6 +2,7 @@ import { POST as auth } from "./auth.ts";
 import { POST as adminRoute } from "./admin.ts";
 import { admin, hash } from "./server.ts";
 import { encrypt, setKey } from "./crypto.ts";
+import {cleanup} from "./media-cleanup.ts";
 let keyReady: Promise<void> | null = null;
 async function initialize() {
   if (!keyReady)
@@ -23,6 +24,7 @@ Deno.serve(async (req: Request) => {
       return Response.json({ error: "Pedido muito grande" }, { status: 413 });
     await initialize();
     const path = new URL(req.url).pathname.split("/").pop();
+    if(path==="media-cleanup")return cleanup(req);
     if (path === "auth") return auth(req);
     if (path === "admin") return adminRoute(req);
     if (path === "bootstrap") {
