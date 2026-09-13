@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { validBirthDate } from "./birth-date.ts";
 import {
   admin,
   hash,
@@ -31,6 +32,12 @@ const schema = z
   })
   .superRefine((value, context) => {
     if (value.action !== "invite") return;
+    if (!validBirthDate(value.birthDate))
+      context.addIssue({
+        code: "custom",
+        path: ["birthDate"],
+        message: "Informe uma data de nascimento válida, não futura.",
+      });
     if (!value.fullName || value.fullName.length < 3)
       context.addIssue({
         code: "custom",
@@ -131,7 +138,13 @@ export async function POST(req: Request) {
       {
         error:
           e instanceof z.ZodError
-            ? "Confira username (3 a 32 letras, números ou _) e senha (6 a 72 caracteres)."
+            ? e.issues
+                .map((issue) =>
+                  issue.path[0] === "birthDate"
+                    ? "Informe uma data de nascimento válida, não futura."
+                    : issue.message,
+                )
+                .join(" ")
             : (e as Error).message,
       },
       { status: 400, headers: { "Cache-Control": "no-store" } },

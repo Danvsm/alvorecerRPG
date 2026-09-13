@@ -1,6 +1,14 @@
 "use client";
 
-import { Archive, Check, ImagePlus, RotateCcw, Trash2 } from "lucide-react";
+import {
+  Archive,
+  Check,
+  ImagePlus,
+  RotateCcw,
+  Trash2,
+  Pencil,
+} from "lucide-react";
+import { useState } from "react";
 import type { Row } from "@/lib/types";
 
 export default function AvatarGallery({
@@ -14,6 +22,7 @@ export default function AvatarGallery({
   onUpload,
   onArchive,
   onDelete,
+  onRename,
 }: {
   avatars: Row[];
   urls: Record<string, string>;
@@ -22,13 +31,13 @@ export default function AvatarGallery({
   compact?: boolean;
   busy: boolean;
   onSelect?: (id: string) => Promise<void>;
-  onUpload?: (file: File) => Promise<void>;
+  onUpload?: (file: File, name: string) => Promise<void>;
+  onRename?: (avatar: Row) => void;
   onArchive?: (avatar: Row) => Promise<void>;
   onDelete?: (avatar: Row) => Promise<void>;
 }) {
-  const visible = manager
-    ? avatars
-    : avatars.filter((avatar) => avatar.active || avatar.id === selectedId);
+  const [uploadError, setUploadError] = useState("");
+  const visible = manager ? avatars : avatars.filter((avatar) => avatar.active);
 
   return (
     <section className={manager ? "panel avatar-manager" : "avatar-picker"}>
@@ -43,24 +52,56 @@ export default function AvatarGallery({
             </p>
           </div>
         )}
-        {manager && onUpload && (
-          <label className="button-label primary-label">
-            <ImagePlus size={17} />
-            Cadastrar avatar
+      </div>
+      {manager && onUpload && (
+        <form
+          className="form-grid"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const values = new FormData(form);
+            const file = values.get("avatarFile");
+            const name = String(values.get("avatarName") || "").trim();
+            setUploadError("");
+            if (!(file instanceof File) || !file.size || !name) return;
+            try {
+              await onUpload(file, name);
+              form.reset();
+            } catch (error) {
+              setUploadError((error as Error).message);
+            }
+          }}
+        >
+          <label>
+            Nome do avatar
             <input
-              hidden
-              type="file"
-              accept="image/webp,image/png,image/jpeg"
+              name="avatarName"
+              required
+              maxLength={80}
               disabled={busy}
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                event.currentTarget.value = "";
-                if (file) await onUpload(file);
-              }}
+              placeholder="Guerreiro Sombrio"
             />
           </label>
-        )}
-      </div>
+          <label>
+            Imagem
+            <input
+              name="avatarFile"
+              type="file"
+              required
+              accept="image/webp,image/png,image/jpeg"
+              disabled={busy}
+            />
+          </label>
+          <button type="submit" className="primary" disabled={busy}>
+            <ImagePlus size={17} /> Cadastrar avatar
+          </button>
+          {uploadError && (
+            <p role="alert" className="error">
+              {uploadError}
+            </p>
+          )}
+        </form>
+      )}
 
       <div className="avatar-grid">
         {visible.map((avatar) => {
@@ -94,6 +135,13 @@ export default function AvatarGallery({
               {!avatar.active && <small>Arquivado</small>}
               {manager && (
                 <div className="avatar-actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onRename?.(avatar)}
+                  >
+                    <Pencil size={15} /> Editar nome
+                  </button>
                   <button
                     type="button"
                     disabled={busy}

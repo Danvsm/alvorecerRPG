@@ -215,7 +215,7 @@ export default function Game({ invite }: { invite?: string }) {
       s.subscription.unsubscribe();
     };
   }, []);
-  const load = useCallback(async (c: string) => {
+  const load = useCallback(async (c: string, strict = false) => {
     const version = ++requestVersion.current;
     setLoading(true);
     try {
@@ -247,20 +247,21 @@ export default function Game({ invite }: { invite?: string }) {
               q = q.order("created_at", { ascending: false }).limit(200);
             if (t === "dracma_transactions")
               q = q.order("created_at", { ascending: false }).limit(200);
-            if (
-              t === "dracma_charges" ||
-              t === "activity_sessions" ||
-              t === "session_feedback"
-            )
+            if (t === "dracma_charges" || t === "session_feedback")
               q = q.order("created_at", { ascending: false }).limit(200);
+            if (t === "activity_sessions")
+              q = q.order("started_at", { ascending: false }).limit(200);
             return q;
           }),
         ),
         db.rpc("combat_snapshot", { c }),
         db.rpc("transfer_recipients", { c }),
       ]);
-      if (result.some((r) => r.error))
-        throw new Error(result.find((r) => r.error)?.error?.message);
+      const failed = result.findIndex((r) => r.error);
+      if (failed !== -1)
+        throw new Error(
+          `Não foi possível carregar ${tables[failed]}: ${result[failed].error?.message}`,
+        );
       if (snapshot.error) throw snapshot.error;
       if (directory.error) throw directory.error;
       if (version !== requestVersion.current) return;
@@ -271,6 +272,7 @@ export default function Game({ invite }: { invite?: string }) {
       setRecipients(directory.data || []);
     } catch (e) {
       setError((e as Error).message);
+      if (strict) throw e;
     } finally {
       if (version === requestVersion.current) setLoading(false);
     }
@@ -410,7 +412,7 @@ export default function Game({ invite }: { invite?: string }) {
       d,
     });
     if (error) throw new Error(error.message);
-    await load(campaign);
+    await load(campaign, true);
     setMessage("Alteração salva");
     return result || {};
   }
@@ -421,7 +423,7 @@ export default function Game({ invite }: { invite?: string }) {
       d,
     });
     if (error) throw new Error(error.message);
-    await load(campaign);
+    await load(campaign, true);
     setMessage("Carteira atualizada");
     return result || {};
   }
@@ -432,7 +434,7 @@ export default function Game({ invite }: { invite?: string }) {
       d,
     });
     if (error) throw new Error(error.message);
-    await load(campaign);
+    await load(campaign, true);
     setMessage(op === "delete" ? "Registro excluído" : "Alteração salva");
     return result || {};
   }
@@ -493,7 +495,7 @@ export default function Game({ invite }: { invite?: string }) {
       d,
     });
     if (error) throw new Error(error.message);
-    await load(campaign);
+    await load(campaign, true);
     setMessage("Alteração salva");
   }
   async function admin(action: string, d: Row = {}) {
@@ -666,7 +668,12 @@ export default function Game({ invite }: { invite?: string }) {
         },
         { key: "fullName", label: "Nome completo da pessoa" },
         { key: "email", label: "E-mail da pessoa", type: "email" },
-        { key: "birthDate", label: "Nascimento (opcional)", type: "date" },
+        {
+          key: "birthDate",
+          label: "Data de nascimento",
+          type: "date",
+          required: true,
+        },
         { key: "name", label: "Nome do personagem", required: true },
         { key: "class", label: "Classe" },
         { key: "race", label: "Raça" },
@@ -724,7 +731,7 @@ export default function Game({ invite }: { invite?: string }) {
             .map(([k, v]) => [k.slice(5), v]),
         );
         await admin("create", { username, password, character: ch });
-        await load(campaign);
+        await load(campaign, true);
         setForm(null);
         setMessage("Jogador criado. Escolha um avatar na ficha.");
       },
@@ -887,8 +894,13 @@ export default function Game({ invite }: { invite?: string }) {
                     />
                   </label>
                   <label>
-                    Data de nascimento <small>Opcional</small>
-                    <input name="birthDate" type="date" autoComplete="bday" />
+                    Data de nascimento
+                    <input
+                      name="birthDate"
+                      type="date"
+                      autoComplete="bday"
+                      required
+                    />
                   </label>
                 </fieldset>
               )}
@@ -1204,7 +1216,7 @@ export default function Game({ invite }: { invite?: string }) {
                       },
                     );
                     if (error) throw new Error(error.message);
-                    await load(campaign);
+                    await load(campaign, true);
                   }}
                 />
               )}
@@ -1270,10 +1282,20 @@ export default function Game({ invite }: { invite?: string }) {
                           {
                             key: "owner_id",
                             label: "Jogador",
-                            options: rows("profiles").map((p) => ({
-                              id: p.id,
-                              name: p.username,
-                            })),
+                            options: rows("profiles")
+                              .filter((p) =>
+                                rows("campaign_members").some(
+                                  (m) =>
+                                    m.user_id === p.id &&
+                                    m.role === "player" &&
+                                    m.access_active &&
+                                    !m.archived_at,
+                                ),
+                              )
+                              .map((p) => ({
+                                id: p.id,
+                                name: p.username,
+                              })),
                             required: true,
                           },
                           { key: "class", label: "Classe" },
@@ -1965,7 +1987,7 @@ export default function Game({ invite }: { invite?: string }) {
                                     : "enable_player",
                                   { userId: m.user_id },
                                 );
-                                await load(campaign);
+                                await load(campaign, true);
                               })
                             }
                           >
@@ -2012,7 +2034,7 @@ export default function Game({ invite }: { invite?: string }) {
                                     deleteCharacters: values.mode === "delete",
                                     confirmation: values.confirmation,
                                   });
-                                  await load(campaign);
+                                  await load(campaign, true);
                                   setForm(null);
                                   setMessage(
                                     "Jogador excluído; o histórico financeiro foi preservado",
@@ -2511,7 +2533,7 @@ export default function Game({ invite }: { invite?: string }) {
                         const v = await admin("invite", d);
                         setInviteUrl(v.url);
                         setForm(null);
-                        await load(campaign);
+                        await load(campaign, true);
                       },
                     })
                   }
@@ -2563,7 +2585,7 @@ export default function Game({ invite }: { invite?: string }) {
                       onClick={() =>
                         run(async () => {
                           await admin("cancel_invite", { inviteId: i.id });
-                          await load(campaign);
+                          await load(campaign, true);
                         })
                       }
                     >
@@ -2624,22 +2646,46 @@ export default function Game({ invite }: { invite?: string }) {
                 avatars={rows("campaign_avatars")}
                 urls={avatarUrls}
                 busy={busy}
-                onUpload={(file) =>
-                  run(async () => {
+                onUpload={(file, name) =>
+                  perform(async () => {
                     const path = await uploadAvatarImage(file, campaign);
                     try {
                       await action("avatar", {
-                        name:
-                          file.name.replace(/\.[^.]+$/, "").slice(0, 80) ||
-                          "Avatar",
+                        name,
                         storage_path: path,
                       });
                     } catch (caught) {
-                      await browserDb()
-                        .storage.from("portraits")
-                        .remove([path]);
+                      const saved = await browserDb()
+                        .from("campaign_avatars")
+                        .select("id")
+                        .eq("storage_path", path)
+                        .maybeSingle();
+                      if (!saved.error && !saved.data)
+                        await browserDb()
+                          .storage.from("portraits")
+                          .remove([path]);
                       throw caught;
                     }
+                  })
+                }
+                onRename={(avatar) =>
+                  setForm({
+                    title: "Editar nome do avatar",
+                    fields: [
+                      {
+                        key: "name",
+                        label: "Nome",
+                        required: true,
+                        value: avatar.name,
+                      },
+                    ],
+                    submit: async (values) => {
+                      await action("avatar", {
+                        id: avatar.id,
+                        name: values.name,
+                      });
+                      setForm(null);
+                    },
                   })
                 }
                 onArchive={(avatar) =>
@@ -2650,7 +2696,7 @@ export default function Game({ invite }: { invite?: string }) {
                 onDelete={(avatar) =>
                   run(async () => {
                     await admin("delete_avatar", { avatarId: avatar.id });
-                    await load(campaign);
+                    await load(campaign, true);
                     setMessage("Avatar excluído");
                   })
                 }
@@ -2843,7 +2889,7 @@ export default function Game({ invite }: { invite?: string }) {
                           throw new Error(lifecycleError.message);
                       }
                     }
-                    await load(campaign);
+                    await load(campaign, true);
                     setMessage(`${entries.length} registro(s) removido(s)`);
                   })
                 }

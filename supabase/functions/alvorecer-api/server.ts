@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "node:crypto";
 import { encrypt, decrypt } from "./crypto.ts";
+import { validBirthDate } from "./birth-date.ts";
 export function admin() {
   const url = Deno.env.get("SUPABASE_URL"),
     key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -68,6 +69,9 @@ export async function provision(
   claim?: string,
   actor?: string,
 ) {
+  const person = (character as { person?: { birth_date?: unknown } }).person;
+  if (!validBirthDate(person?.birth_date))
+    throw new Error("Informe uma data de nascimento válida, não futura.");
   const db = admin(),
     identity = `${randomUUID()}@auth.alvorecer.invalid`;
   const reserve = await db.rpc("reserve_auth_identity", { identity });
