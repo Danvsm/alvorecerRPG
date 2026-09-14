@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 14/09/2026, 17:15 UTC.
+Atualizado em 14/09/2026, 17:17 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -22,7 +22,8 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Estado confirmado: `READY`, alvo `production`, origem GitHub `Danvsm/alvorecerRPG`, ref `main`.
 - Commits de documentação criados nesta continuação: `9ccc68a09b1e2a4b96af8dc0f45b246ad3c94c16` (`docs/HANDOFF.md`) e `276f6690ccd04bba53a3994a50daeaac4892a8a5` (`CHANGELOG.md`).
 - O commit `276f6690ccd04bba53a3994a50daeaac4892a8a5` chegou a `READY` em produção no deploy `dpl_7PQZSrt1rhFSmkuTrCvSGmJ8AjxC`.
-- Esta atualização do handoff gerará um novo commit exclusivamente documental; confirmar seu deploy antes de encerrar.
+- O handoff com as evidências atuais foi publicado no commit `7fffe8a703046003cb3d3143a7e4d3696e23b232` e chegou a `READY` no deploy `dpl_4xiimSLR5ccrJFw4gTAjxGwjvH4y`.
+- A atualização que registra esse resultado é exclusivamente documental; o código da aplicação permanece em `42292c7`.
 
 ## Banco, migrations e função
 
@@ -101,7 +102,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 ## Continuação verificada — 14/09/2026, 17:15 UTC
 
 - O domínio de produção respondeu HTTP 200 com o cabeçalho de viewport mobile e os cabeçalhos de segurança esperados.
-- O commit documental `276f6690ccd04bba53a3994a50daeaac4892a8a5` está em `READY` no projeto Vercel correto.
+- Os commits documentais `276f6690ccd04bba53a3994a50daeaac4892a8a5` e `7fffe8a703046003cb3d3143a7e4d3696e23b232` chegaram a `READY` no projeto Vercel correto.
 - A Vercel não registrou erros de runtime nas últimas 24 horas.
 - Pink e darkvsm possuem login recente em produção. O banco confirma que ambos leram todas as mensagens recebidas na conversa entre eles; Pink marcou como lida, às 06:13 UTC, a resposta enviada por darkvsm às 05:45 UTC.
 - Depois do deploy de `42292c7`, o histórico registra ações reais pela interface: darkvsm gastou Vida, Mana e Fôlego; Pink removeu participantes de combate e executou transferências. Não houve erro de banco nessas ações.
