@@ -8,7 +8,7 @@ npm test
 npm run build
 ```
 
-Resultado esperado: TypeScript sem erro, 16 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
+Resultado esperado: TypeScript sem erro, 19 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
 
 ## Testes no Supabase real
 
@@ -112,3 +112,24 @@ confirmar o novo deploy e o histórico corrigido, exercitar a troca de conta no
 site, validar os demais comandos administrativos e a atualização simultânea entre
 contas. Mobile não foi validado: a API deste navegador não expõe redimensionamento
 e a tentativa de zoom não mudou a largura da página.
+
+## Redesign do Combate — 14/09/2026, 22:45 UTC
+
+Commit publicado: `28c42266fec6fb788501f517d1087907c07eae5b`.
+Deploy: `dpl_BusR9Upd4Wuq27mjJosFFQjeaunD`, produção, estado `READY`.
+
+- `npm run typecheck`: aprovado.
+- `npm test`: 19/19 aprovados, incluindo seleção segura do comando de Vida para Mestre/jogador e rejeição de zero/fracionários.
+- `npm run build`: aprovado; seis rotas geradas.
+- Como darkvsm no domínio publicado: cabeçalho, Aliados, Inimigos, cards compactos, ausência de Neutros, ocultação de Vida e restrição dos controles renderizaram corretamente.
+- O modal exibiu campo numérico livre e apenas `Perdeu Vida` para o jogador. A perda de 1 ponto foi confirmada no banco: 15/80 → 14/80, evento `delta -1`, motivo `Combate`.
+- O jogador não recebeu `Ganhou Vida` nem engrenagem. O teste automatizado do RPC existente continua rejeitando delta positivo de jogador, além da proteção na seleção de comando do frontend.
+- Nenhum consumível, XP, Dracmas, inventário, sala, participante ou `reveal` foi alterado nesse teste.
+- Não houve erro de runtime na Vercel nos 30 minutos posteriores ao deploy.
+
+Ainda pendente:
+
+1. Repetir visualmente em viewport efetiva próxima de 390×844. A automação desta rodada usou 1080×1920; nela não houve overflow horizontal (`scrollWidth <= clientWidth`), mas mobile permanece inválido.
+2. Entrar como Pink/Mestre e confirmar a engrenagem, quantidade livre, `Perdeu Vida` e `Ganhou Vida` em qualquer participante. A solicitação segura de credenciais foi recusada nesta rodada.
+3. Executar Realtime em duas sessões simultâneas para o novo controle de Vida.
+4. Exercitar visualmente os cenários de 2 aliados, 4 aliados e vários inimigos; a prévia local já contém 4 + 4 participantes, mas não houve navegador local disponível para a inspeção.

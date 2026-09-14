@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 14/09/2026, 17:17 UTC.
+Atualizado em 14/09/2026, 22:45 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -45,12 +45,16 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Timeout da limpeza de mídia temporária corrigido; uma execução posterior respondeu HTTP 200.
 - No commit `42292c7`, valores estruturados do histórico passaram a ser formatados em vez de exibirem `[object Object]`.
 - No commit `42292c7`, destinatário/identidade do chat são limpos ao sair ou trocar campanha, e o chat é remontado ao trocar conta/identidade.
+- No commit `28c4226`, a página Combate foi reorganizada em cards compactos, grade mobile de duas colunas, seções Aliados/Inimigos e controles administrativos centralizados na engrenagem.
+- O fluxo atual não oferece mais Neutros nem renderiza a seção, preservando os registros antigos no banco sem migration destrutiva.
+- O ajuste de Vida passou a aceitar quantidade inteira livre; o Mestre recebe perda/ganho e o jogador recebe somente perda no próprio personagem. Os comandos e as validações server-side existentes foram preservados.
+- Os assets fornecidos para espadas, estandartes, coroa, brasão e wallpaper foram otimizados para WebP e usados diretamente na interface.
 
 ## Testes já concluídos
 
 ### Automatizados
 
-- `npm test`: 16/16 testes aprovados.
+- `npm test`: 19/19 testes aprovados.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
@@ -78,6 +82,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Concluir um teste interativo de combate entre Pink e jogador, incluindo atualização simultânea mestre → jogador e jogador → mestre.
 - Validar os comandos administrativos restantes com dados de teste identificáveis, sem afetar dados reais.
 - Revisar layout mobile em largura próxima de 390 px: navegação, cards, formulários, chat e combate sem rolagem horizontal.
+- Validar a nova engrenagem e o ajuste de Vida como Pink/Mestre no site publicado. A solicitação segura de credenciais não foi concluída nesta rodada.
 - Após `2026-09-15 02:13:29 UTC`, confirmar `chat_media.deleted_at` e a ausência física do objeto no bucket `chat-media`. Uma verificação condicional horária foi agendada a partir de 14/09 16:30 em `America/Sao_Paulo` para o registro-alvo.
 - Confirmar que os commits de documentação/correção desta continuação também chegam a `READY` no projeto Vercel correto.
 
@@ -112,3 +117,15 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - As 20 respostas do cron observadas entre 12:15 e 17:00 UTC foram HTTP 200, sem timeout nem erro, com `removed: 0` e `pending: 0`, coerente com não haver mídia vencida naquele intervalo.
 - Uma verificação condicional horária foi criada para confirmar a remoção lógica e física da imagem-alvo depois da expiração.
 - Nenhum novo bug de código foi reproduzido; portanto, não foi feita correção especulativa.
+
+## Redesign do Combate — 14/09/2026, 22:45 UTC
+
+- O commit `28c42266fec6fb788501f517d1087907c07eae5b` foi publicado em `main` e chegou a `READY` no deploy de produção `dpl_BusR9Upd4Wuq27mjJosFFQjeaunD`.
+- `npm run typecheck`, 19/19 testes e `npm run build` passaram antes da publicação. O build gerou as seis rotas esperadas, incluindo `/dev`.
+- O teste publicado autenticado como darkvsm confirmou: cabeçalho novo, ausência de Neutros, seções Aliados/Inimigos, cards compactos, Vida inimiga oculta, ausência de engrenagem para jogador e `Ajustar Vida` apenas no próprio personagem.
+- O modal do jogador mostrou campo numérico livre e somente `Perdeu Vida`. A perda mínima autorizada foi persistida de 15/80 para 14/80; o evento de auditoria registrou `delta: -1` e motivo `Combate`.
+- O aumento manual não aparece ao jogador. Os testes automatizados também comprovam que a camada de comando bloqueia esse pedido e que o RPC `resource` rejeita delta positivo para jogador.
+- A viewport efetiva da automação publicada foi 1080×1920. Nela, `scrollWidth` ficou abaixo de `clientWidth` e não houve overflow; isso não substitui o teste solicitado em aproximadamente 390×844, que continua pendente.
+- A prévia de desenvolvimento contém quatro aliados e quatro inimigos para exercitar a grade, mas a validação visual dessa prévia não foi concluída porque o ambiente local não disponibilizou um binário Chromium.
+- O teste autenticado Pink/Mestre continua pendente: o formulário seguro de credenciais foi recusado nesta rodada. Não declarar ganho/perda do Mestre nem engrenagem como validados em produção até repetir com essa conta.
+- A Vercel não registrou erros de runtime nos 30 minutos após o deploy e o teste autenticado.
