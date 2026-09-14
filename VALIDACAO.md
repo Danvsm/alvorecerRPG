@@ -78,3 +78,37 @@ Domínio: `https://alvorecer-rpg-vsm.vercel.app`.
 5. Inspecionar retorno HTTP da limpeza (não apenas `cron.job_run_details`);
    após a expiração, conferir `chat_media.deleted_at` e ausência do objeto no Storage.
 6. Confirmar o novo deploy associado à migration registrada no Git.
+
+## Continuação autenticada — 14/09/2026, 05:49 UTC
+
+O deploy de `b7e12c5` terminou em `READY`. A limpeza respondeu HTTP 200 na
+execução das 02:30 UTC, sem timeout. A imagem ainda não venceu: a remoção física
+será conferida por tarefa agendada para 14/09 às 23:30 em America/Sao_Paulo.
+
+Verificações feitas diretamente no domínio publicado como **darkvsm**:
+
+- Login e papel de jogador confirmados; menus administrativos não aparecem.
+- A mensagem de Pink e sua imagem carregaram; a imagem tem largura natural de
+  480 px. A leitura da conversa zerou o contador de mensagens não lidas.
+- Resposta de teste enviada para a conversa selecionada **Pink**, aparecendo no
+  histórico do chat como darkvsm. A abertura da resposta na conta Pink ainda falta.
+- As duas notificações de teste foram marcadas como lidas e o contador zerou.
+- Perfil e coleção carregaram; salvar novamente a moldura Lua manteve-a equipada.
+- Comunidade, ranking e perfil público de Pink abriram. Uma publicação de teste
+  no mural foi salva e exibida com autoria darkvsm.
+- Combate mostrou os inimigos ocultos apenas com estado e "Vida exata não revelada".
+- Ficha e progressão carregaram; sem XP disponível, os 11 botões de compra de
+  atributos estavam desabilitados. Nenhum recurso, XP ou saldo foi gasto.
+
+Correções incrementais decorrentes dessa observação:
+
+- Formatar os valores estruturados do histórico (XP disponível, XP total e nível)
+  em vez de mostrar `[object Object]`, com rótulos para os novos eventos.
+- Limpar destinatário/identidade do chat ao sair ou mudar de campanha e remontar
+  o chat ao trocar conta/identidade para não herdar estado da sessão anterior.
+
+Após as correções, 16/16 testes, TypeScript e build passaram. Ainda é necessário
+confirmar o novo deploy e o histórico corrigido, exercitar a troca de conta no
+site, validar os demais comandos administrativos e a atualização simultânea entre
+contas. Mobile não foi validado: a API deste navegador não expõe redimensionamento
+e a tentativa de zoom não mudou a largura da página.

@@ -98,6 +98,14 @@ const resourceNames: Row = {
   stamina: "Fôlego",
 };
 const historyActions: Row = {
+  attribute_purchase: "Atributo evoluído",
+  progression_adjustment: "Progressão ajustada",
+  reward: "Recompensa recebida",
+  player_data_changed: "Dados do jogador atualizados",
+  social_message: "Mensagem enviada",
+  social_image: "Imagem enviada",
+  social_conversation: "Conversa iniciada",
+  creature_image: "Imagem da criatura alterada",
   life: "Vida alterada",
   mana: "Mana alterada",
   stamina: "Fôlego alterado",
@@ -164,6 +172,22 @@ const playerMenu = [
   ["Perfil", UserRound],
   ["Comunidade", Users],
 ] as const;
+function formatHistoryValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (Array.isArray(value)) return value.map(formatHistoryValue).join(", ");
+  if (typeof value === "object") {
+    const labels: Record<string, string> = {
+      xp: "XP disponível", xp_total: "XP total", level: "Nível",
+      username: "Username", full_name: "Nome", email: "E-mail",
+      birth_date: "Nascimento",
+    };
+    return Object.entries(value)
+      .map(([key, entry]) => `${labels[key] || key}: ${formatHistoryValue(entry)}`)
+      .join(", ");
+  }
+  return String(value);
+}
+
 export default function Game({ invite }: { invite?: string }) {
   const [speakingAs, setSpeakingAs] = useState("");
   const [playerSearch, setPlayerSearch] = useState("");
@@ -235,6 +259,8 @@ export default function Game({ invite }: { invite?: string }) {
     const { data: s } = db.auth.onAuthStateChange((_, s) => {
       setSession(s);
       if (!s) {
+        setChatPeer(undefined);
+        setSpeakingAs("");
         setData({});
         setCampaign("");
         setMembers([]);
@@ -336,6 +362,8 @@ export default function Game({ invite }: { invite?: string }) {
     setParticipants([]);
     setSelected("");
     setRoom("");
+    setChatPeer(undefined);
+    setSpeakingAs("");
     setPasswords({});
     onboardingPrompted.current = false;
     load(campaign);
@@ -821,7 +849,7 @@ export default function Game({ invite }: { invite?: string }) {
                   ? ` ${l.detail.delta_cents > 0 ? "+" : ""}${formatDracmas(l.detail.delta_cents)}`
                   : ""}
                 {l.detail.before !== undefined
-                  ? ` (${l.detail.before} → ${l.detail.after})`
+                  ? ` (${formatHistoryValue(l.detail.before)} → ${formatHistoryValue(l.detail.after)})`
                   : ""}{" "}
                 {l.detail.before_cents !== undefined
                   ? ` (${formatDracmas(l.detail.before_cents)} → ${formatDracmas(l.detail.after_cents)})`
@@ -3221,6 +3249,7 @@ export default function Game({ invite }: { invite?: string }) {
       )}
       {ownIdentity && (
         <DirectChat
+          key={`${session?.user.id}:${campaign}:${socialActor}`}
           campaign={campaign}
           identities={rows("social_identities")}
           actor={socialActor}
