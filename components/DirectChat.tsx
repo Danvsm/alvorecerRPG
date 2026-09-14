@@ -4,7 +4,7 @@ import { MessageCircle, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import type { Row } from "@/lib/types";
 import ChatImage from "./ChatImage";
-import {optimizedWebp} from "@/lib/media";
+import { optimizedWebp } from "@/lib/media";
 
 export default function DirectChat({
   campaign,
@@ -13,6 +13,7 @@ export default function DirectChat({
   master,
   revision,
   requestedPeer,
+  docked = false,
 }: {
   campaign: string;
   identities: Row[];
@@ -20,6 +21,7 @@ export default function DirectChat({
   master: boolean;
   revision: unknown;
   requestedPeer?: { id: string; nonce: number };
+  docked?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [conversations, setConversations] = useState<Row[]>([]),
@@ -129,7 +131,7 @@ export default function DirectChat({
   return (
     <>
       <button
-        className="chat-bubble"
+        className={`chat-bubble${docked ? " combat-docked" : ""}`}
         style={{
           top: `${position.y}%`,
           left: position.right ? "auto" : 12,
@@ -228,7 +230,7 @@ export default function DirectChat({
                 <small>
                   {identities.find((i) => i.id === m.sender_id)?.name}
                 </small>
-                {m.media_id?<ChatImage id={m.media_id}/>:<p>{m.body}</p>}
+                {m.media_id ? <ChatImage id={m.media_id} /> : <p>{m.body}</p>}
                 <small>
                   {new Date(m.created_at).toLocaleTimeString("pt-BR", {
                     hour: "2-digit",
@@ -266,10 +268,48 @@ export default function DirectChat({
                 />
               </label>
               <button disabled={busy}>Enviar</button>
-              <label>Enviar imagem<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={async e=>{
-                const file=e.target.files?.[0];e.target.value="";if(!file||busy)return;setBusy(true);setError("");
-                try{const blob=await optimizedWebp(file,800);const db=browserDb();const r=await db.rpc("chat_media_action",{c:campaign,op:"reserve",d:{actor_id:actor,conversation_id:selected}});if(r.error)throw r.error;const upload=await db.storage.from("chat-media").upload(r.data.path,blob,{contentType:"image/webp"});if(upload.error)throw upload.error;const sent=await db.rpc("chat_media_action",{c:campaign,op:"send",d:{actor_id:actor,media_id:r.data.id}});if(sent.error)throw sent.error;setRefresh(v=>v+1)}catch(e){setError((e as Error).message)}finally{setBusy(false)}
-              }}/></label>
+              <label>
+                Enviar imagem
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={busy}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file || busy) return;
+                    setBusy(true);
+                    setError("");
+                    try {
+                      const blob = await optimizedWebp(file, 800);
+                      const db = browserDb();
+                      const r = await db.rpc("chat_media_action", {
+                        c: campaign,
+                        op: "reserve",
+                        d: { actor_id: actor, conversation_id: selected },
+                      });
+                      if (r.error) throw r.error;
+                      const upload = await db.storage
+                        .from("chat-media")
+                        .upload(r.data.path, blob, {
+                          contentType: "image/webp",
+                        });
+                      if (upload.error) throw upload.error;
+                      const sent = await db.rpc("chat_media_action", {
+                        c: campaign,
+                        op: "send",
+                        d: { actor_id: actor, media_id: r.data.id },
+                      });
+                      if (sent.error) throw sent.error;
+                      setRefresh((v) => v + 1);
+                    } catch (e) {
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                />
+              </label>
             </form>
           )}
           {error && (

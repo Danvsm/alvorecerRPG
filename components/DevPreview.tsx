@@ -21,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Brand } from "./Common";
+import CombatPanel from "./CombatPanel";
 
 type Mode = "login" | "master" | "player";
 
@@ -296,14 +297,16 @@ export default function DevPreview() {
               Jogador
             </button>
           </div>
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">
-                {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
-              </p>
-              <h1>{effectivePage}</h1>
+          {effectivePage !== "Combate" && (
+            <div className="page-heading">
+              <div>
+                <p className="eyebrow">
+                  {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
+                </p>
+                <h1>{effectivePage}</h1>
+              </div>
             </div>
-          </div>
+          )}
 
           {["Visão Geral", "Início"].includes(effectivePage) && (
             <Overview
@@ -322,7 +325,12 @@ export default function DevPreview() {
             />
           )}
           {effectivePage === "Jogadores" && isMaster && <PlayersPage />}
-          {effectivePage === "Combate" && <CombatPage master={isMaster} />}
+          {effectivePage === "Combate" && (
+            <CombatPage
+              master={isMaster}
+              history={() => setPage("Histórico")}
+            />
+          )}
           {effectivePage === "Vantagens" && (
             <CatalogPage title="Vantagens" master={isMaster} />
           )}
@@ -616,100 +624,233 @@ function PlayersPage() {
   );
 }
 
-function CombatPage({ master }: { master: boolean }) {
+function CombatPage({
+  master,
+  history,
+}: {
+  master: boolean;
+  history: () => void;
+}) {
+  const previewCharacters = [
+    { id: "kael", owner_id: "preview-player", name: "Kael" },
+    { id: "aurora", owner_id: "aurora-player", name: "Aurora" },
+    { id: "darian", owner_id: "darian-player", name: "Darian" },
+    { id: "lyra", owner_id: "lyra-player", name: "Lyra" },
+  ];
+  const [previewParticipants, setPreviewParticipants] = useState([
+    {
+      id: "p-kael",
+      room_id: "ruins",
+      character_id: "kael",
+      identity_id: "i-kael",
+      name: "Kael",
+      side: "ally",
+      state: "green",
+      life: 42,
+      life_max: 60,
+      mana: 12,
+      mana_max: 20,
+      stamina: 24,
+      stamina_max: 30,
+      reveal: true,
+    },
+    {
+      id: "p-aurora",
+      room_id: "ruins",
+      character_id: "aurora",
+      identity_id: "i-aurora",
+      name: "Aurora",
+      side: "ally",
+      state: "green",
+      life: 31,
+      life_max: 45,
+      mana: 38,
+      mana_max: 40,
+      stamina: 17,
+      stamina_max: 25,
+      reveal: true,
+    },
+    {
+      id: "p-darian",
+      room_id: "ruins",
+      character_id: "darian",
+      identity_id: "i-darian",
+      name: "Darian",
+      side: "ally",
+      state: "yellow",
+      life: 18,
+      life_max: 50,
+      mana: 6,
+      mana_max: 15,
+      stamina: 21,
+      stamina_max: 28,
+      reveal: true,
+    },
+    {
+      id: "p-lyra",
+      room_id: "ruins",
+      character_id: "lyra",
+      identity_id: "i-lyra",
+      name: "Lyra",
+      side: "ally",
+      state: "red",
+      life: 8,
+      life_max: 44,
+      mana: 22,
+      mana_max: 30,
+      stamina: 12,
+      stamina_max: 22,
+      reveal: true,
+    },
+    {
+      id: "goblin-1",
+      room_id: "ruins",
+      character_id: null,
+      name: "Goblin 1",
+      side: "enemy",
+      state: "green",
+      life: 14,
+      life_max: 20,
+      mana: 0,
+      mana_max: 0,
+      stamina: 8,
+      stamina_max: 10,
+      reveal: false,
+    },
+    {
+      id: "goblin-2",
+      room_id: "ruins",
+      character_id: null,
+      name: "Goblin 2",
+      side: "enemy",
+      state: "red",
+      life: 5,
+      life_max: 20,
+      mana: 0,
+      mana_max: 0,
+      stamina: 4,
+      stamina_max: 10,
+      reveal: false,
+    },
+    {
+      id: "goblin-3",
+      room_id: "ruins",
+      character_id: null,
+      name: "Batedor",
+      side: "enemy",
+      state: "yellow",
+      life: 12,
+      life_max: 24,
+      mana: 2,
+      mana_max: 5,
+      stamina: 9,
+      stamina_max: 14,
+      reveal: false,
+    },
+    {
+      id: "goblin-chief",
+      room_id: "ruins",
+      character_id: null,
+      name: "Chefe Goblin",
+      side: "enemy",
+      state: "green",
+      life: 83,
+      life_max: 120,
+      mana: 18,
+      mana_max: 25,
+      stamina: 31,
+      stamina_max: 40,
+      reveal: false,
+    },
+  ]);
+  const identities = previewCharacters.map((character) => ({
+    id: `i-${character.id}`,
+    name: character.name,
+    avatar_id: "preview-avatar",
+    subtitle: character.id === "kael" ? "Sentinela" : "Aventureiro",
+  }));
+  const shownParticipants = previewParticipants.map((participant) =>
+    !master && participant.side === "enemy" && !participant.reveal
+      ? {
+          ...participant,
+          life: null,
+          life_max: null,
+          mana: null,
+          mana_max: null,
+          stamina: null,
+          stamina_max: null,
+        }
+      : participant,
+  );
+
   return (
-    <>
-      <div className="toolbar">
-        <select defaultValue="Ruínas de Valen">
-          <option>Ruínas de Valen</option>
-        </select>
-        {master && (
-          <button className="primary" type="button">
-            + Abrir combate
-          </button>
-        )}
-      </div>
-      <section className="panel combat-top">
-        <div className="spread">
-          <h2>
-            <Swords size={20} /> Ruínas de Valen
-          </h2>
-          <span className="badge">Tempo real</span>
-        </div>
-        <p>Lista simples de aliados e inimigos para uso durante a sessão.</p>
-      </section>
-      <div className="combat-grid">
-        <section className="panel">
-          <div className="side-title">
-            <h2>Aliados</h2>
-            <span>3</span>
-          </div>
-          {characters.map((c) => (
-            <div className="list-row" key={c.name}>
-              <div>
-                <b>{c.name}</b>
-                <p>
-                  {c.life[0]} / {c.life[1]} de Vida
-                </p>
-              </div>
-              <span
-                className="status"
-                style={{
-                  background:
-                    c.life[0] / c.life[1] > 0.6
-                      ? "#45bd87"
-                      : c.life[0] / c.life[1] >= 0.3
-                        ? "#e0b648"
-                        : "#ef5368",
-                }}
-              >
-                {c.life[0] / c.life[1] > 0.6
-                  ? "VERDE"
-                  : c.life[0] / c.life[1] >= 0.3
-                    ? "AMARELO"
-                    : "VERMELHO"}
-              </span>
-            </div>
-          ))}
-        </section>
-        <section className="panel">
-          <div className="side-title">
-            <h2>Inimigos</h2>
-            <span>3</span>
-          </div>
-          {[
-            ["Goblin 1", "Verde", "#45bd87", "14 / 20"],
-            ["Goblin 2", "Vermelho", "#ef5368", "5 / 20"],
-            ["Chefe Goblin", "Amarelo", "#e0b648", "83 / 120"],
-          ].map(([n, s, c, hp]) => (
-            <div className="list-row" key={n}>
-              <div>
-                <b>{n}</b>
-                <p>{master ? `${hp} de Vida` : "Vida oculta"}</p>
-              </div>
-              <span className="status" style={{ background: c }}>
-                {s.toUpperCase()}
-              </span>
-            </div>
-          ))}
-        </section>
-        <section className="panel">
-          <h2>Controles rápidos</h2>
-          <div className="actions">
-            <button type="button">-10 Vida</button>
-            <button type="button">-5 Vida</button>
-            <button type="button">-1 Vida</button>
-            {master && (
-              <>
-                <button type="button">+1 Vida</button>
-                <button type="button">+5 Vida</button>
-                <button type="button">Revelar vida</button>
-              </>
-            )}
-          </div>
-        </section>
-      </div>
-    </>
+    <CombatPanel
+      rooms={[{ id: "ruins", name: "Ruínas de Valen" }]}
+      selectedRoomId="ruins"
+      participants={shownParticipants}
+      characters={master ? previewCharacters : [previewCharacters[0]]}
+      identities={identities}
+      cosmetics={[{ id: "gold-frame", kind: "frame", color: "#c9a85e" }]}
+      equipment={identities.map((identity) => ({
+        identity_id: identity.id,
+        kind: "frame",
+        cosmetic_id: "gold-frame",
+      }))}
+      avatarUrls={{ "preview-avatar": "/alvorecer-mark.svg" }}
+      inventory={[]}
+      items={[]}
+      effects={[]}
+      isMaster={master}
+      userId="preview-player"
+      busy={false}
+      onSelectRoom={() => {}}
+      onHistory={history}
+      onCreateRoom={() => {}}
+      onRenameRoom={() => {}}
+      onAddCharacter={() => {}}
+      onAddCreature={() => {}}
+      onEndRoom={() => {}}
+      onRemoveParticipant={(target) =>
+        setPreviewParticipants((current) =>
+          current.filter((participant) => participant.id !== target.id),
+        )
+      }
+      onRevealParticipant={(target, reveal) =>
+        setPreviewParticipants((current) =>
+          current.map((participant) =>
+            participant.id === target.id
+              ? { ...participant, reveal }
+              : participant,
+          ),
+        )
+      }
+      onAdjustLife={async (target, delta) => {
+        setPreviewParticipants((current) =>
+          current.map((participant) => {
+            if (participant.id !== target.id || participant.life === null)
+              return participant;
+            const life = Math.max(
+              0,
+              Math.min(participant.life_max, participant.life + delta),
+            );
+            const ratio = life / Math.max(participant.life_max, 1);
+            return {
+              ...participant,
+              life,
+              state:
+                life === 0
+                  ? "zero"
+                  : ratio > 0.6
+                    ? "green"
+                    : ratio >= 0.3
+                      ? "yellow"
+                      : "red",
+            };
+          }),
+        );
+      }}
+      onConsume={() => {}}
+    />
   );
 }
 

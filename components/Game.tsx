@@ -52,7 +52,9 @@ import {
   FeedbackPrompt,
 } from "./SessionInsights";
 import CleanupPanel from "./CleanupPanel";
+import CombatPanel from "./CombatPanel";
 import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
+import { combatLifeCommand } from "@/lib/combat";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
 import FormDialog from "./FormDialog";
 import type { Row, Field, Form } from "@/lib/types";
@@ -177,12 +179,18 @@ function formatHistoryValue(value: unknown): string {
   if (Array.isArray(value)) return value.map(formatHistoryValue).join(", ");
   if (typeof value === "object") {
     const labels: Record<string, string> = {
-      xp: "XP disponível", xp_total: "XP total", level: "Nível",
-      username: "Username", full_name: "Nome", email: "E-mail",
+      xp: "XP disponível",
+      xp_total: "XP total",
+      level: "Nível",
+      username: "Username",
+      full_name: "Nome",
+      email: "E-mail",
       birth_date: "Nascimento",
     };
     return Object.entries(value)
-      .map(([key, entry]) => `${labels[key] || key}: ${formatHistoryValue(entry)}`)
+      .map(
+        ([key, entry]) => `${labels[key] || key}: ${formatHistoryValue(entry)}`,
+      )
       .join(", ");
   }
   return String(value);
@@ -329,7 +337,12 @@ export default function Game({ invite }: { invite?: string }) {
       setData(
         Object.fromEntries(result.map((r, i) => [tables[i], r.data || []])),
       );
-      setParticipants((snapshot.data || []).map((p:Row)=>({...p,...(visuals.data||[]).find((v:Row)=>v.participant_id===p.id)})));
+      setParticipants(
+        (snapshot.data || []).map((p: Row) => ({
+          ...p,
+          ...(visuals.data || []).find((v: Row) => v.participant_id === p.id),
+        })),
+      );
       setRecipients(directory.data || []);
     } catch (e) {
       setError((e as Error).message);
@@ -1156,19 +1169,21 @@ export default function Game({ invite }: { invite?: string }) {
           />
         </header>
         <main className="content">
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">
-                {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
-              </p>
-              <h1>{!isMaster && page === "Visão Geral" ? "Início" : page}</h1>
+          {page !== "Combate" && (
+            <div className="page-heading">
+              <div>
+                <p className="eyebrow">
+                  {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
+                </p>
+                <h1>{!isMaster && page === "Visão Geral" ? "Início" : page}</h1>
+              </div>
+              {loading && (
+                <span className="muted" role="status">
+                  Atualizando...
+                </span>
+              )}
             </div>
-            {loading && (
-              <span className="muted" role="status">
-                Atualizando...
-              </span>
-            )}
-          </div>
+          )}
           {error && (
             <div className="error" role="alert">
               {error}
@@ -1930,7 +1945,12 @@ export default function Game({ invite }: { invite?: string }) {
             ))}
           {page === "Dados" && isMaster && (
             <>
-              <RewardsPanel campaign={campaign} characters={chars} cosmetics={rows("cosmetics")} refresh={()=>load(campaign,true)}/>
+              <RewardsPanel
+                campaign={campaign}
+                characters={chars}
+                cosmetics={rows("cosmetics")}
+                refresh={() => load(campaign, true)}
+              />
               <div className="toolbar">
                 <h2>Dados dos jogadores</h2>
                 <button className="primary" onClick={newPlayer}>
@@ -2208,231 +2228,120 @@ export default function Game({ invite }: { invite?: string }) {
             </>
           )}
           {page === "Combate" && (
-            <>
-              <div className="toolbar">
-                <select
-                  aria-label="Sala de combate"
-                  value={currentRoom?.id || ""}
-                  onChange={(e) => setRoom(e.target.value)}
-                >
-                  {activeRooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-                {isMaster && (
-                  <button
-                    className="primary"
-                    onClick={() =>
-                      edit(
-                        "Abrir combate",
-                        [{ key: "name", label: "Nome", required: true }],
-                        "room",
-                      )
-                    }
-                  >
-                    <Plus size={18} />
-                    Abrir combate
-                  </button>
-                )}
-              </div>
-              {currentRoom ? (
-                <>
-                  <div className="combat-top">
-                    <h2>
-                      <Swords size={23} />
-                      {currentRoom.name}
-                    </h2>
-                    {isMaster && (
-                      <div className="actions">
-                        <button
-                          onClick={() =>
-                            edit(
-                              "Adicionar personagem",
-                              [
-                                {
-                                  key: "character_id",
-                                  label: "Personagem",
-                                  options: chars,
-                                  required: true,
-                                },
-                                {
-                                  key: "side",
-                                  label: "Lado",
-                                  options: [
-                                    { id: "ally", name: "Aliado" },
-                                    { id: "enemy", name: "Inimigo" },
-                                    { id: "neutral", name: "Neutro" },
-                                  ],
-                                },
-                              ],
-                              "participant",
-                              { room_id: currentRoom.id },
-                            )
-                          }
-                        >
-                          + Personagem
-                        </button>
-                        <button
-                          onClick={() =>
-                            edit(
-                              "Adicionar criatura",
-                              [
-                                {
-                                  key: "template_id",
-                                  label: "Modelo",
-                                  options: rows("creature_templates").filter(
-                                    (t) => t.active,
-                                  ),
-                                  required: true,
-                                },
-                                { key: "name", label: "Nome desta instância" },
-                                {
-                                  key: "side",
-                                  label: "Lado",
-                                  options: [
-                                    { id: "enemy", name: "Inimigo" },
-                                    { id: "ally", name: "Aliado" },
-                                    { id: "neutral", name: "Neutro" },
-                                  ],
-                                },
-                              ],
-                              "participant",
-                              { room_id: currentRoom.id },
-                            )
-                          }
-                        >
-                          + Criatura
-                        </button>
-                        <button
-                          onClick={() =>
-                            setForm({
-                              title: "Encerrar combate?",
-                              fields: [],
-                              submit: async () => {
-                                await command("room", {
-                                  id: currentRoom.id,
-                                  active: false,
-                                });
-                                setForm(null);
-                              },
-                            })
-                          }
-                        >
-                          Encerrar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="combat-grid">
-                    {[
-                      ["ally", "Aliados"],
-                      ["enemy", "Inimigos"],
-                      ["neutral", "Neutros"],
-                    ].map(([side, label]) => (
-                      <section key={side}>
-                        <h2 className="side-title">
-                          {label}
-                          <small>
-                            {
-                              participants.filter(
-                                (p) =>
-                                  p.room_id === currentRoom.id &&
-                                  p.side === side,
-                              ).length
-                            }
-                          </small>
-                        </h2>
-                        {participants
-                          .filter(
-                            (p) =>
-                              p.room_id === currentRoom.id && p.side === side,
-                          )
-                          .map((p) => (
-                            <div className="panel combat-card" key={p.id}>
-                              <div className="spread">
-                                {p.identity_id?<IdentityBadge identity={{...rows("social_identities").find(i=>i.id===p.identity_id),id:p.identity_id,name:p.name}} cosmetics={rows("cosmetics")} equipment={rows("cosmetic_equipment")} urls={avatarUrls}/>:<div className="identity-badge"><ItemThumbnail path={p.image_path} name={p.name}/><h3>{p.name}</h3></div>}
-                                <span className={`status ${p.state}`}>
-                                  {
-                                    (
-                                      {
-                                        green: "Saudável",
-                                        yellow: "Ferido",
-                                        red: "Grave",
-                                        zero: "Vida zerada",
-                                      } as Row
-                                    )[p.state]
-                                  }
-                                </span>
-                              </div>
-                              {p.life === null ? (
-                                <p className="muted">Vida exata não revelada</p>
-                              ) : (
-                                ["life", "mana", "stamina"].map((k) =>
-                                  resourcePanel(
-                                    p.character_id,
-                                    {
-                                      key: k,
-                                      current: p[k],
-                                      maximum: p[k + "_max"],
-                                    },
-                                    isMaster ? p.id : undefined,
-                                    isMaster ||
-                                      chars.some(
-                                        (c) =>
-                                          c.id === p.character_id &&
-                                          c.owner_id === session.user.id,
-                                      ),
-                                  ),
-                                )
-                              )}
-                              {p.character_id &&
-                                (isMaster ||
-                                  chars.some((c) => c.id === p.character_id)) &&
-                                quick(p.character_id)}
-                              {isMaster && (
-                                <div className="combat-controls">
-                                  <label>
-                                    <input
-                                      type="checkbox"
-                                      checked={p.reveal}
-                                      disabled={busy}
-                                      onChange={(e) =>
-                                        run(() =>
-                                          command("combat_update", {
-                                            id: p.id,
-                                            reveal: e.target.checked,
-                                          }),
-                                        )
-                                      }
-                                    />
-                                    Revelar valores
-                                  </label>
-                                  <button
-                                    onClick={() =>
-                                      run(() =>
-                                        command("combat_update", {
-                                          id: p.id,
-                                          remove: true,
-                                        }),
-                                      )
-                                    }
-                                  >
-                                    Retirar
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                      </section>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <Empty text="Nenhum combate aberto. O mestre pode iniciar uma sala e adicionar os participantes." />
-              )}
-            </>
+            <CombatPanel
+              rooms={activeRooms}
+              selectedRoomId={currentRoom?.id || ""}
+              participants={participants}
+              characters={chars}
+              identities={rows("social_identities")}
+              cosmetics={rows("cosmetics")}
+              equipment={rows("cosmetic_equipment")}
+              avatarUrls={avatarUrls}
+              inventory={rows("character_items")}
+              items={rows("items")}
+              effects={rows("item_effects")}
+              isMaster={Boolean(isMaster)}
+              userId={session.user.id}
+              busy={busy}
+              onSelectRoom={setRoom}
+              onHistory={() => setPage("Histórico")}
+              onCreateRoom={() =>
+                edit(
+                  "Criar nova sala de combate",
+                  [{ key: "name", label: "Nome", required: true }],
+                  "room",
+                )
+              }
+              onRenameRoom={(targetRoom) =>
+                edit(
+                  "Renomear sala de combate",
+                  [
+                    {
+                      key: "name",
+                      label: "Nome",
+                      value: targetRoom.name,
+                      required: true,
+                    },
+                  ],
+                  "room",
+                  { id: targetRoom.id },
+                )
+              }
+              onAddCharacter={(targetRoom) =>
+                edit(
+                  "Adicionar personagem/aliado",
+                  [
+                    {
+                      key: "character_id",
+                      label: "Personagem",
+                      options: chars,
+                      required: true,
+                    },
+                  ],
+                  "participant",
+                  { room_id: targetRoom.id, side: "ally" },
+                )
+              }
+              onAddCreature={(targetRoom, side) =>
+                edit(
+                  side === "ally"
+                    ? "Adicionar criatura aliada"
+                    : "Adicionar monstro/inimigo",
+                  [
+                    {
+                      key: "template_id",
+                      label: "Modelo",
+                      options: rows("creature_templates").filter(
+                        (template) => template.active,
+                      ),
+                      required: true,
+                    },
+                    { key: "name", label: "Nome desta instância" },
+                  ],
+                  "participant",
+                  { room_id: targetRoom.id, side },
+                )
+              }
+              onEndRoom={(targetRoom) =>
+                setForm({
+                  title: `Encerrar ${targetRoom.name}?`,
+                  fields: [],
+                  submit: async () => {
+                    await command("room", {
+                      id: targetRoom.id,
+                      active: false,
+                    });
+                    setForm(null);
+                  },
+                })
+              }
+              onRemoveParticipant={(participant) =>
+                run(() =>
+                  command("combat_update", {
+                    id: participant.id,
+                    remove: true,
+                  }),
+                )
+              }
+              onRevealParticipant={(participant, reveal) =>
+                run(() =>
+                  command("combat_update", { id: participant.id, reveal }),
+                )
+              }
+              onAdjustLife={(participant, delta) =>
+                perform(async () => {
+                  const request = combatLifeCommand({
+                    participant,
+                    delta,
+                    isMaster: Boolean(isMaster),
+                    userId: session.user.id,
+                    characters: chars,
+                  });
+                  await command(request.op, request.data);
+                })
+              }
+              onConsume={(payload) => run(() => action("consume", payload))}
+            />
           )}
           {["Vantagens", "Itens", "Criaturas"].includes(page) && (
             <>
@@ -2498,7 +2407,37 @@ export default function Game({ invite }: { invite?: string }) {
                         <h2>{a.name}</h2>
                         {!a.active && <span className="badge">Arquivado</span>}
                       </div>
-                      {page==="Criaturas"&&isMaster&&<><ItemThumbnail path={a.image_path} name={a.name}/><label className="button-label">Imagem da criatura<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(file)void run(async()=>{const path=await uploadItemImage(file,campaign);const r=await browserDb().rpc("set_creature_image",{c:campaign,target:a.id,path});if(r.error)throw new Error(r.error.message);await load(campaign,true)})}}/></label></>}
+                      {page === "Criaturas" && isMaster && (
+                        <>
+                          <ItemThumbnail path={a.image_path} name={a.name} />
+                          <label className="button-label">
+                            Imagem da criatura
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp"
+                              disabled={busy}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                e.target.value = "";
+                                if (file)
+                                  void run(async () => {
+                                    const path = await uploadItemImage(
+                                      file,
+                                      campaign,
+                                    );
+                                    const r = await browserDb().rpc(
+                                      "set_creature_image",
+                                      { c: campaign, target: a.id, path },
+                                    );
+                                    if (r.error)
+                                      throw new Error(r.error.message);
+                                    await load(campaign, true);
+                                  });
+                              }}
+                            />
+                          </label>
+                        </>
+                      )}
                       {page === "Itens" && (
                         <>
                           <ItemThumbnail path={a.image} name={a.name} />
@@ -3163,7 +3102,9 @@ export default function Game({ invite }: { invite?: string }) {
                     urls={avatarUrls}
                   />
                 )}
-                <p>@{ownProfile?.username} {isMaster&&"· Mestre"}</p>
+                <p>
+                  @{ownProfile?.username} {isMaster && "· Mestre"}
+                </p>
                 <div className="actions">
                   {ownIdentity && (
                     <button onClick={() => setAvatarPicker(true)}>
@@ -3256,6 +3197,7 @@ export default function Game({ invite }: { invite?: string }) {
           master={Boolean(isMaster)}
           revision={data}
           requestedPeer={chatPeer}
+          docked={page === "Combate"}
         />
       )}
       {ownIdentity && (
