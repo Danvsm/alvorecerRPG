@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 14/09/2026 (UTC).
+Atualizado em 14/09/2026, 17:15 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -20,7 +20,9 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Versão do pacote: `1.3.0`.
 - Deploy Vercel do commit-base: `dpl_33qJLEyhMB38knJMuDTzbf6DMEXX`.
 - Estado confirmado: `READY`, alvo `production`, origem GitHub `Danvsm/alvorecerRPG`, ref `main`.
-- O SHA de ponta mudará com a criação deste handoff e do changelog; confirmar o novo deploy antes de encerrar.
+- Commits de documentação criados nesta continuação: `9ccc68a09b1e2a4b96af8dc0f45b246ad3c94c16` (`docs/HANDOFF.md`) e `276f6690ccd04bba53a3994a50daeaac4892a8a5` (`CHANGELOG.md`).
+- O commit `276f6690ccd04bba53a3994a50daeaac4892a8a5` chegou a `READY` em produção no deploy `dpl_7PQZSrt1rhFSmkuTrCvSGmJ8AjxC`.
+- Esta atualização do handoff gerará um novo commit exclusivamente documental; confirmar seu deploy antes de encerrar.
 
 ## Banco, migrations e função
 
@@ -69,13 +71,13 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ## Ainda falta testar
 
-- Abrir como Pink a resposta já enviada por darkvsm e validar o fluxo completo nos dois sentidos.
-- Exercitar a troca de conta no site publicado e confirmar que conversa, destinatário e identidade não vazam entre sessões.
+- A entrega e leitura do chat nos dois sentidos estão confirmadas no banco: darkvsm leu as mensagens de Pink e Pink leu a resposta de darkvsm. Ainda falta confirmar visualmente a apresentação da resposta na interface.
+- Exercitar novamente a troca de conta no site publicado e confirmar visualmente que conversa, destinatário e identidade não vazam entre sessões.
 - Confirmar na interface publicada a formatação corrigida do histórico.
 - Concluir um teste interativo de combate entre Pink e jogador, incluindo atualização simultânea mestre → jogador e jogador → mestre.
 - Validar os comandos administrativos restantes com dados de teste identificáveis, sem afetar dados reais.
 - Revisar layout mobile em largura próxima de 390 px: navegação, cards, formulários, chat e combate sem rolagem horizontal.
-- Após `2026-09-15 02:13:29 UTC`, confirmar `chat_media.deleted_at` e a ausência física do objeto no bucket `chat-media`.
+- Após `2026-09-15 02:13:29 UTC`, confirmar `chat_media.deleted_at` e a ausência física do objeto no bucket `chat-media`. Uma verificação condicional horária foi agendada a partir de 14/09 16:30 em `America/Sao_Paulo` para o registro-alvo.
 - Confirmar que os commits de documentação/correção desta continuação também chegam a `READY` no projeto Vercel correto.
 
 ## Bugs conhecidos
@@ -83,13 +85,29 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Não há bug funcional aberto confirmado neste momento.
 - Corrigidos em `42292c7`: histórico exibindo `[object Object]` e estado do chat herdado ao trocar sessão/campanha.
 - Riscos ainda não encerrados: regressão visual mobile, troca de conta, sincronização interativa entre duas sessões e remoção física da imagem temporária.
-- Limitação operacional desta continuação: o ambiente atual não expõe navegador interativo; qualquer item não comprovável por API, banco ou inspeção de código deve permanecer explicitamente como não testado até haver sessão visual disponível.
+- Limitação operacional desta continuação: o ambiente atual não expõe navegador interativo. A integração TinyFish foi localizada e sugerida, mas ainda não está instalada/conectada. Qualquer item não comprovável por API, banco ou inspeção de código permanece explicitamente como não testado.
+- Há duas salas antigas de teste `Verificação ...` ainda ativas, além da sala vazia `combate`; são artefatos identificáveis de validações anteriores e devem ser encerrados/arquivados pela interface após o teste interativo, não tratados como bug do produto.
 
 ## Próximo passo exato
 
-1. Criar `CHANGELOG.md` somente com entregas concluídas.
-2. Confirmar o deploy dos commits de documentação no projeto Vercel existente.
-3. Consultar o registro da imagem temporária e o objeto no Storage depois da expiração; conferir também a resposta HTTP do cron.
-4. Assim que houver navegador interativo, entrar primeiro como Pink, abrir a resposta de darkvsm, sair e entrar como jogador para validar a troca de sessão.
-5. Com Pink e jogador em sessões distintas, concluir o combate Realtime e revisar a interface em 390 px.
-6. Corrigir apenas problemas reproduzidos, repetir os gates e atualizar este documento com evidências finais.
+1. Instalar/conectar TinyFish para disponibilizar navegador automatizado nesta conversa.
+2. No domínio publicado, entrar primeiro como Pink, conferir visualmente a resposta de darkvsm e o histórico formatado; sair e entrar como darkvsm para validar a troca de sessão sem herança de chat.
+3. Com Pink e jogador em sessões distintas, alterar um recurso pelo mestre, gastar um recurso pelo jogador e observar a atualização Realtime nas duas telas; depois encerrar/arquivar as salas `Verificação ...` remanescentes.
+4. Repetir os mesmos fluxos em viewport de 390 px e confirmar ausência de rolagem horizontal em navegação, cards, formulários, chat e combate.
+5. Aguardar a verificação condicional da mídia-alvo após 14/09/2026 23:13:29 em São Paulo; exigir `deleted_at` preenchido, objeto ausente e HTTP 200 do cron.
+6. Corrigir somente problemas reproduzidos, repetir os gates quando houver alteração de código e atualizar este documento com evidências finais.
+
+
+## Continuação verificada — 14/09/2026, 17:15 UTC
+
+- O domínio de produção respondeu HTTP 200 com o cabeçalho de viewport mobile e os cabeçalhos de segurança esperados.
+- O commit documental `276f6690ccd04bba53a3994a50daeaac4892a8a5` está em `READY` no projeto Vercel correto.
+- A Vercel não registrou erros de runtime nas últimas 24 horas.
+- Pink e darkvsm possuem login recente em produção. O banco confirma que ambos leram todas as mensagens recebidas na conversa entre eles; Pink marcou como lida, às 06:13 UTC, a resposta enviada por darkvsm às 05:45 UTC.
+- Depois do deploy de `42292c7`, o histórico registra ações reais pela interface: darkvsm gastou Vida, Mana e Fôlego; Pink removeu participantes de combate e executou transferências. Não houve erro de banco nessas ações.
+- A sincronização visual simultânea entre duas telas continua não comprovada neste ambiente.
+- Revisão mobile estática concluída: CSS publicado contém breakpoints em 760 px e 380 px, grids responsivos, formulários empilhados, diálogo limitado ao viewport, combate em uma coluna e chat com largura `min(390px, calc(100vw - 24px))`. Nenhum defeito foi encontrado por inspeção; o teste visual em 390 px continua pendente.
+- Às 17:06 UTC, a imagem-alvo ainda estava dentro do prazo, com `deleted_at` nulo e objeto presente, como esperado. A expiração é 15/09/2026 às 02:13:29 UTC.
+- As 20 respostas do cron observadas entre 12:15 e 17:00 UTC foram HTTP 200, sem timeout nem erro, com `removed: 0` e `pending: 0`, coerente com não haver mídia vencida naquele intervalo.
+- Uma verificação condicional horária foi criada para confirmar a remoção lógica e física da imagem-alvo depois da expiração.
+- Nenhum novo bug de código foi reproduzido; portanto, não foi feita correção especulativa.
