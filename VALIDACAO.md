@@ -8,7 +8,7 @@ npm test
 npm run build
 ```
 
-Resultado esperado: TypeScript sem erro, 19 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
+Resultado esperado: TypeScript sem erro, 21 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
 
 ## Testes no Supabase real
 
@@ -133,3 +133,11 @@ Ainda pendente:
 2. Entrar como Pink/Mestre e confirmar a engrenagem, quantidade livre, `Perdeu Vida` e `Ganhou Vida` em qualquer participante. A solicitação segura de credenciais foi recusada nesta rodada.
 3. Executar Realtime em duas sessões simultâneas para o novo controle de Vida.
 4. Exercitar visualmente os cenários de 2 aliados, 4 aliados e vários inimigos; a prévia local já contém 4 + 4 participantes, mas não houve navegador local disponível para a inspeção.
+
+## Avatar do personagem pelo Mestre — 15/09/2026, 03:30 UTC
+
+- Em Personagens, selecionar `darkvsm` e confirmar outro avatar alterou somente o personagem selecionado.
+- O avatar de `darkvsm` mudou de `Novinha` para `Ladino`; a identidade Pink permaneceu com `Monge`.
+- O banco registrou a ação `avatar_select` com o `character_id` de `darkvsm` às 03:29:20 UTC.
+- O fluxo de Perfil continua separado e direcionado a `identity_action/avatar`; o fluxo de Personagens usa `game_action/avatar_select`.
+- `npm run typecheck`, 21/21 testes e `npm run build` passaram antes do deploy final.

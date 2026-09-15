@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 14/09/2026, 22:45 UTC.
+Atualizado em 15/09/2026, 03:30 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -49,12 +49,13 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O fluxo atual não oferece mais Neutros nem renderiza a seção, preservando os registros antigos no banco sem migration destrutiva.
 - O ajuste de Vida passou a aceitar quantidade inteira livre; o Mestre recebe perda/ganho e o jogador recebe somente perda no próprio personagem. Os comandos e as validações server-side existentes foram preservados.
 - Os assets fornecidos para espadas, estandartes, coroa, brasão e wallpaper foram otimizados para WebP e usados diretamente na interface.
+- A troca de avatar no painel Personagens agora mantém destinos separados: o Mestre altera somente o personagem selecionado, enquanto Perfil continua alterando somente a identidade própria.
 
 ## Testes já concluídos
 
 ### Automatizados
 
-- `npm test`: 19/19 testes aprovados.
+- `npm test`: 21/21 testes aprovados.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
@@ -90,6 +91,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 - Não há bug funcional aberto confirmado neste momento.
 - Corrigidos em `42292c7`: histórico exibindo `[object Object]` e estado do chat herdado ao trocar sessão/campanha.
+- Corrigido em `2422568`: Alterar avatar em Personagens chamava o fluxo da identidade do Mestre e, na primeira correção, o RPC incorreto. O fluxo publicado agora usa `game_action/avatar_select` com o `character_id` selecionado.
 - Riscos ainda não encerrados: regressão visual mobile, troca de conta, sincronização interativa entre duas sessões e remoção física da imagem temporária.
 - Limitação operacional desta continuação: o ambiente atual não expõe navegador interativo. A integração TinyFish foi localizada e sugerida, mas ainda não está instalada/conectada. Qualquer item não comprovável por API, banco ou inspeção de código permanece explicitamente como não testado.
 - Há duas salas antigas de teste `Verificação ...` ainda ativas, além da sala vazia `combate`; são artefatos identificáveis de validações anteriores e devem ser encerrados/arquivados pela interface após o teste interativo, não tratados como bug do produto.
@@ -102,7 +104,6 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 4. Repetir os mesmos fluxos em viewport de 390 px e confirmar ausência de rolagem horizontal em navegação, cards, formulários, chat e combate.
 5. Aguardar a verificação condicional da mídia-alvo após 14/09/2026 23:13:29 em São Paulo; exigir `deleted_at` preenchido, objeto ausente e HTTP 200 do cron.
 6. Corrigir somente problemas reproduzidos, repetir os gates quando houver alteração de código e atualizar este documento com evidências finais.
-
 
 ## Continuação verificada — 14/09/2026, 17:15 UTC
 
@@ -129,3 +130,12 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - A prévia de desenvolvimento contém quatro aliados e quatro inimigos para exercitar a grade, mas a validação visual dessa prévia não foi concluída porque o ambiente local não disponibilizou um binário Chromium.
 - O teste autenticado Pink/Mestre continua pendente: o formulário seguro de credenciais foi recusado nesta rodada. Não declarar ganho/perda do Mestre nem engrenagem como validados em produção até repetir com essa conta.
 - A Vercel não registrou erros de runtime nos 30 minutos após o deploy e o teste autenticado.
+
+## Correção da foto do personagem — 15/09/2026, 03:30 UTC
+
+- O commit `f28527b6b2d6d321469efb4b1539d905f7ad03a5` separou o destino do seletor de avatar entre Perfil e Personagens.
+- A tentativa manual seguinte revelou que `avatar_select` pertence a `game_action`, não a `game_command`; o ajuste final foi publicado no commit `24225683790311962bb114bf65da4f0a772a9aaf`.
+- `npm run typecheck`, 21/21 testes e `npm run build` passaram. O teste de banco incluído comprova que o Mestre pode selecionar o avatar de um personagem específico sem alterar outro personagem.
+- O deploy de produção `dpl_Cc3gxD8hc7VpE2Rj3uwWysNwX8XL` chegou a `READY` no projeto correto.
+- Validação manual confirmada pelo usuário: `darkvsm` mudou do avatar `Novinha` para `Ladino`, enquanto a identidade Pink permaneceu com `Monge`.
+- O banco registrou `avatar_select` para `darkvsm` às 03:29:20 UTC e manteve o `avatar_id` da identidade Pink inalterado. Nenhuma migration foi necessária.
