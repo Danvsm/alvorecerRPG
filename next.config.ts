@@ -16,7 +16,8 @@ const config: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self'",
+            value:
+              "default-src 'self'; script-src 'self'; connect-src 'self' https://wsihnbrnqdnmidjvjchn.supabase.co",
           },
           { key: "Service-Worker-Allowed", value: "/" },
         ],

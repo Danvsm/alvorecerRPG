@@ -216,6 +216,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O servidor de produção local confirmou os cabeçalhos do worker e dos assets. O pacote Playwright estava presente, mas sem binário Chromium; a checagem visual real em mobile/desktop ficou pendente para o domínio publicado e para o usuário.
 - Publicação concluída no commit `6b56727ba7b2806418d890105e19c598ee5ad95d`; deploy `dpl_ASbJmsmPArpvQ8dabCb4ePytJBFB` chegou a `READY`. O domínio principal respondeu HTTP 200 para o worker e para o asset de combate, e a consulta da Vercel não encontrou erros de runtime.
 - A automação autenticada adicional não chegou a abrir uma sessão: a integração recusou o modo estrito por falta de habilitação da conta. Portanto, ela não alterou dados e não substitui o teste manual abaixo.
+- Hotfix pendente de publicação nesta continuação: a CSP inicial do worker tinha `default-src 'self'` sem `connect-src` para o Storage externo, fazendo as fotos privadas desaparecerem. O cabeçalho foi limitado a `'self'` e ao host específico `wsihnbrnqdnmidjvjchn.supabase.co`; 43/43 testes, TypeScript e build passaram novamente.
 
 ### Próximo passo do Image Cache
 

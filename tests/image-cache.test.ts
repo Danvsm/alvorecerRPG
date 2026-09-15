@@ -295,6 +295,10 @@ test("integration keeps logout isolation, HTTP cache headers and development-onl
   assert.match(layout, /<ImageCache \/>/);
   assert.match(media, /cacheControl: "31536000"/);
   assert.match(config, /no-cache, no-store, must-revalidate/);
+  assert.match(
+    config,
+    /connect-src 'self' https:\/\/wsihnbrnqdnmidjvjchn\.supabase\.co/,
+  );
   assert.match(config, /stale-while-revalidate=604800/);
   assert.match(workerSource, /\[ImageCache\] \$\{event\}/);
   assert.doesNotMatch(workerSource, /localStorage|base64/i);

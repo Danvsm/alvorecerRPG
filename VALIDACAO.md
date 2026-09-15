@@ -233,3 +233,4 @@ Evidências:
 - Gates: `npm run typecheck` aprovado, `npm test` 43/43 aprovado e `npm run build` aprovado.
 - Produção: commit `6b56727ba7b2806418d890105e19c598ee5ad95d`, deploy `dpl_ASbJmsmPArpvQ8dabCb4ePytJBFB` em estado `READY`; worker e asset de combate responderam HTTP 200 com os cabeçalhos configurados e não havia erro de runtime nos 30 minutos consultados.
 - A tentativa de complementar a checagem visual pelo navegador conectado foi bloqueada antes de iniciar porque a conta da integração não possui o modo estrito habilitado; nenhum dado do jogador foi alterado.
+- Regressão corrigida: o `connect-src` do worker agora contém somente `'self'` e `https://wsihnbrnqdnmidjvjchn.supabase.co`. O cabeçalho local foi conferido e um teste impede remover essa origem específica novamente.
