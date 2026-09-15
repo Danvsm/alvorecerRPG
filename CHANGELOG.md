@@ -43,6 +43,11 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Exclusão de Personagem do Mundo protegida contra mídia criada durante a operação: a finalização trava as conversas, confere os arquivos realmente removidos e repete a limpeza quando detecta concorrência.
 - Deploy de produção do commit `42292c73ddc8c031c483ecfc738a2473b16f8909` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 - Deploy de produção do redesign no commit `28c42266fec6fb788501f517d1087907c07eae5b` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
+- Módulo Image Cache integrado sem criar um segundo PWA: Service Worker dedicado a imagens, estratégia Stale While Revalidate, deduplicação de downloads simultâneos, fallback offline e limite LRU aproximado de 300 imagens.
+- URLs assinadas de avatares, molduras e itens recebem versão estável do ativo; a renovação do token não duplica a entrada local e uma alteração de arquivo gera somente um novo download.
+- Imagens temporárias do chat permanecem fora do cache persistente. Logout limpa as URLs visuais em memória, e a ativação remove apenas versões antigas dos caches `alvorecer-images-*`.
+- Novos uploads imutáveis em Storage recebem cache HTTP de um ano. O Service Worker nunca recebe cache HTTP duradouro; assets estáticos visuais recebem cache público com revalidação.
+- Validação local do Image Cache: 10/10 cenários específicos, 43/43 testes totais, TypeScript e build de produção aprovados.
 
 ### Estado de validação
 

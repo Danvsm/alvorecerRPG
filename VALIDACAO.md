@@ -213,3 +213,21 @@ Evidências:
 - Supabase real: migrations `avatar_frames_administration` e `avatar_frames_audit_indexes` aplicadas.
 - Exemplo real: `Guardião Violeta`, coleção `Alvorecer`, raridade Épica, Glow + brilho deslizante, sem concessões a jogadores.
 - Não testado: aparência final, encaixe, animações e responsividade em aparelhos reais; fluxo visual completo de concessão/equipamento no domínio publicado. O usuário fará essa validação manual.
+
+## Image Cache — 15/09/2026
+
+- Não existia Service Worker, manifesto PWA ou cache de imagens concorrente; o registro novo é único e global.
+- O worker intercepta somente `GET` cujo destino é `image` e exclui explicitamente o bucket temporário `chat-media`.
+- Primeiro carregamento: MISS, download e persistência em `alvorecer-images-v1`.
+- Segundo carregamento e renovação do token assinado: HIT na mesma versão, sem novo download imediato.
+- Cinco componentes concorrentes são atendidos pela mesma promessa de rede por chave canônica.
+- Mudança do parâmetro `v` cria uma nova entrada sem limpar as demais imagens.
+- Após uma hora, a versão local aparece primeiro e a revalidação ocorre em segundo plano; falha de rede preserva a imagem local.
+- Resposta 404/410 na revalidação elimina a imagem e os metadados correspondentes.
+- A invalidação por caminho remove somente o arquivo alterado ou excluído.
+- O teste com 301 imagens manteve as 300 mais recentes e descartou a mais antiga.
+- A ativação apagou caches antigos `alvorecer-images-*` e preservou um cache de outro sistema.
+- A aplicação não usa Base64 nem `localStorage` para arquivos de imagem.
+- Cabeçalhos locais confirmados: `/image-cache-sw.js` usa `no-cache, no-store, must-revalidate`; assets de combate usam `public, max-age=86400, stale-while-revalidate=604800`.
+- O navegador headless disponível não possuía o binário Chromium, portanto o teste visual local real em 390×844 e desktop permanece para o deploy e para a conferência manual.
+- Gates: `npm run typecheck` aprovado, `npm test` 43/43 aprovado e `npm run build` aprovado.

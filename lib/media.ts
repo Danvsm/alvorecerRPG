@@ -35,7 +35,10 @@ export async function uploadItemImage(file: File, campaign: string) {
   const path = `${campaign}/${crypto.randomUUID()}.webp`;
   const { error } = await browserDb()
     .storage.from("item-media")
-    .upload(path, blob, { contentType: "image/webp" });
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
   if (error) throw error;
   return path;
 }
@@ -45,7 +48,10 @@ export async function uploadAvatarImage(file: File, campaign: string) {
   const path = `${campaign}/avatars/${crypto.randomUUID()}.webp`;
   const { error } = await browserDb()
     .storage.from("portraits")
-    .upload(path, blob, { contentType: "image/webp" });
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
   if (error) throw error;
   return path;
 }
@@ -88,7 +94,10 @@ export async function uploadFrameImage(file: File, campaign: string) {
   const path = `${campaign}/frames/${crypto.randomUUID()}.webp`;
   const { error } = await browserDb()
     .storage.from("avatar-frames")
-    .upload(path, blob, { contentType: "image/webp" });
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
   if (error) throw error;
   return path;
 }

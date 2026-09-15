@@ -58,6 +58,7 @@ import {
   uploadFrameImage,
   uploadItemImage,
 } from "@/lib/media";
+import { invalidateCachedImage, versionedImageUrl } from "@/lib/image-cache";
 import {
   avatarSelectionRequest,
   characterAvatarIdentityId,
@@ -316,6 +317,7 @@ export default function Game({ invite }: { invite?: string }) {
         setCampaign("");
         setMembers([]);
         setPasswords({});
+        setAvatarUrls({});
         setAvatarPickerTarget(null);
       }
     });
@@ -521,7 +523,13 @@ export default function Game({ invite }: { invite?: string }) {
         const { data } = await browserDb()
           .storage.from(avatar.bucket)
           .createSignedUrl(avatar.storage_path, 3600);
-        return [avatar.id, data?.signedUrl || ""];
+        return [
+          avatar.id,
+          versionedImageUrl(
+            data?.signedUrl,
+            avatar.updated_at || avatar.created_at || avatar.storage_path,
+          ),
+        ];
       }),
     ).then((r) => {
       if (valid) setAvatarUrls(Object.fromEntries(r));
@@ -2959,6 +2967,7 @@ export default function Game({ invite }: { invite?: string }) {
                 onDelete={(avatar) =>
                   run(async () => {
                     await admin("delete_avatar", { avatarId: avatar.id });
+                    await invalidateCachedImage(avatar.storage_path);
                     await load(campaign, true);
                     setMessage("Avatar excluído");
                   })
@@ -3310,7 +3319,10 @@ export default function Game({ invite }: { invite?: string }) {
                     const result = await browserDb()
                       .storage.from("avatar-frames")
                       .remove([path]);
-                    if (!result.error) return;
+                    if (!result.error) {
+                      await invalidateCachedImage(path);
+                      return;
+                    }
                   }
                   throw new Error(
                     "Moldura excluída, mas a limpeza do arquivo ficou pendente",

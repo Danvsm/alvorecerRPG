@@ -200,3 +200,24 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - `npm test` passou em 26/26, `npm run typecheck` passou e `npm run build` gerou as seis rotas esperadas.
 - Não foram feitos testes visuais extensos nem alterações em contas ou avatares reais. A aparência, o fluxo publicado e a responsividade permanecem para validação manual do usuário.
 - O commit funcional publicado é `0fd02d62d9183d4c8e175136a71c33aa1974721e`. O deploy de produção correspondente é `dpl_ACLqh8LAWN5TQXdBZev3xv43xW7J`, estado `READY`, com o domínio principal associado sem erro de alias.
+
+## Image Cache — 15/09/2026, validação local
+
+- Foi integrado um único Service Worker em `/image-cache-sw.js`; antes desta alteração o projeto não possuía Service Worker/PWA/cache semelhante.
+- O cache `alvorecer-images-v1` usa Stale While Revalidate, serve HIT imediatamente, revalida versões antigas em segundo plano e mantém a cópia local em falhas de rede.
+- Requisições simultâneas da mesma URL/versionamento compartilham um único download. URLs assinadas do Supabase são canonizadas localmente sem o token, mas somente quando possuem o parâmetro de versão `v`.
+- Avatares, molduras e itens recebem `v` baseado em `updated_at`, `created_at` ou caminho imutável. Novos uploads usam nomes UUID e `cacheControl: 31536000`.
+- `chat-media` não é interceptado, preservando a expiração e a privacidade das imagens temporárias.
+- Há metadados de acesso no próprio Cache Storage, limite aproximado de 300 imagens e remoção das menos recentes. Nenhum arquivo vai para banco, Base64 ou `localStorage`.
+- Ao ativar uma nova versão, somente caches cujo nome começa com `alvorecer-images-` são limpos; caches de outros sistemas permanecem intactos.
+- A exclusão de avatar/moldura invalida apenas o caminho correspondente no dispositivo atual. O logout também zera as URLs visuais mantidas em memória.
+- Logs HIT/MISS/UPDATED/EVICTED são ativados apenas pelo registro de desenvolvimento.
+- Validações: 10/10 testes específicos do worker, 43/43 na suíte completa, TypeScript e build aprovados.
+- O servidor de produção local confirmou os cabeçalhos do worker e dos assets. O pacote Playwright estava presente, mas sem binário Chromium; a checagem visual real em mobile/desktop ficou pendente para o domínio publicado e para o usuário.
+
+### Próximo passo do Image Cache
+
+1. Confirmar o deploy `READY` e os cabeçalhos publicados.
+2. Abrir o site uma vez, recarregar e conferir `alvorecer-images-v1` em DevTools > Application > Cache Storage.
+3. Trocar um avatar e confirmar que a nova imagem aparece sem limpar o cache inteiro.
+4. Repetir em aproximadamente 390×844 e desktop; alternar entre duas contas e confirmar que não há imagem incorreta herdada.

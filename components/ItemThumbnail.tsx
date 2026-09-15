@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { browserDb } from "@/lib/client";
+import { versionedImageUrl } from "@/lib/image-cache";
 export default function ItemThumbnail({
   path,
   name,
@@ -16,7 +17,7 @@ export default function ItemThumbnail({
         .storage.from("item-media")
         .createSignedUrl(path, 3600)
         .then(({ data }) => {
-          if (valid) setUrl(data?.signedUrl || "");
+          if (valid) setUrl(versionedImageUrl(data?.signedUrl, path));
         });
     return () => {
       valid = false;
