@@ -124,6 +124,15 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Não foram feitos teste visual detalhado, revisão manual em celular, concessão real a jogador nem validação visual dos efeitos no domínio publicado. Esses itens permanecem para o usuário.
 - Próximo passo recomendado: o usuário validar no celular o editor, o encaixe da arte, os efeitos, a coleção, concessão/equipamento e o topo do Perfil, enviando screenshots apenas dos ajustes necessários.
 
+## Concorrência na exclusão de Personagem do Mundo — 15/09/2026, 17:00 UTC
+
+- A finalização agora trava a identidade e as conversas do NPC antes de conferir as mídias vinculadas.
+- O banco compara os caminhos atuais com os arquivos que a Edge Function realmente removeu. Se surgir mídia nova durante a operação, o NPC não é apagado nessa tentativa.
+- A Edge Function versão 14 repete preparação, remoção pelo Storage e finalização até três vezes antes de retornar um erro recuperável.
+- A RPC de finalização continua restrita a `service_role`; `authenticated` não possui permissão de execução.
+- O teste PostgreSQL simula uma mídia criada entre preparação e finalização, confirma que a primeira finalização preserva o NPC e que a segunda remove tudo após limpar o novo arquivo.
+- `npm test`: 28/28; `npm run typecheck`: aprovado; `npm run build`: aprovado.
+
 ## Continuação verificada — 14/09/2026, 17:15 UTC
 
 - O domínio de produção respondeu HTTP 200 com o cabeçalho de viewport mobile e os cabeçalhos de segurança esperados.

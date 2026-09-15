@@ -36,6 +36,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260913164608_identity_lifecycle_guard.sql",
       "20260915043804_delete_world_characters.sql",
       "20260915061954_fix_world_character_storage_deletion.sql",
+      "20260915165506_lock_world_character_media_deletion.sql",
       "20260915155949_avatar_frames_administration.sql",
       "20260915162321_avatar_frames_audit_indexes.sql",
     ]) {
@@ -588,11 +589,12 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     const finalizeWorldCharacterDeletion = async (
       targetId: string,
       actor: string,
+      removedPaths: string[] = [],
     ) =>
       (
         await db.query<{ v: any }>(
-          "select finalize_delete_world_character($1,$2,$3) v",
-          [campaign, targetId, actor],
+          "select finalize_delete_world_character($1,$2,$3,$4) v",
+          [campaign, targetId, actor, removedPaths],
         )
       ).rows[0].v;
     await assert.rejects(
@@ -626,11 +628,45 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "delete from storage.objects where name=$1 and bucket_id='chat-media'",
       [upload.path],
     );
+    const racingPath = `${conversation.id}/racing.webp`;
+    await db.query(
+      "insert into storage.objects(name,bucket_id) values($1,'chat-media')",
+      [racingPath],
+    );
+    await db.query(
+      "insert into chat_media(conversation_id,sender_id,uploader_id,storage_path,consumed) values($1,$2,$3,$4,true)",
+      [conversation.id, identity, player, racingPath],
+    );
     await db.exec("set role service_role");
-    assert.deepEqual(await finalizeWorldCharacterDeletion(npc.id, master), {
-      id: npc.id,
-      deleted: true,
-    });
+    const racedDeletion = await finalizeWorldCharacterDeletion(npc.id, master, [
+      upload.path,
+    ]);
+    assert.equal(racedDeletion.deleted, false);
+    assert.deepEqual(
+      racedDeletion.storage_paths.sort(),
+      [upload.path, racingPath].sort(),
+    );
+    assert.equal(
+      (await db.query("select id from social_identities where id=$1", [npc.id]))
+        .rows.length,
+      1,
+    );
+    await db.exec("reset role");
+    await db.query(
+      "delete from storage.objects where name=$1 and bucket_id='chat-media'",
+      [racingPath],
+    );
+    await db.exec("set role service_role");
+    assert.deepEqual(
+      await finalizeWorldCharacterDeletion(npc.id, master, [
+        upload.path,
+        racingPath,
+      ]),
+      {
+        id: npc.id,
+        deleted: true,
+      },
+    );
     assert.equal(
       (await db.query("select id from social_identities where id=$1", [npc.id]))
         .rows.length,

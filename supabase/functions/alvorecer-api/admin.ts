@@ -194,29 +194,45 @@ export async function POST(req: Request) {
     }
     if (d.action === "delete_world_character") {
       if (!d.identityId) throw new Error("Personagem do mundo inválido");
-      const prepared = await db.rpc("prepare_delete_world_character", {
-        c: d.campaign,
-        target_id: d.identityId,
-        actor: user.id,
-      });
-      if (prepared.error) throw new Error(prepared.error.message);
-      const storagePaths = Array.isArray(prepared.data?.storage_paths)
-        ? prepared.data.storage_paths.filter(
-            (path: unknown): path is string => typeof path === "string",
-          )
-        : [];
-      if (storagePaths.length) {
-        const removed = await db.storage.from("chat-media").remove(storagePaths);
-        if (removed.error)
-          throw new Error("Não foi possível remover as mídias vinculadas");
+      const removedPaths = new Set<string>();
+      let deletion: Record<string, unknown> | null = null;
+      for (let attempt = 0; attempt < 3 && !deletion; attempt += 1) {
+        const prepared = await db.rpc("prepare_delete_world_character", {
+          c: d.campaign,
+          target_id: d.identityId,
+          actor: user.id,
+        });
+        if (prepared.error) throw new Error(prepared.error.message);
+        const storagePaths = Array.isArray(prepared.data?.storage_paths)
+          ? prepared.data.storage_paths.filter(
+              (path: unknown): path is string => typeof path === "string",
+            )
+          : [];
+        const pendingPaths = storagePaths.filter(
+          (path: string) => !removedPaths.has(path),
+        );
+        if (pendingPaths.length) {
+          const removed = await db.storage
+            .from("chat-media")
+            .remove(pendingPaths);
+          if (removed.error)
+            throw new Error("Não foi possível remover as mídias vinculadas");
+          pendingPaths.forEach((path: string) => removedPaths.add(path));
+        }
+        const finalized = await db.rpc("finalize_delete_world_character", {
+          c: d.campaign,
+          target_id: d.identityId,
+          actor: user.id,
+          removed_paths: [...removedPaths],
+        });
+        if (finalized.error) throw new Error(finalized.error.message);
+        if (finalized.data?.deleted) deletion = finalized.data;
       }
-      const deleted = await db.rpc("finalize_delete_world_character", {
-        c: d.campaign,
-        target_id: d.identityId,
-        actor: user.id,
-      });
-      if (deleted.error) throw new Error(deleted.error.message);
-      result = deleted.data;
+      if (!deletion)
+        throw new Error(
+          "A conversa recebeu novas mídias durante a exclusão. Tente novamente.",
+        );
+      result = deletion;
     }
     if (d.action === "avatar_policy") {
       if (!d.avatarId || !d.avatarOperation)
