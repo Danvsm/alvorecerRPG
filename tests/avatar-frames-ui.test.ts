@@ -43,3 +43,13 @@ test("frame and legacy cosmetic buttons dispatch distinct operations", async () 
   );
   assert.doesNotMatch(panel, /void execute\(/);
 });
+
+test("frame deletion warns about owners and removes the storage asset", async () => {
+  const panel = await source("components/CosmeticsPanel.tsx");
+  assert.match(panel, /Esta moldura pertence a/);
+  assert.match(panel, /<strong>Donos:<\/strong>/);
+  assert.match(panel, /<strong>Usando agora:<\/strong>/);
+  assert.match(panel, /Excluir mesmo assim/);
+  assert.match(panel, /await removeAsset\(result\.asset_path\)/);
+  assert.doesNotMatch(panel, /disabled=\{busy \|\| owners\.length > 0\}/);
+});

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   cosmeticsActionRequest,
+  FORCE_DELETE_FRAME,
   LEGACY_COSMETIC_EQUIP,
 } from "../lib/cosmetics";
 
@@ -34,6 +35,21 @@ test("legacy cosmetics use identity_action with cosmetic_id", () => {
         c: "campaign",
         op: "equip",
         d: { identity_id: "identity", cosmetic_id: "cosmetic" },
+      },
+    },
+  );
+});
+
+test("forced frame deletion uses its master-only RPC", () => {
+  assert.deepEqual(
+    cosmeticsActionRequest("campaign", FORCE_DELETE_FRAME, {
+      frame_id: "frame",
+    }),
+    {
+      rpc: "delete_avatar_frame",
+      params: {
+        c: "campaign",
+        target_id: "frame",
       },
     },
   );

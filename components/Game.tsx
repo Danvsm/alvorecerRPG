@@ -3290,6 +3290,7 @@ export default function Game({ invite }: { invite?: string }) {
                 grants={rows("cosmetic_grants")}
                 equipment={rows("cosmetic_equipment")}
                 identities={rows("social_identities")}
+                profiles={rows("profiles")}
                 collections={rows("cosmetic_collections")}
                 urls={avatarUrls}
                 master={Boolean(isMaster)}
@@ -3305,10 +3306,15 @@ export default function Game({ invite }: { invite?: string }) {
                 }}
                 upload={(file) => uploadFrameImage(file, campaign)}
                 removeAsset={async (path) => {
-                  const result = await browserDb()
-                    .storage.from("avatar-frames")
-                    .remove([path]);
-                  if (result.error) throw new Error(result.error.message);
+                  for (let attempt = 0; attempt < 3; attempt += 1) {
+                    const result = await browserDb()
+                      .storage.from("avatar-frames")
+                      .remove([path]);
+                    if (!result.error) return;
+                  }
+                  throw new Error(
+                    "Moldura excluída, mas a limpeza do arquivo ficou pendente",
+                  );
                 }}
               />
             </>

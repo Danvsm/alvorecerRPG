@@ -40,6 +40,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260915155949_avatar_frames_administration.sql",
       "20260915162321_avatar_frames_audit_indexes.sql",
       "20260915171644_enforce_avatar_frame_action_boundaries.sql",
+      "20260915173409_allow_force_delete_avatar_frames.sql",
     ]) {
       const sql = (
         await readFile(
@@ -533,6 +534,147 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
         )
       ).rows.length,
       0,
+    );
+    const deleteAvatarFrame = async (frameId: string) =>
+      (
+        await db.query<{ v: any }>("select delete_avatar_frame($1,$2) v", [
+          campaign,
+          frameId,
+        ])
+      ).rows[0].v;
+    await asUser(player);
+    await assert.rejects(deleteAvatarFrame(frame.id), /Somente Pink/);
+    await asUser(master);
+    await frameAction("grant", {
+      frame_id: frame.id,
+      identity_id: identity,
+    });
+    await frameAction("equip", {
+      frame_id: frame.id,
+      identity_id: identity,
+    });
+    await frameAction("equip", {
+      frame_id: frame.id,
+      identity_id: secondIdentity,
+    });
+    const identityAvatarBeforeDelete = (
+      await db.query<{ avatar_id: string }>(
+        "select avatar_id from social_identities where id=$1",
+        [identity],
+      )
+    ).rows[0].avatar_id;
+    const deletedFrame = await deleteAvatarFrame(frame.id);
+    assert.equal(deletedFrame.asset_path, framePath);
+    assert.equal(deletedFrame.owners_removed, 2);
+    assert.equal(deletedFrame.equipment_removed, 2);
+    assert.equal(
+      (await db.query("select 1 from cosmetics where id=$1", [frame.id])).rows
+        .length,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query("select 1 from cosmetic_grants where cosmetic_id=$1", [
+          frame.id,
+        ])
+      ).rows.length,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from cosmetic_equipment where cosmetic_id=$1",
+          [frame.id],
+        )
+      ).rows.length,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from notifications where campaign_id=$1 and kind='cosmetic' and reference_id=$2",
+          [campaign, frame.id],
+        )
+      ).rows.length,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from cosmetic_equipment where identity_id=$1 and cosmetic_id=$2",
+          [identity, cosmetic.id],
+        )
+      ).rows.length,
+      1,
+    );
+    assert.equal(
+      (await db.query("select 1 from profiles where id=$1", [player])).rows
+        .length,
+      1,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from cosmetic_grants where identity_id=$1 and cosmetic_id=$2",
+          [identity, cosmetic.id],
+        )
+      ).rows.length,
+      1,
+    );
+    assert.equal(
+      (
+        await db.query<{ avatar_id: string }>(
+          "select avatar_id from social_identities where id=$1",
+          [identity],
+        )
+      ).rows[0].avatar_id,
+      identityAvatarBeforeDelete,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from characters where id=$1 and not archived",
+          [ch],
+        )
+      ).rows.length,
+      1,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from audit_logs where campaign_id=$1 and action='frame_delete' and detail->>'id'=$2",
+          [campaign, frame.id],
+        )
+      ).rows.length,
+      1,
+    );
+    const sharedFramePath = `${campaign}/frames/shared.webp`;
+    await db.exec("reset role");
+    await db.query(
+      "insert into storage.objects(name,bucket_id) values($1,'avatar-frames')",
+      [sharedFramePath],
+    );
+    await asUser(master);
+    const sharedFrame = await frameAction("save", {
+      name: "Moldura compartilhada",
+      asset_path: sharedFramePath,
+    });
+    const sharedCopy = await frameAction("duplicate", {
+      frame_id: sharedFrame.id,
+    });
+    assert.equal((await deleteAvatarFrame(sharedFrame.id)).asset_path, null);
+    assert.equal(
+      (
+        await db.query<{ asset_path: string }>(
+          "select asset_path from cosmetics where id=$1",
+          [sharedCopy.id],
+        )
+      ).rows[0].asset_path,
+      sharedFramePath,
+    );
+    assert.equal(
+      (await deleteAvatarFrame(sharedCopy.id)).asset_path,
+      sharedFramePath,
     );
     const personal = {
       full_name: "Jogador Exemplo",

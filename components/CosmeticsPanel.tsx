@@ -467,6 +467,7 @@ export default function CosmeticsPanel({
   grants,
   equipment,
   identities,
+  profiles,
   collections,
   urls,
   master,
@@ -479,6 +480,7 @@ export default function CosmeticsPanel({
   grants: Row[];
   equipment: Row[];
   identities: Row[];
+  profiles: Row[];
   collections: Row[];
   urls: Record<string, string>;
   master: boolean;
@@ -493,6 +495,7 @@ export default function CosmeticsPanel({
   const [selected, setSelected] = useState("");
   const [testFrame, setTestFrame] = useState("");
   const [grantFrame, setGrantFrame] = useState("");
+  const [deleteFrameId, setDeleteFrameId] = useState("");
   const [recipients, setRecipients] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("all");
@@ -559,8 +562,21 @@ export default function CosmeticsPanel({
   );
   const activeGrants = (frameId: string) =>
     grants.filter((g) => g.cosmetic_id === frameId && !g.removed_at);
-  const playerLabel = (id: string) =>
-    identities.find((i) => i.id === id)?.name || "Jogador";
+  const playerLabel = (id: string) => {
+    const player = identities.find((i) => i.id === id);
+    const username = profiles.find(
+      (profile) => profile.id === player?.user_id,
+    )?.username;
+    if (!player) return username || "Jogador";
+    if (!username || player.name.toLocaleLowerCase("pt-BR") === username)
+      return player.name;
+    return `${player.name} (@${username})`;
+  };
+  const deleteFrame = frames.find((frame) => frame.id === deleteFrameId);
+  const deleteOwners = deleteFrame ? activeGrants(deleteFrame.id) : [];
+  const deleteEquipped = deleteFrame
+    ? equipment.filter((entry) => entry.cosmetic_id === deleteFrame.id)
+    : [];
   if (editor !== undefined)
     return (
       <FrameEditor
@@ -888,25 +904,9 @@ export default function CosmeticsPanel({
                       {frame.archived_at ? "Reativar" : "Arquivar"}
                     </button>
                     <button
-                      disabled={busy || owners.length > 0}
-                      title={
-                        owners.length
-                          ? "Arquive: existe histórico de concessão"
-                          : "Excluir cadastro e arte"
-                      }
-                      onClick={() => {
-                        if (confirm(`Excluir definitivamente “${frame.name}”?`))
-                          run(
-                            "delete",
-                            { frame_id: frame.id },
-                            undefined,
-                            async (result) => {
-                              if (result?.asset_path)
-                                await removeAsset(result.asset_path);
-                              setMessage("Moldura excluída");
-                            },
-                          );
-                      }}
+                      disabled={busy}
+                      title="Excluir cadastro e arte"
+                      onClick={() => setDeleteFrameId(frame.id)}
                     >
                       <Trash2 size={14} /> Excluir
                     </button>
@@ -975,6 +975,89 @@ export default function CosmeticsPanel({
                     }
                   >
                     Conceder para {recipients.length}
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+          {deleteFrame && (
+            <div className="modal-backdrop">
+              <section
+                className="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-frame-title"
+                aria-describedby="delete-frame-impact"
+              >
+                <h2 id="delete-frame-title">
+                  Excluir definitivamente “{deleteFrame.name}”?
+                </h2>
+                <div id="delete-frame-impact">
+                  {deleteOwners.length || deleteEquipped.length ? (
+                    <>
+                      <p>
+                        Esta moldura pertence a {deleteOwners.length}{" "}
+                        {deleteOwners.length === 1 ? "jogador" : "jogadores"} e
+                        está equipada por {deleteEquipped.length} deles.
+                      </p>
+                      <p>
+                        <strong>Donos:</strong>{" "}
+                        {deleteOwners.length
+                          ? deleteOwners
+                              .map((grant) => playerLabel(grant.identity_id))
+                              .join(", ")
+                          : "Nenhum"}
+                      </p>
+                      <p>
+                        <strong>Usando agora:</strong>{" "}
+                        {deleteEquipped.length
+                          ? deleteEquipped
+                              .map((entry) => playerLabel(entry.identity_id))
+                              .join(", ")
+                          : "Ninguém"}
+                      </p>
+                      <p className="error">
+                        Se você excluir esta moldura, ela será removida de todos
+                        e quem estiver usando ficará sem moldura até escolher
+                        outra ou receber uma nova.
+                      </p>
+                    </>
+                  ) : (
+                    <p>
+                      Ninguém possui ou está usando esta moldura. O cadastro e a
+                      arte serão removidos definitivamente.
+                    </p>
+                  )}
+                </div>
+                <div className="actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setDeleteFrameId("")}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    disabled={busy}
+                    onClick={() =>
+                      run(
+                        "delete",
+                        { frame_id: deleteFrame.id },
+                        undefined,
+                        async (result) => {
+                          if (result?.asset_path)
+                            await removeAsset(result.asset_path);
+                          setDeleteFrameId("");
+                          setMessage("Moldura excluída definitivamente");
+                        },
+                      )
+                    }
+                  >
+                    {deleteOwners.length || deleteEquipped.length
+                      ? "Excluir mesmo assim"
+                      : "Excluir"}
                   </button>
                 </div>
               </section>
