@@ -234,3 +234,24 @@ Evidências:
 - Produção: commit `6b56727ba7b2806418d890105e19c598ee5ad95d`, deploy `dpl_ASbJmsmPArpvQ8dabCb4ePytJBFB` em estado `READY`; worker e asset de combate responderam HTTP 200 com os cabeçalhos configurados e não havia erro de runtime nos 30 minutos consultados.
 - A tentativa de complementar a checagem visual pelo navegador conectado foi bloqueada antes de iniciar porque a conta da integração não possui o modo estrito habilitado; nenhum dado do jogador foi alterado.
 - Regressão corrigida: o `connect-src` do worker agora contém somente `'self'` e `https://wsihnbrnqdnmidjvjchn.supabase.co`. O cabeçalho local foi conferido e um teste impede remover essa origem específica novamente.
+
+## Renovação de imagens privadas, 15/09/2026, 23:05 UTC
+
+Validação técnica concluída:
+
+1. A CSP permite o host específico do Storage do projeto e continua bloqueando origens externas não declaradas.
+2. Fotos de perfil, avatares e molduras são coletados pelo mesmo carregador de recursos visuais.
+3. O carregador assina os caminhos em lote, separado por bucket privado.
+4. A renovação ocorre aos 45 minutos, antes do vencimento de 60 minutos.
+5. Retorno ao primeiro plano, foco da janela, reconexão e renovação da sessão solicitam URLs novas.
+6. Erro individual omite somente o recurso afetado e agenda nova tentativa; erro inesperado também é capturado e repetido sem rejeição não tratada.
+7. A URL renovada mantém o parâmetro `v` estável usado pelo Service Worker, evitando duplicar o mesmo arquivo no cache por mudança de token.
+
+Evidências:
+
+- `npm test`: 46/46 aprovado, incluindo três testes novos para seleção dos assets, agrupamento por bucket, falha parcial e renovação anterior à expiração.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- Supabase real: 15 registros de avatar, 15 objetos correspondentes em `portraits`, zero caminhos ausentes e arquivos WebP preservados.
+- Nenhuma alteração de banco, policy, RLS, migration ou conteúdo de Storage foi necessária.
+- Não testado: inspeção visual no celular, permanência real de uma hora com a página aberta e comportamento no domínio publicado após o novo deploy.

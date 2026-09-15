@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 15/09/2026, 16:30 UTC.
+Atualizado em 15/09/2026, 23:05 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -216,7 +216,20 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O servidor de produção local confirmou os cabeçalhos do worker e dos assets. O pacote Playwright estava presente, mas sem binário Chromium; a checagem visual real em mobile/desktop ficou pendente para o domínio publicado e para o usuário.
 - Publicação concluída no commit `6b56727ba7b2806418d890105e19c598ee5ad95d`; deploy `dpl_ASbJmsmPArpvQ8dabCb4ePytJBFB` chegou a `READY`. O domínio principal respondeu HTTP 200 para o worker e para o asset de combate, e a consulta da Vercel não encontrou erros de runtime.
 - A automação autenticada adicional não chegou a abrir uma sessão: a integração recusou o modo estrito por falta de habilitação da conta. Portanto, ela não alterou dados e não substitui o teste manual abaixo.
-- Hotfix pendente de publicação nesta continuação: a CSP inicial do worker tinha `default-src 'self'` sem `connect-src` para o Storage externo, fazendo as fotos privadas desaparecerem. O cabeçalho foi limitado a `'self'` e ao host específico `wsihnbrnqdnmidjvjchn.supabase.co`; 43/43 testes, TypeScript e build passaram novamente.
+- O hotfix da CSP foi publicado no commit `5b9fae90540afc0f9d6eac23a2d15b9fe43bbc1a`; o deploy de produção `dpl_4gX3AVWd4smivqbqtusfqJaZbvxG` chegou a `READY`. A política agora permite somente `'self'` e o host específico `wsihnbrnqdnmidjvjchn.supabase.co` nas conexões do worker.
+
+## Correção do carregamento de fotos e molduras, 15/09/2026, 23:05 UTC
+
+- A causa imediata de todas as imagens desaparecerem foi a CSP inicial do novo Service Worker: `default-src 'self'` bloqueava as conexões aos buckets privados do Supabase. O commit `5b9fae9` adicionou o host específico do projeto em `connect-src`.
+- A inspeção também encontrou um defeito independente de duração: as URLs assinadas expiravam em uma hora e não eram renovadas enquanto a página permanecia aberta.
+- O carregamento agora agrupa os arquivos por bucket e usa uma requisição em lote para `portraits` e outra para `avatar-frames`, evitando várias assinaturas simultâneas.
+- As URLs são renovadas a cada 45 minutos, na renovação da sessão, ao recuperar foco, ao voltar do segundo plano e ao reconectar à internet. Falhas recebem nova tentativa após 15 segundos.
+- O parâmetro estável de versão `v` foi preservado. Assim, a renovação do token continua apontando para a mesma entrada do Image Cache, e uma alteração real do arquivo cria outra versão.
+- Uma imagem assinada que falhar é retirada da interface e provoca uma recuperação controlada, sem promessa rejeitada não tratada.
+- Os buckets continuam privados. Nenhuma tabela, policy, RLS, migration ou arquivo do Storage foi alterado.
+- O Supabase real possui 15 registros em `campaign_avatars` e 15 objetos correspondentes no bucket `portraits`; nenhum arquivo de avatar está ausente e todos os objetos consultados usam `image/webp`.
+- A integração final com o Image Cache passou em 46/46 testes, `npm run typecheck` e `npm run build`.
+- Não foi feita validação visual no celular nem foi mantida uma sessão aberta por mais de uma hora no domínio publicado. O usuário fará a confirmação visual após o deploy.
 
 ### Próximo passo do Image Cache
 

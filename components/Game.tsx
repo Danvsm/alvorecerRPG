@@ -68,6 +68,13 @@ import {
 import { combatLifeCommand } from "@/lib/combat";
 import { cosmeticsActionRequest } from "@/lib/cosmetics";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
+import {
+  collectVisualAssets,
+  signVisualAssets,
+  VISUAL_ASSET_REFRESH_MS,
+  VISUAL_ASSET_RETRY_MS,
+  VISUAL_ASSET_URL_TTL_SECONDS,
+} from "@/lib/visual-assets";
 import FormDialog from "./FormDialog";
 import type { Row, Field, Form } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
@@ -504,40 +511,105 @@ export default function Game({ invite }: { invite?: string }) {
     });
   }, [campaign, loading, isMaster, character, ownIdentity?.id]);
   useEffect(() => {
-    let valid = true;
-    const visualAssets: Row[] = [
-      ...rows("campaign_avatars").map((avatar) => ({
-        ...avatar,
-        bucket: "portraits",
-      })),
-      ...rows("cosmetics")
-        .filter((item) => item.kind === "frame" && item.asset_path)
-        .map((item) => ({
-          ...item,
-          storage_path: item.asset_path,
-          bucket: "avatar-frames",
-        })),
-    ];
-    Promise.all(
-      visualAssets.map(async (avatar) => {
-        const { data } = await browserDb()
-          .storage.from(avatar.bucket)
-          .createSignedUrl(avatar.storage_path, 3600);
-        return [
-          avatar.id,
-          versionedImageUrl(
-            data?.signedUrl,
-            avatar.updated_at || avatar.created_at || avatar.storage_path,
-          ),
-        ];
-      }),
-    ).then((r) => {
-      if (valid) setAvatarUrls(Object.fromEntries(r));
-    });
-    return () => {
-      valid = false;
+    if (!campaign || !session) {
+      setAvatarUrls({});
+      return;
+    }
+    let active = true;
+    let refreshPromise: Promise<void> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let signedSources = new Set<string>();
+    let lastImageErrorRefresh = 0;
+    const visualAssets = collectVisualAssets(
+      data.campaign_avatars || [],
+      data.cosmetics || [],
+    );
+    const refresh = () => {
+      if (!active) return Promise.resolve();
+      if (refreshPromise) return refreshPromise;
+      if (!visualAssets.length) {
+        signedSources = new Set();
+        setAvatarUrls({});
+        return Promise.resolve();
+      }
+      const cacheNonce = `${Date.now()}-${Math.random()}`;
+      refreshPromise = signVisualAssets(
+        visualAssets,
+        (bucket, paths) =>
+          browserDb()
+            .storage.from(bucket)
+            .createSignedUrls(paths, VISUAL_ASSET_URL_TTL_SECONDS, {
+              cacheNonce,
+            }),
+        (url, asset) => versionedImageUrl(url, asset.version),
+      )
+        .then(({ urls, failures }) => {
+          if (!active) return;
+          signedSources = new Set(Object.values(urls));
+          setAvatarUrls(urls);
+          if (retryTimer) clearTimeout(retryTimer);
+          if (failures.length) {
+            console.warn(
+              `Não foi possível assinar ${failures.length} recurso(s) visual(is). Uma nova tentativa será feita.`,
+            );
+            retryTimer = setTimeout(
+              () => void refresh(),
+              VISUAL_ASSET_RETRY_MS,
+            );
+          }
+        })
+        .catch((caught) => {
+          if (!active) return;
+          signedSources = new Set();
+          setAvatarUrls({});
+          console.warn(
+            "Não foi possível carregar os recursos visuais. Uma nova tentativa será feita.",
+            caught,
+          );
+          if (retryTimer) clearTimeout(retryTimer);
+          retryTimer = setTimeout(() => void refresh(), VISUAL_ASSET_RETRY_MS);
+        })
+        .finally(() => {
+          refreshPromise = null;
+        });
+      return refreshPromise;
     };
-  }, [data.campaign_avatars, data.cosmetics]);
+    const resume = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    const recoverBrokenImage = (event: Event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      const source = image.currentSrc || image.src;
+      if (!signedSources.has(source)) return;
+      signedSources.delete(source);
+      setAvatarUrls((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(([, url]) => url !== source),
+        ),
+      );
+      const now = Date.now();
+      if (now - lastImageErrorRefresh >= VISUAL_ASSET_RETRY_MS) {
+        lastImageErrorRefresh = now;
+        void refresh();
+      }
+    };
+    void refresh();
+    const interval = setInterval(refresh, VISUAL_ASSET_REFRESH_MS);
+    window.addEventListener("focus", resume);
+    window.addEventListener("online", resume);
+    document.addEventListener("visibilitychange", resume);
+    document.addEventListener("error", recoverBrokenImage, true);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener("focus", resume);
+      window.removeEventListener("online", resume);
+      document.removeEventListener("visibilitychange", resume);
+      document.removeEventListener("error", recoverBrokenImage, true);
+    };
+  }, [campaign, session?.access_token, data.campaign_avatars, data.cosmetics]);
   useEffect(() => {
     const timer = setTimeout(() => setMessage(""), 5000);
     return () => clearTimeout(timer);

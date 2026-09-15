@@ -50,6 +50,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Validação local do Image Cache: 10/10 cenários específicos, 43/43 testes totais, TypeScript e build de produção aprovados.
 - Image Cache publicado no commit `6b56727ba7b2806418d890105e19c598ee5ad95d`; deploy de produção `dpl_ASbJmsmPArpvQ8dabCb4ePytJBFB` confirmado como `READY`, com os cabeçalhos esperados e sem erros de runtime no período da validação.
 - Corrigida a CSP do Service Worker para permitir exclusivamente conexões ao projeto Supabase do Alvorecer; a política anterior bloqueava o download das fotos privadas no navegador depois que o worker assumia a requisição.
+- URLs privadas de fotos, avatares e molduras agora são assinadas em lote e renovadas antes da expiração, ao retornar para o aplicativo e após falhas transitórias do Storage, preservando a chave estável do Image Cache.
 
 ### Estado de validação
 
