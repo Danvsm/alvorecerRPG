@@ -2,6 +2,30 @@ export type AvatarSelectionTarget =
   | { kind: "profile"; identityId: string }
   | { kind: "character"; characterId: string; identityId?: string };
 
+type CharacterOwner = { owner_id?: string | null };
+type SocialIdentity = {
+  id?: string;
+  user_id?: string | null;
+  campaign_id?: string;
+  kind?: string;
+};
+
+export function characterAvatarIdentityId(
+  campaign: string,
+  character: CharacterOwner | undefined,
+  identities: SocialIdentity[],
+) {
+  const ownerId = character?.owner_id;
+  if (!ownerId) return undefined;
+
+  return identities.find(
+    (identity) =>
+      identity.user_id === ownerId &&
+      identity.campaign_id === campaign &&
+      identity.kind === "player",
+  )?.id;
+}
+
 export function avatarSelectionRequest(
   campaign: string,
   target: AvatarSelectionTarget,

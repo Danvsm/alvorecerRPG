@@ -56,6 +56,7 @@ import CombatPanel from "./CombatPanel";
 import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
 import {
   avatarSelectionRequest,
+  characterAvatarIdentityId,
   type AvatarSelectionTarget,
 } from "@/lib/avatar";
 import { combatLifeCommand } from "@/lib/combat";
@@ -245,14 +246,11 @@ export default function Game({ invite }: { invite?: string }) {
   const ownIdentity = rows("social_identities").find(
     (p) => p.user_id === session?.user.id && p.campaign_id === campaign,
   );
-  const characterIdentity = character
-    ? rows("social_identities").find(
-        (identity) =>
-          identity.user_id === character.owner_id &&
-          identity.campaign_id === campaign &&
-          identity.kind === "player",
-      )
-    : undefined;
+  const characterIdentityId = characterAvatarIdentityId(
+    campaign,
+    character,
+    rows("social_identities"),
+  );
   const profileAvatar =
     ownIdentity?.avatar_id || (!isMaster ? character?.avatar_id : null);
   const socialActor =
@@ -1464,7 +1462,7 @@ export default function Game({ invite }: { invite?: string }) {
                               setAvatarPickerTarget({
                                 kind: "character",
                                 characterId: character.id,
-                                identityId: characterIdentity?.id,
+                                identityId: characterIdentityId,
                               })
                             }
                           >
