@@ -12,7 +12,7 @@ export function avatarSelectionRequest(
   if (target.kind === "character") {
     if (!target.characterId) throw new Error("Personagem inválido");
     return {
-      rpc: "game_command" as const,
+      rpc: "game_action" as const,
       params: {
         c: campaign,
         op: "avatar_select",

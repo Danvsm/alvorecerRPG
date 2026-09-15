@@ -10,7 +10,7 @@ test("master character avatar selection targets the selected character", () => {
       "new-avatar",
     ),
     {
-      rpc: "game_command",
+      rpc: "game_action",
       params: {
         c: "campaign",
         op: "avatar_select",
