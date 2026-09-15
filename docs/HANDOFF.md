@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 15/09/2026, 15:15 UTC.
+Atualizado em 15/09/2026, 16:30 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -27,8 +27,8 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ## Banco, migrations e função
 
-- As 27 migrations registradas estão aplicadas no Supabase real.
-- A última migration aplicada é `20260915151114_avatar_usage_administration`.
+- As 29 migrations registradas estão aplicadas no Supabase real.
+- A última migration aplicada é `20260915162348_avatar_frames_audit_indexes`.
 - A migration `delete_world_characters`, que já estava aplicada no Supabase, foi recuperada para o Git sem alterar seu SQL. O conteúdo local e o registro remoto possuem o mesmo MD5: `acffd1ca56a91483efa42a87dbee8b5d`.
 - A migration `chat_media_cleanup_timeout` mantém o cron `alvorecer-chat-media-cleanup` a cada 15 minutos e aumenta o timeout de `pg_net` para 60 segundos.
 - A chamada de limpeza usa o endpoint `/functions/v1/alvorecer-api/media-cleanup` e autenticação guardada no Vault.
@@ -59,7 +59,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ### Automatizados
 
-- `npm test`: 26/26 testes aprovados.
+- `npm test`: 28/28 testes aprovados.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
@@ -109,6 +109,20 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 4. Com Pink e jogador em sessões distintas, alterar um recurso pelo mestre, gastar um recurso pelo jogador e observar a atualização Realtime nas duas telas; depois encerrar/arquivar as salas de teste remanescentes.
 5. Repetir os mesmos fluxos em viewport de 390 px e confirmar ausência de rolagem horizontal em navegação, cards, formulários, chat e combate.
 6. Corrigir somente problemas reproduzidos, repetir os gates quando houver alteração de código e atualizar este documento com evidências finais.
+
+## Molduras de Avatar e efeitos, 15/09/2026, 16:30 UTC
+
+- O sistema existente de cosméticos foi ampliado para molduras com arte privada, raridade, coleção dinâmica, origem informativa, visibilidade, segredo, ativação, arquivamento, ordem, exclusividade, escala, posição X/Y e até dois efeitos leves configuráveis.
+- O componente reutilizável `AvatarFrame` combina avatar, moldura e efeitos em tamanhos proporcionais. O Perfil passou a usá-lo; a Comunidade não foi redesenhada nesta rodada.
+- Pink administra a galeria pelo Perfil: upload PNG/WebP convertido para WebP transparente, preview antes de salvar, edição, duplicação, teste local em Pink, filtros, criação de coleção, concessão individual ou múltipla, consulta de donos/usuários, remoção, arquivamento, reativação e exclusão segura quando não existe histórico.
+- Jogadores veem e equipam somente molduras concedidas. Molduras visíveis sem concessão aparecem bloqueadas; molduras secretas retornam do backend com nome `???`, sem descrição, arte ou efeitos até a concessão.
+- O backend valida todas as operações administrativas, exclusividade e raridade Mestre. Remover uma concessão ou arquivar/desativar uma moldura equipada remove primeiro o equipamento e mantém o avatar normal.
+- Concessões registram data e Mestre responsável; remoções registram data e responsável. A chave existente impede propriedade duplicada. Uma notificação é criada apenas em nova concessão ou reconcessão posterior a uma remoção.
+- O bucket privado `avatar-frames` aceita PNG/WebP de até 1 MB. Upload e exclusão exigem Mestre ativo; leitura respeita campanha, visibilidade, segredo e propriedade.
+- A arte enviada pelo usuário foi otimizada para WebP transparente de 221.962 bytes e cadastrada pelo fluxo autenticado do Pink como `Guardião Violeta`, raridade Épica, coleção `Alvorecer`, com Glow e brilho deslizante. Ela não foi concedida a nenhum jogador.
+- `npm test` passou em 28/28, `npm run typecheck` passou e `npm run build` gerou as seis rotas esperadas.
+- Não foram feitos teste visual detalhado, revisão manual em celular, concessão real a jogador nem validação visual dos efeitos no domínio publicado. Esses itens permanecem para o usuário.
+- Próximo passo recomendado: o usuário validar no celular o editor, o encaixe da arte, os efeitos, a coleção, concessão/equipamento e o topo do Perfil, enviando screenshots apenas dos ajustes necessários.
 
 ## Continuação verificada — 14/09/2026, 17:15 UTC
 

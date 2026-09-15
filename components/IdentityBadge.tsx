@@ -1,17 +1,19 @@
 import type { Row } from "@/lib/types";
-import { UserRound } from "lucide-react";
 import { CosmeticIcon } from "./CosmeticsPanel";
+import AvatarFrame from "./AvatarFrame";
 
 export default function IdentityBadge({
   identity,
   cosmetics,
   equipment,
   urls,
+  avatarSize = 52,
 }: {
   identity: Row;
   cosmetics: Row[];
   equipment: Row[];
   urls: Record<string, string>;
+  avatarSize?: number | string;
 }) {
   const equipped = (kind: string) =>
     cosmetics.find(
@@ -25,16 +27,13 @@ export default function IdentityBadge({
     medal = equipped("medal");
   return (
     <div className="identity-badge">
-      <span
-        className="identity-photo"
-        style={{ borderColor: frame?.color || "transparent" }}
-      >
-        {urls[identity.avatar_id] ? (
-          <img src={urls[identity.avatar_id]} alt="" loading="lazy" />
-        ) : (
-          <UserRound />
-        )}
-      </span>
+      <AvatarFrame
+        avatarUrl={urls[identity.avatar_id]}
+        avatarAlt={identity.name}
+        frame={frame}
+        frameUrl={frame?.asset_path ? urls[frame.id] : undefined}
+        size={avatarSize}
+      />
       <span>
         <strong>{identity.name}</strong>
         {(title || identity.subtitle) && (

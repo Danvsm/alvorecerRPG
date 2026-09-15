@@ -37,6 +37,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Regra padrão de uso único de avatar por jogador, com trava transacional no banco para impedir dupla ocupação concorrente.
 - Painel de avatares de Pink/Mestre com busca, filtros, estados reais, identificação dos usuários atuais, bloqueio, exclusividade, compartilhamento, arquivamento, reativação e exclusão segura.
 - Proteção server-side de avatares bloqueados, exclusivos e ocupados, incluindo chamadas diretas, com exceção administrativa restrita a Pink e sincronização entre perfil, ficha e personagem.
+- Administração completa de Molduras de Avatar pelo Pink, com upload privado, editor de posicionamento, raridades, coleções dinâmicas, origem, visibilidade, segredo, exclusividade, ordenação, duplicação, concessão múltipla, remoção e histórico administrativo.
+- Componente proporcional de avatar + moldura + efeitos usado no Perfil, com Glow, brilho deslizante, pulso, aura, partículas e runas leves, limites de performance e suporte a `prefers-reduced-motion`.
+- Proteção server-side para criação, edição, concessão, remoção e equipamento de molduras; conteúdo secreto sanitizado antes da concessão e equipamento removido com segurança quando o acesso deixa de existir.
 - Deploy de produção do commit `42292c73ddc8c031c483ecfc738a2473b16f8909` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 - Deploy de produção do redesign no commit `28c42266fec6fb788501f517d1087907c07eae5b` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 

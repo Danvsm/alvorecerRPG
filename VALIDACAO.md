@@ -8,7 +8,7 @@ npm test
 npm run build
 ```
 
-Resultado esperado: TypeScript sem erro, 26 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
+Resultado esperado: TypeScript sem erro, 28 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
 
 ## Testes no Supabase real
 
@@ -187,3 +187,29 @@ Evidências técnicas:
 - Supabase real: migration aplicada, Edge Function versão 13 `ACTIVE`, 15 avatares preservados e nenhuma ocupação múltipla preexistente.
 - GitHub/Vercel: commit `0fd02d62d9183d4c8e175136a71c33aa1974721e`, deploy de produção `dpl_ACLqh8LAWN5TQXdBZev3xv43xW7J`, estado `READY`.
 - Não testado: interação visual, layout em celular e uso dos controles contra avatares reais. A validação manual será feita pelo usuário no site publicado.
+
+## Molduras de Avatar, 15/09/2026, 16:30 UTC
+
+Validação técnica concluída:
+
+1. Pink cria e edita moldura com arquivo, coleção, raridade, origem, segredo, exclusividade, ordem, escala, posição e efeitos.
+2. O upload autenticado gravou um WebP transparente de 221.962 bytes no bucket privado `avatar-frames`.
+3. O preview usa o mesmo componente proporcional que renderiza a moldura equipada no Perfil.
+4. Jogador sem concessão recebe `Moldura bloqueada` ao chamar o RPC diretamente.
+5. Concessão individual e múltipla cria um vínculo ativo por jogador e uma notificação por novo vínculo.
+6. Repetir a mesma concessão ativa não duplica propriedade nem notificação.
+7. Remover uma concessão equipada apaga o equipamento antes de registrar a remoção; o avatar permanece válido sem moldura.
+8. Segredo é aplicado no RPC: antes da concessão o jogador recebe `???`, sem descrição, arte ou efeitos.
+9. Operações administrativas diretas por jogador recebem `Somente Pink`.
+10. Arquivar ou desativar remove equipamentos daquela moldura; reativar preserva histórico e configuração.
+11. Os efeitos são limitados a dois e partículas a doze no componente; `prefers-reduced-motion` desativa animações.
+12. O CSS usa uma única medida base e transformações proporcionais para tamanhos diferentes.
+
+Evidências:
+
+- `npm test`: 28/28 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- Supabase real: migrations `avatar_frames_administration` e `avatar_frames_audit_indexes` aplicadas.
+- Exemplo real: `Guardião Violeta`, coleção `Alvorecer`, raridade Épica, Glow + brilho deslizante, sem concessões a jogadores.
+- Não testado: aparência final, encaixe, animações e responsividade em aparelhos reais; fluxo visual completo de concessão/equipamento no domínio publicado. O usuário fará essa validação manual.

@@ -53,7 +53,11 @@ import {
 } from "./SessionInsights";
 import CleanupPanel from "./CleanupPanel";
 import CombatPanel from "./CombatPanel";
-import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
+import {
+  uploadAvatarImage,
+  uploadFrameImage,
+  uploadItemImage,
+} from "@/lib/media";
 import {
   avatarSelectionRequest,
   characterAvatarIdentityId,
@@ -91,6 +95,7 @@ const tables = [
   "session_feedback",
   "social_identities",
   "cosmetics",
+  "cosmetic_collections",
   "cosmetic_grants",
   "cosmetic_equipment",
   "notifications",
@@ -287,8 +292,7 @@ export default function Game({ invite }: { invite?: string }) {
       return {
         id: member.user_id,
         username: profile?.username || "jogador",
-        name:
-          profile?.display_name || profile?.username || "Jogador sem nome",
+        name: profile?.display_name || profile?.username || "Jogador sem nome",
       };
     })
     .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
@@ -323,7 +327,14 @@ export default function Game({ invite }: { invite?: string }) {
     setLoading(true);
     try {
       const db = browserDb();
-      const [result, snapshot, directory, visuals, avatarCatalog] = await Promise.all([
+      const [
+        result,
+        snapshot,
+        directory,
+        visuals,
+        avatarCatalog,
+        frameCatalog,
+      ] = await Promise.all([
         Promise.all(
           tables.map((t) => {
             let q = db.from(t).select("*");
@@ -345,6 +356,7 @@ export default function Game({ invite }: { invite?: string }) {
                 "session_feedback",
                 "social_identities",
                 "cosmetics",
+                "cosmetic_collections",
                 "notifications",
               ].includes(t)
             )
@@ -364,6 +376,7 @@ export default function Game({ invite }: { invite?: string }) {
         db.rpc("transfer_recipients", { c }),
         db.rpc("combat_identities", { c }),
         db.rpc("avatar_catalog", { c }),
+        db.rpc("frame_catalog", { c }),
       ]);
       const failed = result.findIndex((r) => r.error);
       if (failed !== -1)
@@ -374,10 +387,20 @@ export default function Game({ invite }: { invite?: string }) {
       if (directory.error) throw directory.error;
       if (visuals.error) throw visuals.error;
       if (avatarCatalog.error) throw avatarCatalog.error;
+      if (frameCatalog.error) throw frameCatalog.error;
       if (version !== requestVersion.current) return;
+      const loaded = Object.fromEntries(
+        result.map((r, i) => [tables[i], r.data || []]),
+      );
       setData({
-        ...Object.fromEntries(result.map((r, i) => [tables[i], r.data || []])),
+        ...loaded,
         campaign_avatars: avatarCatalog.data || [],
+        cosmetics: [
+          ...(loaded.cosmetics || []).filter(
+            (item: Row) => item.kind !== "frame",
+          ),
+          ...(frameCatalog.data || []),
+        ],
       });
       setParticipants(
         (snapshot.data || []).map((p: Row) => ({
@@ -479,10 +502,23 @@ export default function Game({ invite }: { invite?: string }) {
   }, [campaign, loading, isMaster, character, ownIdentity?.id]);
   useEffect(() => {
     let valid = true;
+    const visualAssets: Row[] = [
+      ...rows("campaign_avatars").map((avatar) => ({
+        ...avatar,
+        bucket: "portraits",
+      })),
+      ...rows("cosmetics")
+        .filter((item) => item.kind === "frame" && item.asset_path)
+        .map((item) => ({
+          ...item,
+          storage_path: item.asset_path,
+          bucket: "avatar-frames",
+        })),
+    ];
     Promise.all(
-      rows("campaign_avatars").map(async (avatar) => {
+      visualAssets.map(async (avatar) => {
         const { data } = await browserDb()
-          .storage.from("portraits")
+          .storage.from(avatar.bucket)
           .createSignedUrl(avatar.storage_path, 3600);
         return [avatar.id, data?.signedUrl || ""];
       }),
@@ -492,7 +528,7 @@ export default function Game({ invite }: { invite?: string }) {
     return () => {
       valid = false;
     };
-  }, [data.campaign_avatars]);
+  }, [data.campaign_avatars, data.cosmetics]);
   useEffect(() => {
     const timer = setTimeout(() => setMessage(""), 5000);
     return () => clearTimeout(timer);
@@ -3181,6 +3217,7 @@ export default function Game({ invite }: { invite?: string }) {
                     cosmetics={rows("cosmetics")}
                     equipment={rows("cosmetic_equipment")}
                     urls={avatarUrls}
+                    avatarSize="min(34vw, 132px)"
                   />
                 )}
                 <p>
@@ -3252,15 +3289,30 @@ export default function Game({ invite }: { invite?: string }) {
                 grants={rows("cosmetic_grants")}
                 equipment={rows("cosmetic_equipment")}
                 identities={rows("social_identities")}
+                collections={rows("cosmetic_collections")}
+                urls={avatarUrls}
                 master={Boolean(isMaster)}
                 save={async (op, d) => {
-                  const result = await browserDb().rpc("identity_action", {
-                    c: campaign,
-                    op,
-                    d,
-                  });
+                  const result = await browserDb().rpc(
+                    op === "cosmetic_equip"
+                      ? "identity_action"
+                      : "frame_action",
+                    {
+                      c: campaign,
+                      op: op === "cosmetic_equip" ? "equip" : op,
+                      d,
+                    },
+                  );
                   if (result.error) throw new Error(result.error.message);
                   await load(campaign, true);
+                  return result.data;
+                }}
+                upload={(file) => uploadFrameImage(file, campaign)}
+                removeAsset={async (path) => {
+                  const result = await browserDb()
+                    .storage.from("avatar-frames")
+                    .remove([path]);
+                  if (result.error) throw new Error(result.error.message);
                 }}
               />
             </>
