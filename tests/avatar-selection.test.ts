@@ -24,6 +24,27 @@ test("master character avatar selection targets the player's social identity", (
   );
 });
 
+test("detached character avatar selection remains scoped to that character", () => {
+  assert.deepEqual(
+    avatarSelectionRequest(
+      "campaign",
+      { kind: "character", characterId: "detached-character" },
+      "new-avatar",
+    ),
+    {
+      rpc: "game_action",
+      params: {
+        c: "campaign",
+        op: "avatar_select",
+        d: {
+          character_id: "detached-character",
+          avatar_id: "new-avatar",
+        },
+      },
+    },
+  );
+});
+
 test("profile avatar selection remains scoped to the signed-in identity", () => {
   assert.deepEqual(
     avatarSelectionRequest(

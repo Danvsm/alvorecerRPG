@@ -90,6 +90,12 @@ test("avatar gallery and Dracma transfers enforce permissions and atomic balance
     ).rows[0].id;
   const playerCharacter = await createPlayer(player, "arthur");
   const otherCharacter = await createPlayer(other, "bia");
+  const detachedCharacter = (
+    await db.query<{ id: string }>(
+      "insert into characters(campaign_id,name) values($1,'Number') returning id",
+      [campaign],
+    )
+  ).rows[0].id;
 
   const asUser = async (user: string) => {
     await db.exec("reset role");
@@ -166,7 +172,28 @@ test("avatar gallery and Dracma transfers enforce permissions and atomic balance
     null,
   );
 
+  await action("avatar_select", {
+    character_id: detachedCharacter,
+    avatar_id: avatar,
+  });
+  assert.equal(
+    (
+      await db.query<{ id: string }>(
+        "select avatar_id id from characters where id=$1",
+        [detachedCharacter],
+      )
+    ).rows[0].id,
+    avatar,
+  );
+
   await asUser(player);
+  await assert.rejects(
+    action("avatar_select", {
+      character_id: detachedCharacter,
+      avatar_id: avatar,
+    }),
+    /Personagem não permitido/,
+  );
   await action("avatar_select", {
     character_id: playerCharacter,
     avatar_id: avatar,

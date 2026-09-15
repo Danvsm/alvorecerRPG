@@ -1460,19 +1460,13 @@ export default function Game({ invite }: { invite?: string }) {
                             Editar ficha
                           </button>
                           <button
-                            onClick={() => {
-                              if (!characterIdentity) {
-                                setError(
-                                  "A identidade social deste personagem não foi encontrada",
-                                );
-                                return;
-                              }
+                            onClick={() =>
                               setAvatarPickerTarget({
                                 kind: "character",
                                 characterId: character.id,
-                                identityId: characterIdentity.id,
-                              });
-                            }}
+                                identityId: characterIdentity?.id,
+                              })
+                            }
                           >
                             Alterar avatar
                           </button>
