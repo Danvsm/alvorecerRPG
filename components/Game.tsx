@@ -245,6 +245,14 @@ export default function Game({ invite }: { invite?: string }) {
   const ownIdentity = rows("social_identities").find(
     (p) => p.user_id === session?.user.id && p.campaign_id === campaign,
   );
+  const characterIdentity = character
+    ? rows("social_identities").find(
+        (identity) =>
+          identity.user_id === character.owner_id &&
+          identity.campaign_id === campaign &&
+          identity.kind === "player",
+      )
+    : undefined;
   const profileAvatar =
     ownIdentity?.avatar_id || (!isMaster ? character?.avatar_id : null);
   const socialActor =
@@ -1452,12 +1460,19 @@ export default function Game({ invite }: { invite?: string }) {
                             Editar ficha
                           </button>
                           <button
-                            onClick={() =>
+                            onClick={() => {
+                              if (!characterIdentity) {
+                                setError(
+                                  "A identidade social deste personagem não foi encontrada",
+                                );
+                                return;
+                              }
                               setAvatarPickerTarget({
                                 kind: "character",
                                 characterId: character.id,
-                              })
-                            }
+                                identityId: characterIdentity.id,
+                              });
+                            }}
                           >
                             Alterar avatar
                           </button>
@@ -3255,7 +3270,11 @@ export default function Game({ invite }: { invite?: string }) {
               const result = await browserDb().rpc(request.rpc, request.params);
               if (result.error) throw new Error(result.error.message);
               await load(campaign, true);
-              setMessage("Avatar alterado");
+              setMessage(
+                avatarPickerTarget.kind === "character"
+                  ? "Avatar atualizado na ficha e na Comunidade"
+                  : "Avatar alterado",
+              );
             })
           }
         />

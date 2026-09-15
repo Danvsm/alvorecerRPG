@@ -71,8 +71,14 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     assert.equal((await progress()).xp,0);
     const identity = (await db.query<{id:string}>("select id from social_identities where user_id=$1", [player])).rows[0].id;
     const identityAction = async (op:string,d:object) => (await db.query<{v:any}>("select identity_action($1,$2,$3::jsonb) v",[campaign,op,JSON.stringify(d)])).rows[0].v;
+    await db.exec("reset role");
+    const avatar = (await db.query<{id:string}>("insert into campaign_avatars(campaign_id,name,storage_path,created_by) values($1,'Ladino',$2,$3) returning id",[campaign,`${campaign}/avatars/ladino.webp`,master])).rows[0].id;
+    await asUser(player);
     await assert.rejects(identityAction("cosmetic",{kind:"frame",name:"Proibida"}),/Somente Pink/);
     await asUser(master);
+    await identityAction("avatar",{identity_id:identity,avatar_id:avatar});
+    assert.equal((await db.query<{avatar_id:string}>("select avatar_id from social_identities where id=$1",[identity])).rows[0].avatar_id,avatar);
+    assert.equal((await db.query<{avatar_id:string}>("select avatar_id from characters where id=$1",[ch])).rows[0].avatar_id,avatar);
     const cosmetic = await identityAction("cosmetic",{kind:"frame",name:"Primeira sessão"});
     await asUser(player);
     await assert.rejects(identityAction("equip",{identity_id:identity,cosmetic_id:cosmetic.id}),/bloqueado/);

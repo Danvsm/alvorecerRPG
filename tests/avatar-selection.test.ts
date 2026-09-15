@@ -2,22 +2,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { avatarSelectionRequest } from "../lib/avatar";
 
-test("master character avatar selection targets the selected character", () => {
+test("master character avatar selection targets the player's social identity", () => {
   assert.deepEqual(
     avatarSelectionRequest(
       "campaign",
-      { kind: "character", characterId: "player-character" },
+      {
+        kind: "character",
+        characterId: "player-character",
+        identityId: "player-identity",
+      },
       "new-avatar",
     ),
     {
-      rpc: "game_action",
+      rpc: "identity_action",
       params: {
         c: "campaign",
-        op: "avatar_select",
-        d: {
-          character_id: "player-character",
-          avatar_id: "new-avatar",
-        },
+        op: "avatar",
+        d: { identity_id: "player-identity", avatar_id: "new-avatar" },
       },
     },
   );
