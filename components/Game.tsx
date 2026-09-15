@@ -532,15 +532,12 @@ export default function Game({ invite }: { invite?: string }) {
         setAvatarUrls({});
         return Promise.resolve();
       }
-      const cacheNonce = `${Date.now()}-${Math.random()}`;
       refreshPromise = signVisualAssets(
         visualAssets,
         (bucket, paths) =>
           browserDb()
             .storage.from(bucket)
-            .createSignedUrls(paths, VISUAL_ASSET_URL_TTL_SECONDS, {
-              cacheNonce,
-            }),
+            .createSignedUrls(paths, VISUAL_ASSET_URL_TTL_SECONDS),
         (url, asset) => versionedImageUrl(url, asset.version),
       )
         .then(({ urls, failures }) => {
@@ -598,6 +595,7 @@ export default function Game({ invite }: { invite?: string }) {
     const interval = setInterval(refresh, VISUAL_ASSET_REFRESH_MS);
     window.addEventListener("focus", resume);
     window.addEventListener("online", resume);
+    navigator.serviceWorker?.addEventListener("controllerchange", refresh);
     document.addEventListener("visibilitychange", resume);
     document.addEventListener("error", recoverBrokenImage, true);
     return () => {
@@ -606,6 +604,7 @@ export default function Game({ invite }: { invite?: string }) {
       if (retryTimer) clearTimeout(retryTimer);
       window.removeEventListener("focus", resume);
       window.removeEventListener("online", resume);
+      navigator.serviceWorker?.removeEventListener("controllerchange", refresh);
       document.removeEventListener("visibilitychange", resume);
       document.removeEventListener("error", recoverBrokenImage, true);
     };

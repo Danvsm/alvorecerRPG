@@ -5,6 +5,8 @@ import vm from "node:vm";
 import {
   IMAGE_CACHE_LIMIT,
   IMAGE_CACHE_NAME,
+  IMAGE_CACHE_WORKER_REVISION,
+  imageCacheWorkerUrl,
   versionedImageUrl,
 } from "../lib/image-cache";
 
@@ -148,6 +150,15 @@ test("image URLs keep their authorization token and change only with the asset v
   );
 });
 
+test("the worker revision forces browsers to install the CSP-corrected script", () => {
+  assert.equal(IMAGE_CACHE_WORKER_REVISION, "2");
+  assert.equal(IMAGE_CACHE_NAME, "alvorecer-images-v2");
+  assert.equal(imageCacheWorkerUrl(), "/image-cache-sw.js?v=2");
+  assert.equal(imageCacheWorkerUrl(true), "/image-cache-sw.js?v=2&debug=1");
+  assert.match(workerSource, /alvorecer-images-v2/);
+  assert.match(workerSource, /alvorecer-images-meta-v2/);
+});
+
 test("first load is a MISS and a repeated signed URL is served from the image cache", async () => {
   let requests = 0;
   const harness = createWorkerHarness(async () => {
@@ -273,6 +284,8 @@ test("activation removes only older Alvorecer caches", async () => {
   const harness = createWorkerHarness(async () => new Response("unused"));
   harness.stores.set("alvorecer-images-v0", new Map());
   harness.stores.set("alvorecer-images-meta-v0", new Map());
+  harness.stores.set("alvorecer-images-v1", new Map());
+  harness.stores.set("alvorecer-images-meta-v1", new Map());
   harness.stores.set(IMAGE_CACHE_NAME, new Map());
   harness.stores.set("other-application-cache", new Map());
 
@@ -280,6 +293,8 @@ test("activation removes only older Alvorecer caches", async () => {
 
   assert.equal(harness.stores.has("alvorecer-images-v0"), false);
   assert.equal(harness.stores.has("alvorecer-images-meta-v0"), false);
+  assert.equal(harness.stores.has("alvorecer-images-v1"), false);
+  assert.equal(harness.stores.has("alvorecer-images-meta-v1"), false);
   assert.equal(harness.stores.has(IMAGE_CACHE_NAME), true);
   assert.equal(harness.stores.has("other-application-cache"), true);
 });
@@ -292,6 +307,8 @@ test("integration keeps logout isolation, HTTP cache headers and development-onl
 
   assert.match(game, /setAvatarUrls\(\{\}\)/);
   assert.match(game, /versionedImageUrl/);
+  assert.match(game, /controllerchange/);
+  assert.doesNotMatch(game, /cacheNonce/);
   assert.match(layout, /<ImageCache \/>/);
   assert.match(media, /cacheControl: "31536000"/);
   assert.match(config, /no-cache, no-store, must-revalidate/);

@@ -231,8 +231,19 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - A integração final com o Image Cache passou em 46/46 testes, `npm run typecheck` e `npm run build`.
 - Não foi feita validação visual no celular nem foi mantida uma sessão aberta por mais de uma hora no domínio publicado. O usuário fará a confirmação visual após o deploy.
 
+## Recuperação do Service Worker já instalado, 15/09/2026, 23:42 UTC
+
+- O print enviado pelo usuário após o hotfix mostrou todos os avatares presos em `Carregando` no Chrome Android.
+- A reprodução autenticada como Pink em uma sessão nova carregou os 15 avatares e a moldura diretamente dos buckets privados, com dimensões naturais válidas e nenhum placeholder. Isso confirmou que registros, arquivos, RLS, assinatura em lote e CSP atual estavam corretos para instalações novas.
+- A causa residual era o ciclo de atualização do Service Worker. O hotfix anterior mudou apenas o cabeçalho CSP de `/image-cache-sw.js`; como o corpo do script permaneceu idêntico, navegadores que já possuíam a versão antiga não instalaram outro worker e conservaram a CSP que bloqueava o Supabase.
+- O worker agora usa revisão explícita `2`, é registrado como `/image-cache-sw.js?v=2` e grava nos caches `alvorecer-images-v2` e `alvorecer-images-meta-v2`. A alteração do URL e do corpo força a instalação, enquanto a ativação remove os caches v1 e preserva caches de outros sistemas.
+- A galeria escuta `controllerchange` e solicita novamente as URLs assinadas assim que o novo worker assume o cliente. Isso recupera fotos de perfil, avatares e molduras sem depender de uma limpeza manual do navegador.
+- O `cacheNonce` aleatório foi removido das assinaturas. A chave local volta a depender somente do caminho e da versão real do arquivo, evitando uma nova entrada a cada renovação do token.
+- `npm test` passou em 47/47, incluindo a revisão do worker e a remoção dos caches v1. `npm run typecheck` e `npm run build` passaram; as seis rotas esperadas foram geradas.
+- Nenhuma tabela, policy, RLS, migration ou arquivo do Storage foi alterado. A confirmação final no Chrome Android do usuário permanece pendente para o deploy desta correção.
+
 ### Próximo passo do Image Cache
 
-1. Abrir o site uma vez, recarregar e conferir `alvorecer-images-v1` em DevTools > Application > Cache Storage.
+1. Abrir o site uma vez, recarregar e conferir `alvorecer-images-v2` em DevTools > Application > Cache Storage.
 2. Trocar um avatar e confirmar que a nova imagem aparece sem limpar o cache inteiro.
 3. Repetir em aproximadamente 390×844 e desktop; alternar entre duas contas e confirmar que não há imagem incorreta herdada.

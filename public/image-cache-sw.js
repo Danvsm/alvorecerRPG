@@ -1,5 +1,5 @@
-const IMAGE_CACHE_NAME = "alvorecer-images-v1";
-const IMAGE_META_CACHE_NAME = "alvorecer-images-meta-v1";
+const IMAGE_CACHE_NAME = "alvorecer-images-v2";
+const IMAGE_META_CACHE_NAME = "alvorecer-images-meta-v2";
 const IMAGE_CACHE_PREFIX = "alvorecer-images-";
 const MAX_IMAGES = 300;
 const REVALIDATE_AFTER_MS = 60 * 60 * 1000;

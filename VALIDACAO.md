@@ -255,3 +255,23 @@ Evidências:
 - Supabase real: 15 registros de avatar, 15 objetos correspondentes em `portraits`, zero caminhos ausentes e arquivos WebP preservados.
 - Nenhuma alteração de banco, policy, RLS, migration ou conteúdo de Storage foi necessária.
 - Não testado: inspeção visual no celular, permanência real de uma hora com a página aberta e comportamento no domínio publicado após o novo deploy.
+
+## Recuperação de instalações antigas do Image Cache, 15/09/2026, 23:42 UTC
+
+Validação técnica concluída:
+
+1. Uma sessão autenticada nova de Pink carregou os 15 avatares e a moldura do Supabase, todos com largura natural maior que zero e sem `Carregando`.
+2. O print do Chrome Android com todos os placeholders foi correlacionado ao worker instalado antes do ajuste de CSP.
+3. O hotfix anterior havia alterado somente o cabeçalho HTTP. Como o corpo de `image-cache-sw.js` não mudou, a verificação de atualização podia manter o worker antigo e sua CSP já instalada.
+4. O registro agora usa `/image-cache-sw.js?v=2`, e o corpo do worker também mudou para os caches `alvorecer-images-v2` e `alvorecer-images-meta-v2`.
+5. A ativação elimina especificamente caches antigos do Alvorecer, incluindo v1, e preserva caches que não pertencem ao projeto.
+6. `controllerchange` solicita novamente as URLs visuais, permitindo que fotos e molduras reapareçam quando a revisão 2 assume a página.
+7. A assinatura não envia mais `cacheNonce` aleatório. Renovações do token reutilizam a mesma chave formada pelo caminho e pelo parâmetro estável `v` do arquivo.
+
+Evidências:
+
+- `npm test`: 47/47 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- Supabase real: buckets privados, 15 caminhos de avatar e policies de leitura preservados; nenhuma mudança de banco ou Storage foi necessária.
+- Não testado: substituição do worker antigo no aparelho Android específico do usuário e aparência final após o deploy. Essa confirmação permanece manual.

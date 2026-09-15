@@ -1,4 +1,5 @@
-export const IMAGE_CACHE_NAME = "alvorecer-images-v1";
+export const IMAGE_CACHE_WORKER_REVISION = "2";
+export const IMAGE_CACHE_NAME = "alvorecer-images-v2";
 export const IMAGE_CACHE_LIMIT = 300;
 export const IMAGE_CACHE_WORKER_PATH = "/image-cache-sw.js";
 
@@ -17,13 +18,18 @@ export function versionedImageUrl(
     : `${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 
+export function imageCacheWorkerUrl(development = false) {
+  const query = new URLSearchParams({ v: IMAGE_CACHE_WORKER_REVISION });
+  if (development) query.set("debug", "1");
+  return `${IMAGE_CACHE_WORKER_PATH}?${query.toString()}`;
+}
+
 export function registerImageCache() {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator))
     return Promise.resolve(undefined);
   if (!registrationPromise) {
-    const debug = process.env.NODE_ENV === "development" ? "?debug=1" : "";
     registrationPromise = navigator.serviceWorker
-      .register(`${IMAGE_CACHE_WORKER_PATH}${debug}`, {
+      .register(imageCacheWorkerUrl(process.env.NODE_ENV === "development"), {
         scope: "/",
         updateViaCache: "none",
       })
