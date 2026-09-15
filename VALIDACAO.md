@@ -185,4 +185,5 @@ Evidências técnicas:
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado, seis rotas geradas.
 - Supabase real: migration aplicada, Edge Function versão 13 `ACTIVE`, 15 avatares preservados e nenhuma ocupação múltipla preexistente.
+- GitHub/Vercel: commit `0fd02d62d9183d4c8e175136a71c33aa1974721e`, deploy de produção `dpl_ACLqh8LAWN5TQXdBZev3xv43xW7J`, estado `READY`.
 - Não testado: interação visual, layout em celular e uso dos controles contra avatares reais. A validação manual será feita pelo usuário no site publicado.

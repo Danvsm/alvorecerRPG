@@ -23,7 +23,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Commits de documentação criados nesta continuação: `9ccc68a09b1e2a4b96af8dc0f45b246ad3c94c16` (`docs/HANDOFF.md`) e `276f6690ccd04bba53a3994a50daeaac4892a8a5` (`CHANGELOG.md`).
 - O commit `276f6690ccd04bba53a3994a50daeaac4892a8a5` chegou a `READY` em produção no deploy `dpl_7PQZSrt1rhFSmkuTrCvSGmJ8AjxC`.
 - O handoff com as evidências atuais foi publicado no commit `7fffe8a703046003cb3d3143a7e4d3696e23b232` e chegou a `READY` no deploy `dpl_4xiimSLR5ccrJFw4gTAjxGwjvH4y`.
-- A administração de avatares desta continuação ainda precisa ser publicada na Vercel.
+- A administração de avatares foi publicada no commit `0fd02d62d9183d4c8e175136a71c33aa1974721e` e chegou a `READY` no deploy `dpl_ACLqh8LAWN5TQXdBZev3xv43xW7J`.
 
 ## Banco, migrations e função
 
@@ -176,3 +176,4 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O teste PostgreSQL cobre criação por Pink, seleção por dois jogadores, liberação após troca, bloqueio sem remoção do vínculo, exclusividade, compartilhamento, tentativa direta de contorno, exceção de Pink e sincronização entre identidade, ficha e personagem.
 - `npm test` passou em 26/26, `npm run typecheck` passou e `npm run build` gerou as seis rotas esperadas.
 - Não foram feitos testes visuais extensos nem alterações em contas ou avatares reais. A aparência, o fluxo publicado e a responsividade permanecem para validação manual do usuário.
+- O commit funcional publicado é `0fd02d62d9183d4c8e175136a71c33aa1974721e`. O deploy de produção correspondente é `dpl_ACLqh8LAWN5TQXdBZev3xv43xW7J`, estado `READY`, com o domínio principal associado sem erro de alias.
