@@ -10,6 +10,7 @@ export default function AvatarPickerDialog({
   avatars,
   urls,
   selectedId,
+  subject,
   busy,
   close,
   select,
@@ -18,6 +19,7 @@ export default function AvatarPickerDialog({
   avatars: Row[];
   urls: Record<string, string>;
   selectedId?: string | null;
+  subject?: string;
   busy: boolean;
   close: () => void;
   select: (id: string) => Promise<unknown>;
@@ -26,7 +28,10 @@ export default function AvatarPickerDialog({
   const [pendingId, setPendingId] = useState(selectedId || "");
   const [error, setError] = useState("");
   useEffect(() => {
-    if (open) { setPendingId(selectedId || ""); setError(""); }
+    if (open) {
+      setPendingId(selectedId || "");
+      setError("");
+    }
   }, [open, selectedId]);
   useEffect(() => {
     if (open && !ref.current?.open) ref.current?.showModal();
@@ -45,8 +50,10 @@ export default function AvatarPickerDialog({
     >
       <div className="spread avatar-dialog-heading">
         <div>
-          <p className="eyebrow">IDENTIDADE DO PERSONAGEM</p>
-          <h2 id="avatar-dialog-title">Alterar avatar</h2>
+          <p className="eyebrow">FOTO SELECIONADA</p>
+          <h2 id="avatar-dialog-title">
+            Alterar avatar{subject ? ` de ${subject}` : ""}
+          </h2>
         </div>
         <button
           aria-label="Fechar seleção de avatar"
@@ -68,13 +75,31 @@ export default function AvatarPickerDialog({
           }}
         />
       </div>
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="dialog-actions">
-        <button disabled={busy} onClick={close}>Cancelar</button>
-        <button className="primary" disabled={busy || !avatars.some(a => a.id === pendingId && a.active)} onClick={async () => {
-          try { await select(pendingId); close(); }
-          catch (caught) { setError((caught as Error).message); }
-        }}>Confirmar</button>
+        <button disabled={busy} onClick={close}>
+          Cancelar
+        </button>
+        <button
+          className="primary"
+          disabled={
+            busy || !avatars.some((a) => a.id === pendingId && a.active)
+          }
+          onClick={async () => {
+            try {
+              await select(pendingId);
+              close();
+            } catch (caught) {
+              setError((caught as Error).message);
+            }
+          }}
+        >
+          Confirmar
+        </button>
       </div>
     </dialog>
   );

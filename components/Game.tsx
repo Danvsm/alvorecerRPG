@@ -54,6 +54,10 @@ import {
 import CleanupPanel from "./CleanupPanel";
 import CombatPanel from "./CombatPanel";
 import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
+import {
+  avatarSelectionRequest,
+  type AvatarSelectionTarget,
+} from "@/lib/avatar";
 import { combatLifeCommand } from "@/lib/combat";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
 import FormDialog from "./FormDialog";
@@ -222,7 +226,8 @@ export default function Game({ invite }: { invite?: string }) {
     [inviteUrl, setInviteUrl] = useState(""),
     [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({}),
     [recipients, setRecipients] = useState<Row[]>([]),
-    [avatarPicker, setAvatarPicker] = useState(false),
+    [avatarPickerTarget, setAvatarPickerTarget] =
+      useState<AvatarSelectionTarget | null>(null),
     [historyLimit, setHistoryLimit] = useState(20),
     [catalogFilter, setCatalogFilter] = useState("active");
   const requestVersion = useRef(0);
@@ -273,6 +278,7 @@ export default function Game({ invite }: { invite?: string }) {
         setCampaign("");
         setMembers([]);
         setPasswords({});
+        setAvatarPickerTarget(null);
       }
     });
     return () => {
@@ -423,14 +429,18 @@ export default function Game({ invite }: { invite?: string }) {
       loading ||
       isMaster ||
       !character ||
+      !ownIdentity ||
       character.avatar_id ||
       onboardingPrompted.current
     )
       return;
     onboardingPrompted.current = true;
     setPage("Perfil");
-    setAvatarPicker(true);
-  }, [campaign, loading, isMaster, character]);
+    setAvatarPickerTarget({
+      kind: "profile",
+      identityId: ownIdentity.id,
+    });
+  }, [campaign, loading, isMaster, character, ownIdentity?.id]);
   useEffect(() => {
     let valid = true;
     Promise.all(
@@ -1441,7 +1451,14 @@ export default function Game({ invite }: { invite?: string }) {
                           >
                             Editar ficha
                           </button>
-                          <button onClick={() => setAvatarPicker(true)}>
+                          <button
+                            onClick={() =>
+                              setAvatarPickerTarget({
+                                kind: "character",
+                                characterId: character.id,
+                              })
+                            }
+                          >
                             Alterar avatar
                           </button>
                         </>
@@ -3107,7 +3124,14 @@ export default function Game({ invite }: { invite?: string }) {
                 </p>
                 <div className="actions">
                   {ownIdentity && (
-                    <button onClick={() => setAvatarPicker(true)}>
+                    <button
+                      onClick={() =>
+                        setAvatarPickerTarget({
+                          kind: "profile",
+                          identityId: ownIdentity.id,
+                        })
+                      }
+                    >
                       Trocar foto
                     </button>
                   )}
@@ -3200,23 +3224,38 @@ export default function Game({ invite }: { invite?: string }) {
           docked={page === "Combate"}
         />
       )}
-      {ownIdentity && (
+      {avatarPickerTarget && (
         <AvatarPickerDialog
-          open={avatarPicker}
+          open
           avatars={rows("campaign_avatars")}
           urls={avatarUrls}
-          selectedId={profileAvatar}
+          selectedId={
+            avatarPickerTarget.kind === "character"
+              ? chars.find(
+                  (entry) => entry.id === avatarPickerTarget.characterId,
+                )?.avatar_id
+              : profileAvatar
+          }
+          subject={
+            avatarPickerTarget.kind === "character"
+              ? chars.find(
+                  (entry) => entry.id === avatarPickerTarget.characterId,
+                )?.name
+              : ownIdentity?.name
+          }
           busy={busy}
-          close={() => setAvatarPicker(false)}
+          close={() => setAvatarPickerTarget(null)}
           select={(avatarId) =>
             perform(async () => {
-              const result = await browserDb().rpc("identity_action", {
-                c: campaign,
-                op: "avatar",
-                d: { identity_id: ownIdentity.id, avatar_id: avatarId },
-              });
+              const request = avatarSelectionRequest(
+                campaign,
+                avatarPickerTarget,
+                avatarId,
+              );
+              const result = await browserDb().rpc(request.rpc, request.params);
               if (result.error) throw new Error(result.error.message);
               await load(campaign, true);
+              setMessage("Avatar alterado");
             })
           }
         />

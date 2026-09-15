@@ -143,6 +143,29 @@ test("avatar gallery and Dracma transfers enforce permissions and atomic balance
     )
   ).rows[0].id;
 
+  await action("avatar_select", {
+    character_id: otherCharacter,
+    avatar_id: avatar,
+  });
+  assert.equal(
+    (
+      await db.query<{ id: string }>(
+        "select avatar_id id from characters where id=$1",
+        [otherCharacter],
+      )
+    ).rows[0].id,
+    avatar,
+  );
+  assert.equal(
+    (
+      await db.query<{ id: string | null }>(
+        "select avatar_id id from characters where id=$1",
+        [playerCharacter],
+      )
+    ).rows[0].id,
+    null,
+  );
+
   await asUser(player);
   await action("avatar_select", {
     character_id: playerCharacter,
