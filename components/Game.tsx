@@ -65,6 +65,7 @@ import {
   type AvatarSelectionTarget,
 } from "@/lib/avatar";
 import { combatLifeCommand } from "@/lib/combat";
+import { cosmeticsActionRequest } from "@/lib/cosmetics";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
 import FormDialog from "./FormDialog";
 import type { Row, Field, Form } from "@/lib/types";
@@ -3293,15 +3294,10 @@ export default function Game({ invite }: { invite?: string }) {
                 urls={avatarUrls}
                 master={Boolean(isMaster)}
                 save={async (op, d) => {
+                  const request = cosmeticsActionRequest(campaign, op, d);
                   const result = await browserDb().rpc(
-                    op === "cosmetic_equip"
-                      ? "identity_action"
-                      : "frame_action",
-                    {
-                      c: campaign,
-                      op: op === "cosmetic_equip" ? "equip" : op,
-                      d,
-                    },
+                    request.rpc,
+                    request.params,
                   );
                   if (result.error) throw new Error(result.error.message);
                   await load(campaign, true);

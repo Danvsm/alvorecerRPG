@@ -39,6 +39,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260915165506_lock_world_character_media_deletion.sql",
       "20260915155949_avatar_frames_administration.sql",
       "20260915162321_avatar_frames_audit_indexes.sql",
+      "20260915171644_enforce_avatar_frame_action_boundaries.sql",
     ]) {
       const sql = (
         await readFile(
@@ -209,8 +210,15 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       ).rows[0].avatar_id,
       avatar,
     );
+    await assert.rejects(
+      identityAction("cosmetic", {
+        kind: "frame",
+        name: "Rota legada proibida",
+      }),
+      /frame_action/,
+    );
     const cosmetic = await identityAction("cosmetic", {
-      kind: "frame",
+      kind: "title",
       name: "Primeira sessão",
     });
     await asUser(player);
@@ -412,6 +420,22 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       ).rows[0].removed_by,
       master,
     );
+    await asUser(player);
+    await assert.rejects(
+      identityAction("equip", {
+        identity_id: identity,
+        cosmetic_id: frame.id,
+      }),
+      /frame_action/,
+    );
+    await asUser(master);
+    await assert.rejects(
+      identityAction("grant", {
+        identity_id: identity,
+        cosmetic_id: frame.id,
+      }),
+      /frame_action/,
+    );
     await frameAction("archive", { frame_id: frame.id });
     assert.equal(
       (
@@ -481,6 +505,35 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       /indisponível/,
     );
     assert.equal((await progress()).xp, 100);
+    const beforeFrameReward = (
+      await db.query<{ xp: number; dracmas_cents: number }>(
+        "select xp,dracmas_cents from characters where id=$1",
+        [ch],
+      )
+    ).rows[0];
+    const frameRewardRequest = crypto.randomUUID();
+    await assert.rejects(
+      reward({ xp: 10, cents: 25, cosmetics: [frame.id] }, frameRewardRequest),
+      /frame_action/,
+    );
+    assert.deepEqual(
+      (
+        await db.query<{ xp: number; dracmas_cents: number }>(
+          "select xp,dracmas_cents from characters where id=$1",
+          [ch],
+        )
+      ).rows[0],
+      beforeFrameReward,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from cosmetic_grants where identity_id=$1 and cosmetic_id=$2 and removed_at is null",
+          [identity, frame.id],
+        )
+      ).rows.length,
+      0,
+    );
     const personal = {
       full_name: "Jogador Exemplo",
       email: "exemplo@example.test",

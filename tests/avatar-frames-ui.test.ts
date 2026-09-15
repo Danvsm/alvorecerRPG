@@ -30,3 +30,16 @@ test("frame editor exposes upload, preview, positioning and secret state", async
   assert.match(panel, /identity_ids: recipients/);
   assert.match(panel, /frame\.secret && !owned/);
 });
+
+test("frame and legacy cosmetic buttons dispatch distinct operations", async () => {
+  const panel = await source("components/CosmeticsPanel.tsx");
+  assert.match(
+    panel,
+    /run\(\s*"equip",\s*\{ identity_id: identity\?\.id, frame_id: chosen\?\.id \}/,
+  );
+  assert.match(
+    panel,
+    /run\("cosmetic_equip", \{\s*identity_id: identity\?\.id,\s*cosmetic_id: item\.id/,
+  );
+  assert.doesNotMatch(panel, /void execute\(/);
+});

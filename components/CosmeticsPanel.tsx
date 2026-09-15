@@ -513,6 +513,15 @@ export default function CosmeticsPanel({
       setBusy(false);
     }
   };
+  const run = (
+    op: string,
+    data: Row,
+    success?: string,
+    afterSuccess?: (result: any) => void | Promise<void>,
+  ) =>
+    execute(op, data, success)
+      .then(afterSuccess)
+      .catch((reason) => setError((reason as Error).message));
   const frames = cosmetics.filter((item) => item.kind === "frame");
   const ownedIds = new Set(
     grants
@@ -638,11 +647,7 @@ export default function CosmeticsPanel({
           <button
             disabled={busy || !equippedId}
             onClick={() =>
-              void execute(
-                "unequip",
-                { identity_id: identity?.id },
-                "Moldura removida",
-              )
+              run("unequip", { identity_id: identity?.id }, "Moldura removida")
             }
           >
             Usar sem moldura
@@ -651,8 +656,8 @@ export default function CosmeticsPanel({
             className="primary"
             disabled={busy || !chosen || !ownedIds.has(chosen.id)}
             onClick={() =>
-              void execute(
-                "cosmetic_equip",
+              run(
+                "equip",
                 { identity_id: identity?.id, frame_id: chosen?.id },
                 "Moldura equipada",
               )
@@ -684,11 +689,12 @@ export default function CosmeticsPanel({
             onSubmit={(e) => {
               e.preventDefault();
               const form = e.currentTarget;
-              void execute(
+              run(
                 "collection_save",
                 { name: new FormData(form).get("collection_name") },
                 "Coleção criada",
-              ).then(() => form.reset());
+                () => form.reset(),
+              );
             }}
           >
             <label>
@@ -831,7 +837,7 @@ export default function CosmeticsPanel({
                           <button
                             disabled={busy}
                             onClick={() =>
-                              void execute(
+                              run(
                                 "revoke",
                                 {
                                   frame_id: frame.id,
@@ -857,11 +863,7 @@ export default function CosmeticsPanel({
                     <button
                       disabled={busy}
                       onClick={() =>
-                        void execute(
-                          "duplicate",
-                          { frame_id: frame.id },
-                          "Cópia criada",
-                        )
+                        run("duplicate", { frame_id: frame.id }, "Cópia criada")
                       }
                     >
                       <Copy size={14} /> Duplicar
@@ -869,7 +871,7 @@ export default function CosmeticsPanel({
                     <button
                       disabled={busy}
                       onClick={() =>
-                        void execute(
+                        run(
                           frame.archived_at ? "reactivate" : "archive",
                           { frame_id: frame.id },
                           frame.archived_at
@@ -894,7 +896,10 @@ export default function CosmeticsPanel({
                       }
                       onClick={() => {
                         if (confirm(`Excluir definitivamente “${frame.name}”?`))
-                          void execute("delete", { frame_id: frame.id }).then(
+                          run(
+                            "delete",
+                            { frame_id: frame.id },
+                            undefined,
                             async (result) => {
                               if (result?.asset_path)
                                 await removeAsset(result.asset_path);
@@ -958,14 +963,15 @@ export default function CosmeticsPanel({
                     className="primary"
                     disabled={busy || !recipients.length}
                     onClick={() =>
-                      void execute(
+                      run(
                         "grant",
                         { frame_id: grantFrame, identity_ids: recipients },
                         "Moldura concedida",
-                      ).then(() => {
-                        setGrantFrame("");
-                        setRecipients([]);
-                      })
+                        () => {
+                          setGrantFrame("");
+                          setRecipients([]);
+                        },
+                      )
                     }
                   >
                     Conceder para {recipients.length}
@@ -1012,7 +1018,7 @@ export default function CosmeticsPanel({
                         }
                         disabled={!owned || busy}
                         onClick={() =>
-                          void execute("equip", {
+                          run("cosmetic_equip", {
                             identity_id: identity?.id,
                             cosmetic_id: item.id,
                           })
