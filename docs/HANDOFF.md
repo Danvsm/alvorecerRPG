@@ -214,10 +214,11 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Logs HIT/MISS/UPDATED/EVICTED são ativados apenas pelo registro de desenvolvimento.
 - Validações: 10/10 testes específicos do worker, 43/43 na suíte completa, TypeScript e build aprovados.
 - O servidor de produção local confirmou os cabeçalhos do worker e dos assets. O pacote Playwright estava presente, mas sem binário Chromium; a checagem visual real em mobile/desktop ficou pendente para o domínio publicado e para o usuário.
+- Publicação concluída no commit `6b56727ba7b2806418d890105e19c598ee5ad95d`; deploy `dpl_ASbJmsmPArpvQ8dabCb4ePytJBFB` chegou a `READY`. O domínio principal respondeu HTTP 200 para o worker e para o asset de combate, e a consulta da Vercel não encontrou erros de runtime.
+- A automação autenticada adicional não chegou a abrir uma sessão: a integração recusou o modo estrito por falta de habilitação da conta. Portanto, ela não alterou dados e não substitui o teste manual abaixo.
 
 ### Próximo passo do Image Cache
 
-1. Confirmar o deploy `READY` e os cabeçalhos publicados.
-2. Abrir o site uma vez, recarregar e conferir `alvorecer-images-v1` em DevTools > Application > Cache Storage.
-3. Trocar um avatar e confirmar que a nova imagem aparece sem limpar o cache inteiro.
-4. Repetir em aproximadamente 390×844 e desktop; alternar entre duas contas e confirmar que não há imagem incorreta herdada.
+1. Abrir o site uma vez, recarregar e conferir `alvorecer-images-v1` em DevTools > Application > Cache Storage.
+2. Trocar um avatar e confirmar que a nova imagem aparece sem limpar o cache inteiro.
+3. Repetir em aproximadamente 390×844 e desktop; alternar entre duas contas e confirmar que não há imagem incorreta herdada.
