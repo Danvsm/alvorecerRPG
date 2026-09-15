@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 15/09/2026, 05:54 UTC.
+Atualizado em 15/09/2026, 06:25 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -10,7 +10,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Vercel: projeto `alvorecer-rpg-vsm`, ID `prj_QaxFObeWPJ8w0urfdzYICRDwIlHs`, equipe `team_CnaWIE2ArNb8Rmus0NWgv4Hr`.
 - Produção: `https://alvorecer-rpg-vsm.vercel.app`.
 - Supabase: projeto `alvorecer`, Project Ref `wsihnbrnqdnmidjvjchn`, região `sa-east-1`, estado `ACTIVE_HEALTHY`.
-- Edge Function principal: `alvorecer-api`, ativa, versão 8, `verify_jwt=false`.
+- Edge Function principal: `alvorecer-api`, ativa, versão 9, `verify_jwt=false`.
 - Não criar outro projeto Vercel, Supabase ou banco para esta continuação.
 
 ## Código e deploy
@@ -23,16 +23,17 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Commits de documentação criados nesta continuação: `9ccc68a09b1e2a4b96af8dc0f45b246ad3c94c16` (`docs/HANDOFF.md`) e `276f6690ccd04bba53a3994a50daeaac4892a8a5` (`CHANGELOG.md`).
 - O commit `276f6690ccd04bba53a3994a50daeaac4892a8a5` chegou a `READY` em produção no deploy `dpl_7PQZSrt1rhFSmkuTrCvSGmJ8AjxC`.
 - O handoff com as evidências atuais foi publicado no commit `7fffe8a703046003cb3d3143a7e4d3696e23b232` e chegou a `READY` no deploy `dpl_4xiimSLR5ccrJFw4gTAjxGwjvH4y`.
-- A exclusão definitiva de Personagens do Mundo desta conclusão ainda não foi publicada na Vercel.
+- A correção da exclusão definitiva de Personagens do Mundo ainda precisa ser publicada na Vercel.
 
 ## Banco, migrations e função
 
-- As 25 migrations registradas estão aplicadas no Supabase real.
-- A última migration aplicada é `20260915043804_delete_world_characters`.
+- As 26 migrations registradas estão aplicadas no Supabase real.
+- A última migration aplicada é `20260915062327_fix_world_character_storage_deletion`.
 - A migration `delete_world_characters`, que já estava aplicada no Supabase, foi recuperada para o Git sem alterar seu SQL. O conteúdo local e o registro remoto possuem o mesmo MD5: `acffd1ca56a91483efa42a87dbee8b5d`.
 - A migration `chat_media_cleanup_timeout` mantém o cron `alvorecer-chat-media-cleanup` a cada 15 minutos e aumenta o timeout de `pg_net` para 60 segundos.
 - A chamada de limpeza usa o endpoint `/functions/v1/alvorecer-api/media-cleanup` e autenticação guardada no Vault.
-- A Edge Function `alvorecer-api` está ativa na versão 8.
+- A Edge Function `alvorecer-api` está ativa na versão 9.
+- A migration corretiva remove a RPC antiga e divide a operação em preparação e finalização, ambas acessíveis somente por `service_role`. A remoção física ocorre entre essas etapas pela API oficial do Storage.
 
 ## Entregas concluídas
 
@@ -52,7 +53,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Os assets fornecidos para espadas, estandartes, coroa, brasão e wallpaper foram otimizados para WebP e usados diretamente na interface.
 - A troca de avatar no painel Personagens agora mantém destinos separados: o Mestre altera somente o personagem selecionado, enquanto Perfil continua alterando somente a identidade própria.
 - Pink/Mestre pode solicitar no perfil público da Comunidade a exclusão definitiva de um Personagem do Mundo, com confirmação simples por `Cancelar` ou `Excluir`.
-- A RPC existente rejeita jogadores e identidades vinculadas a usuários. Ao excluir um Personagem do Mundo, remove conversas, mensagens, mídia temporária, comentários e cosméticos vinculados sem atingir personagens de jogadores.
+- O endpoint administrativo rejeita jogadores, e as duas rotinas do banco repetem a validação do Mestre e da identidade-alvo. Ao excluir um Personagem do Mundo, remove conversas, mensagens, mídia temporária, comentários e cosméticos vinculados sem atingir personagens de jogadores.
 
 ## Testes já concluídos
 
@@ -87,12 +88,12 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Validar os comandos administrativos restantes com dados de teste identificáveis, sem afetar dados reais.
 - Revisar layout mobile em largura próxima de 390 px: navegação, cards, formulários, chat e combate sem rolagem horizontal.
 - Validar a nova engrenagem e o ajuste de Vida como Pink/Mestre no site publicado. A solicitação segura de credenciais não foi concluída nesta rodada.
-- Validar visualmente a confirmação e a remoção do Personagem do Mundo na interface após a publicação desta conclusão.
+- Validar manualmente a confirmação e a remoção do Personagem do Mundo na interface publicada, incluindo a remoção física das mídias pela Storage API.
 - Confirmar que os commits de documentação/correção desta continuação também chegam a `READY` no projeto Vercel correto.
 
 ## Bugs conhecidos
 
-- Não há bug funcional aberto confirmado neste momento.
+- A primeira implementação da exclusão de Personagem do Mundo tentava apagar `storage.objects` diretamente por SQL e falhava com `Direct deletion from storage tables is not allowed`. A correção já está aplicada no Supabase e na Edge Function, mas ainda aguarda publicação do frontend e validação manual.
 - Corrigidos em `42292c7`: histórico exibindo `[object Object]` e estado do chat herdado ao trocar sessão/campanha.
 - Corrigido em `2422568`: Alterar avatar em Personagens chamava o fluxo da identidade do Mestre e, na primeira correção, o RPC incorreto. O fluxo publicado agora usa `game_action/avatar_select` com o `character_id` selecionado.
 - Riscos ainda não encerrados: regressão visual mobile, troca de conta e sincronização interativa entre duas sessões.
@@ -151,3 +152,13 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O teste local comprovou que jogador recebe `Somente Pink`, que uma identidade de jogador recebe `Personagem do mundo inválido` e que a exclusão do NPC remove seus vínculos preservando a ficha e a identidade do jogador.
 - `npm test` passou em 24/24, `npm run typecheck` passou e `npm run build` gerou as seis rotas esperadas.
 - Não foram executados teste visual, teste no Supabase real ou deploy da interface. A migration já estava aplicada no Supabase antes desta conclusão.
+
+## Correção da exclusão de Personagem do Mundo — 15/09/2026, 06:25 UTC
+
+- A falha observada em produção foi confirmada: a RPC tentava excluir diretamente de `storage.objects`, operação proibida pelo Supabase Storage.
+- A migration `fix_world_character_storage_deletion` foi aplicada no Supabase real como versão `20260915062327`. Ela remove a RPC antiga e cria etapas de preparação e finalização restritas a `service_role`.
+- A Edge Function `alvorecer-api` versão 9 está `ACTIVE` e usa a Storage API no bucket `chat-media` antes de finalizar a exclusão relacional.
+- A autorização permanece em duas camadas: o endpoint exige Mestre ativo e o banco valida novamente o ator e rejeita qualquer identidade que não seja NPC sem usuário.
+- O advisor de segurança não lista mais `delete_world_character` como função executável por usuários autenticados. Os avisos restantes são anteriores e não foram alterados nesta correção focada.
+- `npm test` passou em 24/24, `npm run build` passou e `npm run typecheck` passou quando executado após o build. A primeira execução paralela do typecheck colidiu com a regeneração de `.next`; a repetição sequencial foi aprovada.
+- Não foi excluído nenhum Personagem do Mundo real nesta rodada e não houve teste visual. A validação manual no site publicado permanece com o usuário.

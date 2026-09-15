@@ -22,7 +22,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260912140000_history_safe_deletions.sql", "20260912150000_security_performance_hardening.sql",
       "20260913053717_progression_rules.sql", "20260913054245_identity_admin_social.sql", "20260913055244_social_messages.sql",
       "20260913104642_reward_notifications.sql", "20260913104835_player_data_admin.sql", "20260913105307_temporary_chat_media.sql", "20260913110117_profile_combat_polish.sql", "20260913164608_identity_lifecycle_guard.sql",
-      "20260915043804_delete_world_characters.sql"]) {
+      "20260915043804_delete_world_characters.sql", "20260915061954_fix_world_character_storage_deletion.sql"]) {
       const sql = (await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"))
         .replace("create extension if not exists pgcrypto;", "")
         .replace("alter publication supabase_realtime add table public.campaign_events;", "");
@@ -126,18 +126,27 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     await asUser(player);
     assert.equal((await db.query("select * from direct_messages")).rows.length,3);
     assert.equal((await db.query("select * from profile_comments")).rows.length,1);
-    const deleteWorldCharacter = async (targetId:string) =>
-      (await db.query<{v:any}>("select delete_world_character($1,$2) v",[campaign,targetId])).rows[0].v;
-    await assert.rejects(deleteWorldCharacter(npc.id),/Somente Pink/);
-    await asUser(master);
-    await assert.rejects(deleteWorldCharacter(identity),/Personagem do mundo inválido/);
+    await assert.rejects(db.query("select prepare_delete_world_character($1,$2,$3)",[campaign,npc.id,player]),/permission denied/);
+    await db.exec("reset role; set role service_role");
+    const prepareWorldCharacterDeletion = async (targetId:string,actor:string) =>
+      (await db.query<{v:any}>("select prepare_delete_world_character($1,$2,$3) v",[campaign,targetId,actor])).rows[0].v;
+    const finalizeWorldCharacterDeletion = async (targetId:string,actor:string) =>
+      (await db.query<{v:any}>("select finalize_delete_world_character($1,$2,$3) v",[campaign,targetId,actor])).rows[0].v;
+    await assert.rejects(prepareWorldCharacterDeletion(npc.id,player),/Somente Pink/);
+    await assert.rejects(finalizeWorldCharacterDeletion(identity,master),/Personagem do mundo inválido/);
     assert.equal((await db.query("select id from characters where id=$1",[ch])).rows.length,1);
     assert.equal((await db.query("select id from social_identities where id=$1",[identity])).rows.length,1);
-    assert.deepEqual(await deleteWorldCharacter(npc.id),{id:npc.id,deleted:true});
+    const preparedDeletion=await prepareWorldCharacterDeletion(npc.id,master);
+    assert.deepEqual(preparedDeletion.storage_paths,[upload.path]);
+    await db.exec("reset role");
+    await db.query("delete from storage.objects where name=$1 and bucket_id='chat-media'",[upload.path]);
+    await db.exec("set role service_role");
+    assert.deepEqual(await finalizeWorldCharacterDeletion(npc.id,master),{id:npc.id,deleted:true});
     assert.equal((await db.query("select id from social_identities where id=$1",[npc.id])).rows.length,0);
     assert.equal((await db.query("select * from direct_conversations where id=$1",[conversation.id])).rows.length,0);
     assert.equal((await db.query("select * from direct_messages where conversation_id=$1",[conversation.id])).rows.length,0);
     assert.equal((await db.query("select * from chat_media where conversation_id=$1",[conversation.id])).rows.length,0);
+    await db.exec("reset role");
     assert.equal((await db.query("select * from storage.objects where name=$1",[upload.path])).rows.length,0);
     assert.equal((await db.query("select * from profile_comments where author_id=$1 or profile_id=$1",[npc.id])).rows.length,0);
     assert.equal((await db.query("select * from cosmetic_grants where identity_id=$1",[npc.id])).rows.length,0);

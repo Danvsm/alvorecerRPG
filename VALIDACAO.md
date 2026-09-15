@@ -153,3 +153,13 @@ Ainda pendente:
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado, com as seis rotas esperadas.
 - Não testado: interação visual do diálogo, execução contra o Supabase real e deploy da interface.
+
+## Correção da remoção no Storage — 15/09/2026, 06:25 UTC
+
+- A tentativa publicada falhou antes de qualquer exclusão relacional porque o Supabase bloqueia `delete` direto em `storage.objects`; a transação foi revertida.
+- A migration `20260915062327_fix_world_character_storage_deletion` está aplicada no Supabase real.
+- As rotinas `prepare_delete_world_character` e `finalize_delete_world_character` têm `EXECUTE` somente para `service_role`; a RPC anterior não existe mais.
+- A Edge Function `alvorecer-api` versão 9 está `ACTIVE` e remove os caminhos retornados pela preparação por `storage.from("chat-media").remove(...)`.
+- O teste PostgreSQL local cobre Mestre excluindo NPC e seus vínculos, jogador rejeitado e identidade/ficha do jogador preservadas.
+- `npm test`: 24/24 aprovado. `npm run build`: aprovado. `npm run typecheck`: aprovado em execução sequencial após o build.
+- Não testado: exclusão de um NPC real no Supabase e comportamento visual no site. Esses itens ficam para a validação manual do usuário após o deploy.

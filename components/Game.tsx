@@ -2695,11 +2695,9 @@ export default function Game({ invite }: { invite?: string }) {
                 deleteWorldCharacter={
                   isMaster
                     ? async (id) => {
-                        const result = await browserDb().rpc(
-                          "delete_world_character",
-                          { c: campaign, target_id: id },
-                        );
-                        if (result.error) throw new Error(result.error.message);
+                        await admin("delete_world_character", {
+                          identityId: id,
+                        });
                         await load(campaign, true);
                         setMessage("Personagem do Mundo excluído");
                       }

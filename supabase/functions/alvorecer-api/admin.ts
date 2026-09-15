@@ -25,6 +25,7 @@ const base = z.object({
     "enable_player",
     "delete_player",
     "delete_invite",
+    "delete_world_character",
   ]),
   campaign: z.string().uuid(),
   userId: z.string().uuid().optional(),
@@ -42,6 +43,7 @@ const base = z.object({
   avatarId: z.string().uuid().optional(),
   deleteCharacters: z.boolean().optional(),
   confirmation: z.string().max(20).optional(),
+  identityId: z.string().uuid().optional(),
 });
 export async function POST(req: Request) {
   try {
@@ -184,6 +186,32 @@ export async function POST(req: Request) {
         }
       }
       result = { deleted: true, ...prepared.data };
+    }
+    if (d.action === "delete_world_character") {
+      if (!d.identityId) throw new Error("Personagem do mundo inválido");
+      const prepared = await db.rpc("prepare_delete_world_character", {
+        c: d.campaign,
+        target_id: d.identityId,
+        actor: user.id,
+      });
+      if (prepared.error) throw new Error(prepared.error.message);
+      const storagePaths = Array.isArray(prepared.data?.storage_paths)
+        ? prepared.data.storage_paths.filter(
+            (path: unknown): path is string => typeof path === "string",
+          )
+        : [];
+      if (storagePaths.length) {
+        const removed = await db.storage.from("chat-media").remove(storagePaths);
+        if (removed.error)
+          throw new Error("Não foi possível remover as mídias vinculadas");
+      }
+      const deleted = await db.rpc("finalize_delete_world_character", {
+        c: d.campaign,
+        target_id: d.identityId,
+        actor: user.id,
+      });
+      if (deleted.error) throw new Error(deleted.error.message);
+      result = deleted.data;
     }
     if (d.action === "delete_avatar") {
       if (!d.avatarId) throw new Error("Avatar inválido");
