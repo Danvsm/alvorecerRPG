@@ -1,9 +1,62 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  avatarSelectableFor,
   avatarSelectionRequest,
   characterAvatarIdentityId,
 } from "../lib/avatar";
+
+test("player selection reflects avatar policies while master bypasses them", () => {
+  const player = "player-a";
+  assert.equal(
+    avatarSelectableFor(
+      { id: "used", active: true, occupied_by_other: true },
+      player,
+    ),
+    false,
+  );
+  assert.equal(
+    avatarSelectableFor(
+      { id: "shared", active: true, shared: true, occupied_by_other: true },
+      player,
+    ),
+    true,
+  );
+  assert.equal(
+    avatarSelectableFor({ id: "blocked", active: true, blocked: true }, player),
+    false,
+  );
+  assert.equal(
+    avatarSelectableFor(
+      { id: "exclusive", active: true, exclusive_user_id: "player-b" },
+      player,
+    ),
+    false,
+  );
+  assert.equal(
+    avatarSelectableFor(
+      { id: "exclusive", active: true, exclusive_user_id: player },
+      player,
+    ),
+    true,
+  );
+  assert.equal(
+    avatarSelectableFor(
+      { id: "archived", active: false, blocked: true },
+      "master",
+      true,
+    ),
+    false,
+  );
+  assert.equal(
+    avatarSelectableFor(
+      { id: "blocked", active: true, blocked: true },
+      "master",
+      true,
+    ),
+    true,
+  );
+});
 
 test("detached character never matches an orphaned player identity", () => {
   assert.equal(

@@ -8,7 +8,7 @@ npm test
 npm run build
 ```
 
-Resultado esperado: TypeScript sem erro, 24 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
+Resultado esperado: TypeScript sem erro, 26 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
 
 ## Testes no Supabase real
 
@@ -163,3 +163,26 @@ Ainda pendente:
 - O teste PostgreSQL local cobre Mestre excluindo NPC e seus vínculos, jogador rejeitado e identidade/ficha do jogador preservadas.
 - `npm test`: 24/24 aprovado. `npm run build`: aprovado. `npm run typecheck`: aprovado em execução sequencial após o build.
 - Não testado: exclusão de um NPC real no Supabase e comportamento visual no site. Esses itens ficam para a validação manual do usuário após o deploy.
+
+## Administração de avatares, 15/09/2026, 15:15 UTC
+
+Validação automatizada concluída:
+
+1. Pink cria avatares pelo RPC administrativo existente.
+2. Jogador A seleciona um avatar disponível e o catálogo passa a informar `Em uso` com seu username.
+3. Jogador B recebe erro ao selecionar o mesmo avatar pelo fluxo de identidade ou diretamente por `game_action/avatar_select`.
+4. Quando A troca de avatar, o anterior volta a `Disponível` e B consegue selecioná-lo.
+5. Bloquear um avatar já usado preserva o vínculo atual e impede nova seleção por outro jogador.
+6. Exclusividade rejeita outro jogador e aceita o jogador definido.
+7. Compartilhamento permite que A e B usem o mesmo avatar.
+8. Jogador não executa `admin_avatar_action`, nem cria, bloqueia, compartilha ou desbloqueia por chamada direta.
+9. Pink seleciona avatar ocupado ou bloqueado sem liberar essa exceção aos jogadores.
+10. Alterar pela ficha mantém `social_identities`, `characters.avatar_id` e `characters.image` sincronizados.
+
+Evidências técnicas:
+
+- `npm test`: 26/26 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- Supabase real: migration aplicada, Edge Function versão 13 `ACTIVE`, 15 avatares preservados e nenhuma ocupação múltipla preexistente.
+- Não testado: interação visual, layout em celular e uso dos controles contra avatares reais. A validação manual será feita pelo usuário no site publicado.

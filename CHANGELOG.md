@@ -34,6 +34,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Exclusão definitiva de Personagens do Mundo pela Comunidade, disponível somente para Pink/Mestre, com confirmação simples e limpeza segura dos vínculos sociais e de mídia.
 - Proteção no banco contra exclusão por jogador e contra qualquer tentativa de atingir personagens pertencentes a jogadores.
 - Correção da exclusão de Personagem do Mundo para remover mídias pela API oficial do Supabase Storage, com preparação e finalização restritas a `service_role` e dupla validação de Mestre e alvo.
+- Regra padrão de uso único de avatar por jogador, com trava transacional no banco para impedir dupla ocupação concorrente.
+- Painel de avatares de Pink/Mestre com busca, filtros, estados reais, identificação dos usuários atuais, bloqueio, exclusividade, compartilhamento, arquivamento, reativação e exclusão segura.
+- Proteção server-side de avatares bloqueados, exclusivos e ocupados, incluindo chamadas diretas, com exceção administrativa restrita a Pink e sincronização entre perfil, ficha e personagem.
 - Deploy de produção do commit `42292c73ddc8c031c483ecfc738a2473b16f8909` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 - Deploy de produção do redesign no commit `28c42266fec6fb788501f517d1087907c07eae5b` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 

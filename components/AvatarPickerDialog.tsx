@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import AvatarGallery from "./AvatarGallery";
 import type { Row } from "@/lib/types";
+import { avatarSelectableFor } from "@/lib/avatar";
 
 export default function AvatarPickerDialog({
   open,
@@ -11,6 +12,8 @@ export default function AvatarPickerDialog({
   urls,
   selectedId,
   subject,
+  targetUserId,
+  targetIsMaster = false,
   busy,
   close,
   select,
@@ -20,6 +23,8 @@ export default function AvatarPickerDialog({
   urls: Record<string, string>;
   selectedId?: string | null;
   subject?: string;
+  targetUserId?: string | null;
+  targetIsMaster?: boolean;
   busy: boolean;
   close: () => void;
   select: (id: string) => Promise<unknown>;
@@ -69,6 +74,8 @@ export default function AvatarPickerDialog({
           avatars={avatars}
           urls={urls}
           selectedId={pendingId}
+          targetUserId={targetUserId}
+          targetIsMaster={targetIsMaster}
           busy={busy}
           onSelect={async (id) => {
             setPendingId(id);
@@ -87,7 +94,17 @@ export default function AvatarPickerDialog({
         <button
           className="primary"
           disabled={
-            busy || !avatars.some((a) => a.id === pendingId && a.active)
+            busy ||
+            !avatars.some(
+              (avatar) =>
+                avatar.id === pendingId &&
+                avatarSelectableFor(
+                  avatar,
+                  targetUserId,
+                  targetIsMaster,
+                  selectedId,
+                ),
+            )
           }
           onClick={async () => {
             try {

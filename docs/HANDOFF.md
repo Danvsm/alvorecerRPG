@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 15/09/2026, 06:25 UTC.
+Atualizado em 15/09/2026, 15:15 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -10,29 +10,29 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Vercel: projeto `alvorecer-rpg-vsm`, ID `prj_QaxFObeWPJ8w0urfdzYICRDwIlHs`, equipe `team_CnaWIE2ArNb8Rmus0NWgv4Hr`.
 - Produção: `https://alvorecer-rpg-vsm.vercel.app`.
 - Supabase: projeto `alvorecer`, Project Ref `wsihnbrnqdnmidjvjchn`, região `sa-east-1`, estado `ACTIVE_HEALTHY`.
-- Edge Function principal: `alvorecer-api`, ativa, versão 9, `verify_jwt=false`.
+- Edge Function principal: `alvorecer-api`, ativa, versão 13, `verify_jwt=false`.
 - Não criar outro projeto Vercel, Supabase ou banco para esta continuação.
 
 ## Código e deploy
 
 - Branch: `main`.
-- Commit-base confirmado antes desta conclusão: `c4d66dc759bfc63b6cea79e446f09ec28a8e40a6`.
+- Commit-base confirmado antes desta conclusão: `c574419f2cb8cf8df365fdd54a01d31660ab9e35`.
 - Versão do pacote: `1.3.0`.
 - Deploy Vercel do commit-base: `dpl_58hHEnqmhuZDhG6RZT4edqXYYW8i`.
 - Estado confirmado: `READY`, alvo `production`, origem GitHub `Danvsm/alvorecerRPG`, ref `main`.
 - Commits de documentação criados nesta continuação: `9ccc68a09b1e2a4b96af8dc0f45b246ad3c94c16` (`docs/HANDOFF.md`) e `276f6690ccd04bba53a3994a50daeaac4892a8a5` (`CHANGELOG.md`).
 - O commit `276f6690ccd04bba53a3994a50daeaac4892a8a5` chegou a `READY` em produção no deploy `dpl_7PQZSrt1rhFSmkuTrCvSGmJ8AjxC`.
 - O handoff com as evidências atuais foi publicado no commit `7fffe8a703046003cb3d3143a7e4d3696e23b232` e chegou a `READY` no deploy `dpl_4xiimSLR5ccrJFw4gTAjxGwjvH4y`.
-- A correção da exclusão definitiva de Personagens do Mundo ainda precisa ser publicada na Vercel.
+- A administração de avatares desta continuação ainda precisa ser publicada na Vercel.
 
 ## Banco, migrations e função
 
-- As 26 migrations registradas estão aplicadas no Supabase real.
-- A última migration aplicada é `20260915062327_fix_world_character_storage_deletion`.
+- As 27 migrations registradas estão aplicadas no Supabase real.
+- A última migration aplicada é `20260915151114_avatar_usage_administration`.
 - A migration `delete_world_characters`, que já estava aplicada no Supabase, foi recuperada para o Git sem alterar seu SQL. O conteúdo local e o registro remoto possuem o mesmo MD5: `acffd1ca56a91483efa42a87dbee8b5d`.
 - A migration `chat_media_cleanup_timeout` mantém o cron `alvorecer-chat-media-cleanup` a cada 15 minutos e aumenta o timeout de `pg_net` para 60 segundos.
 - A chamada de limpeza usa o endpoint `/functions/v1/alvorecer-api/media-cleanup` e autenticação guardada no Vault.
-- A Edge Function `alvorecer-api` está ativa na versão 9.
+- A Edge Function `alvorecer-api` está ativa na versão 13.
 - A migration corretiva remove a RPC antiga e divide a operação em preparação e finalização, ambas acessíveis somente por `service_role`. A remoção física ocorre entre essas etapas pela API oficial do Storage.
 
 ## Entregas concluídas
@@ -59,7 +59,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ### Automatizados
 
-- `npm test`: 24/24 testes aprovados.
+- `npm test`: 26/26 testes aprovados.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
@@ -89,6 +89,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Revisar layout mobile em largura próxima de 390 px: navegação, cards, formulários, chat e combate sem rolagem horizontal.
 - Validar a nova engrenagem e o ajuste de Vida como Pink/Mestre no site publicado. A solicitação segura de credenciais não foi concluída nesta rodada.
 - Validar manualmente a confirmação e a remoção do Personagem do Mundo na interface publicada, incluindo a remoção física das mídias pela Storage API.
+- Validar manualmente a galeria administrativa de avatares, filtros, ações recolhíveis, troca de avatar e responsividade em celulares de tamanhos diferentes.
 - Confirmar que os commits de documentação/correção desta continuação também chegam a `READY` no projeto Vercel correto.
 
 ## Bugs conhecidos
@@ -162,3 +163,16 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O advisor de segurança não lista mais `delete_world_character` como função executável por usuários autenticados. Os avisos restantes são anteriores e não foram alterados nesta correção focada.
 - `npm test` passou em 24/24, `npm run build` passou e `npm run typecheck` passou quando executado após o build. A primeira execução paralela do typecheck colidiu com a regeneração de `.next`; a repetição sequencial foi aprovada.
 - Não foi excluído nenhum Personagem do Mundo real nesta rodada e não houve teste visual. A validação manual no site publicado permanece com o usuário.
+
+## Administração e uso único de avatares, 15/09/2026, 15:15 UTC
+
+- A regra normal passou a ser um avatar por jogador. A exceção `Compartilhável` permite múltiplos jogadores e é controlada somente por Pink/Mestre.
+- A migration `avatar_usage_administration` está aplicada no Supabase real. Ela adiciona bloqueio, compartilhamento e exclusividade, calcula o estado a partir dos vínculos reais e protege tanto `characters` quanto `social_identities` por triggers.
+- A seleção trava a linha do avatar antes de verificar a ocupação. Assim, duas seleções concorrentes de um avatar de uso único não podem ser confirmadas para jogadores diferentes.
+- Pink pode bloquear, desbloquear, compartilhar, restaurar uso único, definir ou remover exclusividade, arquivar, reativar, renomear e excluir pelo fluxo seguro já existente. O painel mostra miniatura, nome, estado, busca, filtro e usuários atuais por nome e username.
+- Bloquear um avatar em uso não remove o vínculo atual. Arquivados deixam de aceitar novas seleções até serem reativados. Pink ignora bloqueio, exclusividade e ocupação, mas também precisa reativar um avatar arquivado.
+- Jogadores continuam sem upload e sem ações administrativas. `admin_avatar_action` aceita somente `service_role`, valida novamente o Mestre informado e a Edge Function também exige sessão de Mestre ativa.
+- A Edge Function `alvorecer-api` versão 13 está `ACTIVE` com o novo endpoint administrativo. O schema real confirmou as três colunas, as duas RPCs e os 15 avatares existentes; não havia avatar previamente usado por múltiplos jogadores.
+- O teste PostgreSQL cobre criação por Pink, seleção por dois jogadores, liberação após troca, bloqueio sem remoção do vínculo, exclusividade, compartilhamento, tentativa direta de contorno, exceção de Pink e sincronização entre identidade, ficha e personagem.
+- `npm test` passou em 26/26, `npm run typecheck` passou e `npm run build` gerou as seis rotas esperadas.
+- Não foram feitos testes visuais extensos nem alterações em contas ou avatares reais. A aparência, o fluxo publicado e a responsividade permanecem para validação manual do usuário.

@@ -26,6 +26,7 @@ const base = z.object({
     "delete_player",
     "delete_invite",
     "delete_world_character",
+    "avatar_policy",
   ]),
   campaign: z.string().uuid(),
   userId: z.string().uuid().optional(),
@@ -44,6 +45,10 @@ const base = z.object({
   deleteCharacters: z.boolean().optional(),
   confirmation: z.string().max(20).optional(),
   identityId: z.string().uuid().optional(),
+  avatarOperation: z
+    .enum(["block", "unblock", "share", "unshare", "exclusive", "clear_exclusive"])
+    .optional(),
+  exclusiveUserId: z.string().uuid().nullable().optional(),
 });
 export async function POST(req: Request) {
   try {
@@ -212,6 +217,19 @@ export async function POST(req: Request) {
       });
       if (deleted.error) throw new Error(deleted.error.message);
       result = deleted.data;
+    }
+    if (d.action === "avatar_policy") {
+      if (!d.avatarId || !d.avatarOperation)
+        throw new Error("Operação de avatar inválida");
+      const changed = await db.rpc("admin_avatar_action", {
+        c: d.campaign,
+        target_id: d.avatarId,
+        actor: user.id,
+        operation: d.avatarOperation,
+        exclusive_user: d.exclusiveUserId || null,
+      });
+      if (changed.error) throw new Error(changed.error.message);
+      result = changed.data;
     }
     if (d.action === "delete_avatar") {
       if (!d.avatarId) throw new Error("Avatar inválido");

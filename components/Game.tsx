@@ -57,6 +57,7 @@ import { uploadAvatarImage, uploadItemImage } from "@/lib/media";
 import {
   avatarSelectionRequest,
   characterAvatarIdentityId,
+  type AvatarPolicyOperation,
   type AvatarSelectionTarget,
 } from "@/lib/avatar";
 import { combatLifeCommand } from "@/lib/combat";
@@ -126,6 +127,12 @@ const historyActions: Row = {
   avatar: "Avatar cadastrado ou atualizado",
   avatar_select: "Avatar alterado",
   avatar_delete: "Avatar excluído",
+  avatar_block: "Avatar bloqueado",
+  avatar_unblock: "Avatar desbloqueado",
+  avatar_share: "Avatar compartilhável",
+  avatar_unshare: "Avatar com uso único",
+  avatar_exclusive: "Avatar exclusivo definido",
+  avatar_clear_exclusive: "Exclusividade de avatar removida",
   dracma_transfer: "Transferência de Dracmas",
   dracma_adjustment: "Ajuste de Dracmas",
   dracma_charge_created: "Cobrança enviada",
@@ -265,6 +272,26 @@ export default function Game({ invite }: { invite?: string }) {
   const ownMember = rows("campaign_members").find(
     (member) => member.user_id === session?.user.id,
   );
+  const avatarPlayers = rows("campaign_members")
+    .filter(
+      (member) =>
+        member.campaign_id === campaign &&
+        member.role === "player" &&
+        member.access_active &&
+        !member.archived_at,
+    )
+    .map((member) => {
+      const profile = rows("profiles").find(
+        (entry) => entry.id === member.user_id,
+      );
+      return {
+        id: member.user_id,
+        username: profile?.username || "jogador",
+        name:
+          profile?.display_name || profile?.username || "Jogador sem nome",
+      };
+    })
+    .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
   useEffect(() => {
     if (!configured) {
       setReady(true);
@@ -296,7 +323,7 @@ export default function Game({ invite }: { invite?: string }) {
     setLoading(true);
     try {
       const db = browserDb();
-      const [result, snapshot, directory, visuals] = await Promise.all([
+      const [result, snapshot, directory, visuals, avatarCatalog] = await Promise.all([
         Promise.all(
           tables.map((t) => {
             let q = db.from(t).select("*");
@@ -336,6 +363,7 @@ export default function Game({ invite }: { invite?: string }) {
         db.rpc("combat_snapshot", { c }),
         db.rpc("transfer_recipients", { c }),
         db.rpc("combat_identities", { c }),
+        db.rpc("avatar_catalog", { c }),
       ]);
       const failed = result.findIndex((r) => r.error);
       if (failed !== -1)
@@ -345,10 +373,12 @@ export default function Game({ invite }: { invite?: string }) {
       if (snapshot.error) throw snapshot.error;
       if (directory.error) throw directory.error;
       if (visuals.error) throw visuals.error;
+      if (avatarCatalog.error) throw avatarCatalog.error;
       if (version !== requestVersion.current) return;
-      setData(
-        Object.fromEntries(result.map((r, i) => [tables[i], r.data || []])),
-      );
+      setData({
+        ...Object.fromEntries(result.map((r, i) => [tables[i], r.data || []])),
+        campaign_avatars: avatarCatalog.data || [],
+      });
       setParticipants(
         (snapshot.data || []).map((p: Row) => ({
           ...p,
@@ -2840,6 +2870,7 @@ export default function Game({ invite }: { invite?: string }) {
                 manager
                 avatars={rows("campaign_avatars")}
                 urls={avatarUrls}
+                players={avatarPlayers}
                 busy={busy}
                 onUpload={(file, name) =>
                   perform(async () => {
@@ -2893,6 +2924,21 @@ export default function Game({ invite }: { invite?: string }) {
                     await admin("delete_avatar", { avatarId: avatar.id });
                     await load(campaign, true);
                     setMessage("Avatar excluído");
+                  })
+                }
+                onPolicy={(
+                  avatar,
+                  avatarOperation: AvatarPolicyOperation,
+                  exclusiveUserId,
+                ) =>
+                  perform(async () => {
+                    await admin("avatar_policy", {
+                      avatarId: avatar.id,
+                      avatarOperation,
+                      exclusiveUserId,
+                    });
+                    await load(campaign, true);
+                    setMessage("Regra do avatar atualizada");
                   })
                 }
               />
@@ -3260,6 +3306,24 @@ export default function Game({ invite }: { invite?: string }) {
                   (entry) => entry.id === avatarPickerTarget.characterId,
                 )?.name
               : ownIdentity?.name
+          }
+          targetUserId={
+            avatarPickerTarget.kind === "character"
+              ? chars.find(
+                  (entry) => entry.id === avatarPickerTarget.characterId,
+                )?.owner_id
+              : ownIdentity?.user_id
+          }
+          targetIsMaster={
+            rows("campaign_members").find(
+              (member) =>
+                member.user_id ===
+                (avatarPickerTarget.kind === "character"
+                  ? chars.find(
+                      (entry) => entry.id === avatarPickerTarget.characterId,
+                    )?.owner_id
+                  : ownIdentity?.user_id),
+            )?.role === "master"
           }
           busy={busy}
           close={() => setAvatarPickerTarget(null)}

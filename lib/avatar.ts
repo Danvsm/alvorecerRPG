@@ -10,6 +10,45 @@ type SocialIdentity = {
   kind?: string;
 };
 
+export type AvatarPolicyOperation =
+  "block" | "unblock" | "share" | "unshare" | "exclusive" | "clear_exclusive";
+
+export const avatarStateLabels: Record<string, string> = {
+  available: "Disponível",
+  in_use: "Em uso",
+  blocked: "Bloqueado",
+  exclusive: "Exclusivo",
+  shared: "Compartilhável",
+  archived: "Arquivado",
+};
+
+export function avatarSelectableFor(
+  avatar: {
+    id?: string;
+    active?: boolean;
+    blocked?: boolean;
+    shared?: boolean;
+    exclusive_user_id?: string | null;
+    usage?: Array<{ user_id?: string }>;
+    occupied_by_other?: boolean;
+  },
+  targetUserId?: string | null,
+  targetIsMaster = false,
+  selectedId?: string | null,
+) {
+  if (avatar.id === selectedId) return true;
+  if (!avatar.active) return false;
+  if (targetIsMaster || !targetUserId) return true;
+  if (avatar.blocked) return false;
+  if (avatar.exclusive_user_id && avatar.exclusive_user_id !== targetUserId)
+    return false;
+  if (avatar.shared) return true;
+  if (avatar.occupied_by_other) return false;
+  return !(avatar.usage || []).some(
+    (entry) => entry.user_id && entry.user_id !== targetUserId,
+  );
+}
+
 export function characterAvatarIdentityId(
   campaign: string,
   character: CharacterOwner | undefined,

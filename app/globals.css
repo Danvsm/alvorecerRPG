@@ -534,6 +534,15 @@ code {
 .avatar-manager .spread p {
   margin: 0;
 }
+.avatar-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.avatar-manager .avatar-grid {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
 .avatar-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
@@ -587,6 +596,10 @@ code {
   filter: grayscale(0.75);
   opacity: 0.55;
 }
+.avatar-card.unavailable:not(.selected) .avatar-choice img {
+  filter: grayscale(0.6);
+  opacity: 0.5;
+}
 .avatar-selected {
   position: absolute;
   right: 9px;
@@ -615,6 +628,62 @@ code {
   color: var(--muted);
   margin-top: 4px;
 }
+.avatar-card > .avatar-usage,
+.avatar-card > .avatar-exclusive {
+  overflow: visible;
+  white-space: normal;
+}
+.avatar-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  margin-top: 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.avatar-state.available {
+  color: #8fe0ad;
+  border-color: #23633b;
+  background: #12321f;
+}
+.avatar-state.in_use {
+  color: #e8bd72;
+  border-color: #6a4b21;
+  background: #2d2112;
+}
+.avatar-state.blocked,
+.avatar-state.archived {
+  color: #d1d1d8;
+  background: #24242a;
+}
+.avatar-state.exclusive {
+  color: #f1a8bd;
+  border-color: #742b43;
+  background: #351522;
+}
+.avatar-state.shared {
+  color: #a9cef8;
+  border-color: #29547e;
+  background: #142a40;
+}
+.avatar-administration {
+  margin-top: 10px;
+  text-align: left;
+}
+.avatar-administration summary {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-align: center;
+  cursor: pointer;
+}
 .avatar-actions {
   display: grid;
   gap: 6px;
@@ -624,6 +693,14 @@ code {
   min-height: 34px;
   padding: 6px 8px;
   font-size: 0.75rem;
+}
+.avatar-exclusive-control {
+  min-width: 0;
+  font-size: 0.75rem;
+}
+.avatar-exclusive-control select {
+  width: 100%;
+  margin-top: 4px;
 }
 .wallet-balance {
   display: flex;
@@ -1009,6 +1086,12 @@ dialog::backdrop {
   .avatar-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
+  }
+  .avatar-filters {
+    grid-template-columns: 1fr;
+  }
+  .avatar-manager .avatar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .transfer-form {
     grid-template-columns: 1fr;
