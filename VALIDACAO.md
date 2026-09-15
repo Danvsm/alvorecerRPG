@@ -8,7 +8,7 @@ npm test
 npm run build
 ```
 
-Resultado esperado: TypeScript sem erro, 21 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
+Resultado esperado: TypeScript sem erro, 24 testes aprovados e geração das rotas `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
 
 ## Testes no Supabase real
 
@@ -141,3 +141,15 @@ Ainda pendente:
 - O banco registrou a ação `avatar_select` com o `character_id` de `darkvsm` às 03:29:20 UTC.
 - O fluxo de Perfil continua separado e direcionado a `identity_action/avatar`; o fluxo de Personagens usa `game_action/avatar_select`.
 - `npm run typecheck`, 21/21 testes e `npm run build` passaram antes do deploy final.
+
+## Exclusão de Personagem do Mundo — 15/09/2026, 05:54 UTC
+
+- O arquivo `20260915043804_delete_world_characters.sql` possui o mesmo conteúdo da migration já aplicada no Supabase, confirmado pelo MD5 `acffd1ca56a91483efa42a87dbee8b5d`.
+- O teste PostgreSQL local confirmou que jogador não pode chamar `delete_world_character`.
+- O mesmo teste confirmou que nem Pink pode usar a função contra identidade ou personagem pertencente a jogador.
+- Pink excluiu um Personagem do Mundo de teste e os vínculos de conversa, mensagens, mídia temporária, objeto no Storage, comentário e cosméticos foram removidos.
+- A ficha e a identidade social do jogador de teste permaneceram existentes depois da exclusão.
+- `npm test`: 24/24 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, com as seis rotas esperadas.
+- Não testado: interação visual do diálogo, execução contra o Supabase real e deploy da interface.

@@ -21,7 +21,8 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260912093716_avatar_dracmas_fk_indexes.sql", "20260912113000_profiles_wallet_activity_lifecycle.sql",
       "20260912140000_history_safe_deletions.sql", "20260912150000_security_performance_hardening.sql",
       "20260913053717_progression_rules.sql", "20260913054245_identity_admin_social.sql", "20260913055244_social_messages.sql",
-      "20260913104642_reward_notifications.sql", "20260913104835_player_data_admin.sql", "20260913105307_temporary_chat_media.sql", "20260913110117_profile_combat_polish.sql", "20260913164608_identity_lifecycle_guard.sql"]) {
+      "20260913104642_reward_notifications.sql", "20260913104835_player_data_admin.sql", "20260913105307_temporary_chat_media.sql", "20260913110117_profile_combat_polish.sql", "20260913164608_identity_lifecycle_guard.sql",
+      "20260915043804_delete_world_characters.sql"]) {
       const sql = (await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"))
         .replace("create extension if not exists pgcrypto;", "")
         .replace("alter publication supabase_realtime add table public.campaign_events;", "");
@@ -93,6 +94,8 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     const social=async(op:string,d:object)=>(await db.query<{v:any}>("select social_action($1,$2,$3::jsonb) v",[campaign,op,JSON.stringify(d)])).rows[0].v;
     await asUser(master);
     const npc=await identityAction("npc",{name:"Rukia"});
+    await identityAction("grant",{identity_id:npc.id,cosmetic_id:cosmetic.id,origin:"event"});
+    await identityAction("equip",{identity_id:npc.id,cosmetic_id:cosmetic.id});
     const rewardRequest=crypto.randomUUID();
     const reward=async(d:object,id=rewardRequest)=>(await db.query<{v:any}>("select grant_reward($1,$2,$3::jsonb,$4) v",[campaign,ch,JSON.stringify(d),id])).rows[0].v;
     const rewardData={xp:100,cents:50,reason:"Teste de recompensa",cosmetics:[cosmetic.id]};
@@ -123,6 +126,24 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     await asUser(player);
     assert.equal((await db.query("select * from direct_messages")).rows.length,3);
     assert.equal((await db.query("select * from profile_comments")).rows.length,1);
+    const deleteWorldCharacter = async (targetId:string) =>
+      (await db.query<{v:any}>("select delete_world_character($1,$2) v",[campaign,targetId])).rows[0].v;
+    await assert.rejects(deleteWorldCharacter(npc.id),/Somente Pink/);
+    await asUser(master);
+    await assert.rejects(deleteWorldCharacter(identity),/Personagem do mundo inválido/);
+    assert.equal((await db.query("select id from characters where id=$1",[ch])).rows.length,1);
+    assert.equal((await db.query("select id from social_identities where id=$1",[identity])).rows.length,1);
+    assert.deepEqual(await deleteWorldCharacter(npc.id),{id:npc.id,deleted:true});
+    assert.equal((await db.query("select id from social_identities where id=$1",[npc.id])).rows.length,0);
+    assert.equal((await db.query("select * from direct_conversations where id=$1",[conversation.id])).rows.length,0);
+    assert.equal((await db.query("select * from direct_messages where conversation_id=$1",[conversation.id])).rows.length,0);
+    assert.equal((await db.query("select * from chat_media where conversation_id=$1",[conversation.id])).rows.length,0);
+    assert.equal((await db.query("select * from storage.objects where name=$1",[upload.path])).rows.length,0);
+    assert.equal((await db.query("select * from profile_comments where author_id=$1 or profile_id=$1",[npc.id])).rows.length,0);
+    assert.equal((await db.query("select * from cosmetic_grants where identity_id=$1",[npc.id])).rows.length,0);
+    assert.equal((await db.query("select * from cosmetic_equipment where identity_id=$1",[npc.id])).rows.length,0);
+    assert.equal((await db.query("select id from characters where id=$1",[ch])).rows.length,1);
+    assert.equal((await db.query("select id from social_identities where id=$1",[identity])).rows.length,1);
     await asUser(other);
     assert.equal((await db.query("select * from social_identities")).rows.length,0);
     assert.equal((await db.query("select * from notifications")).rows.length,0);

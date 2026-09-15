@@ -2692,6 +2692,19 @@ export default function Game({ invite }: { invite?: string }) {
                 actor={socialActor}
                 master={Boolean(isMaster)}
                 message={(id) => setChatPeer({ id, nonce: Date.now() })}
+                deleteWorldCharacter={
+                  isMaster
+                    ? async (id) => {
+                        const result = await browserDb().rpc(
+                          "delete_world_character",
+                          { c: campaign, target_id: id },
+                        );
+                        if (result.error) throw new Error(result.error.message);
+                        await load(campaign, true);
+                        setMessage("Personagem do Mundo excluído");
+                      }
+                    : undefined
+                }
               />
             </>
           )}

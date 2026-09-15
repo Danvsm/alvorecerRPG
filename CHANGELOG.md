@@ -29,8 +29,10 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Ações administrativas de sala, inclusão, gerenciamento, revelação e encerramento centralizadas na engrenagem exclusiva do Mestre.
 - Consumíveis legítimos preservados em seção recolhível, sem misturá-los ao ajuste manual de Vida.
 - Chat flutuante ancorado com espaço reservado na página Combate para não cobrir ações importantes no mobile.
-- Gates automatizados aprovados após as últimas correções: 21/21 testes, TypeScript e build.
+- Gates automatizados aprovados após as últimas correções: 24/24 testes, TypeScript e build.
 - Correção da troca de avatar no painel Personagens: a seleção agora usa `game_action/avatar_select` com o personagem escolhido, sem alterar a foto da identidade do Mestre.
+- Exclusão definitiva de Personagens do Mundo pela Comunidade, disponível somente para Pink/Mestre, com confirmação simples e limpeza segura dos vínculos sociais e de mídia.
+- Proteção no banco contra exclusão por jogador e contra qualquer tentativa de atingir personagens pertencentes a jogadores.
 - Deploy de produção do commit `42292c73ddc8c031c483ecfc738a2473b16f8909` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 - Deploy de produção do redesign no commit `28c42266fec6fb788501f517d1087907c07eae5b` confirmado como `READY` no projeto `alvorecer-rpg-vsm`.
 

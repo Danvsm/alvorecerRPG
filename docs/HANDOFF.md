@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 15/09/2026, 03:30 UTC.
+Atualizado em 15/09/2026, 05:54 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -16,20 +16,21 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 ## Código e deploy
 
 - Branch: `main`.
-- Commit-base confirmado: `42292c73ddc8c031c483ecfc738a2473b16f8909`.
+- Commit-base confirmado antes desta conclusão: `c4d66dc759bfc63b6cea79e446f09ec28a8e40a6`.
 - Versão do pacote: `1.3.0`.
-- Deploy Vercel do commit-base: `dpl_33qJLEyhMB38knJMuDTzbf6DMEXX`.
+- Deploy Vercel do commit-base: `dpl_58hHEnqmhuZDhG6RZT4edqXYYW8i`.
 - Estado confirmado: `READY`, alvo `production`, origem GitHub `Danvsm/alvorecerRPG`, ref `main`.
 - Commits de documentação criados nesta continuação: `9ccc68a09b1e2a4b96af8dc0f45b246ad3c94c16` (`docs/HANDOFF.md`) e `276f6690ccd04bba53a3994a50daeaac4892a8a5` (`CHANGELOG.md`).
 - O commit `276f6690ccd04bba53a3994a50daeaac4892a8a5` chegou a `READY` em produção no deploy `dpl_7PQZSrt1rhFSmkuTrCvSGmJ8AjxC`.
 - O handoff com as evidências atuais foi publicado no commit `7fffe8a703046003cb3d3143a7e4d3696e23b232` e chegou a `READY` no deploy `dpl_4xiimSLR5ccrJFw4gTAjxGwjvH4y`.
-- A atualização que registra esse resultado é exclusivamente documental; o código da aplicação permanece em `42292c7`.
+- A exclusão definitiva de Personagens do Mundo desta conclusão ainda não foi publicada na Vercel.
 
 ## Banco, migrations e função
 
-- As 24 migrations registradas estão aplicadas no Supabase real.
-- A última migration aplicada é `20260914021916_chat_media_cleanup_timeout`.
-- A migration mantém o cron `alvorecer-chat-media-cleanup` a cada 15 minutos e aumenta o timeout de `pg_net` para 60 segundos.
+- As 25 migrations registradas estão aplicadas no Supabase real.
+- A última migration aplicada é `20260915043804_delete_world_characters`.
+- A migration `delete_world_characters`, que já estava aplicada no Supabase, foi recuperada para o Git sem alterar seu SQL. O conteúdo local e o registro remoto possuem o mesmo MD5: `acffd1ca56a91483efa42a87dbee8b5d`.
+- A migration `chat_media_cleanup_timeout` mantém o cron `alvorecer-chat-media-cleanup` a cada 15 minutos e aumenta o timeout de `pg_net` para 60 segundos.
 - A chamada de limpeza usa o endpoint `/functions/v1/alvorecer-api/media-cleanup` e autenticação guardada no Vault.
 - A Edge Function `alvorecer-api` está ativa na versão 8.
 
@@ -50,12 +51,14 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O ajuste de Vida passou a aceitar quantidade inteira livre; o Mestre recebe perda/ganho e o jogador recebe somente perda no próprio personagem. Os comandos e as validações server-side existentes foram preservados.
 - Os assets fornecidos para espadas, estandartes, coroa, brasão e wallpaper foram otimizados para WebP e usados diretamente na interface.
 - A troca de avatar no painel Personagens agora mantém destinos separados: o Mestre altera somente o personagem selecionado, enquanto Perfil continua alterando somente a identidade própria.
+- Pink/Mestre pode solicitar no perfil público da Comunidade a exclusão definitiva de um Personagem do Mundo, com confirmação simples por `Cancelar` ou `Excluir`.
+- A RPC existente rejeita jogadores e identidades vinculadas a usuários. Ao excluir um Personagem do Mundo, remove conversas, mensagens, mídia temporária, comentários e cosméticos vinculados sem atingir personagens de jogadores.
 
 ## Testes já concluídos
 
 ### Automatizados
 
-- `npm test`: 21/21 testes aprovados.
+- `npm test`: 24/24 testes aprovados.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
@@ -84,7 +87,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Validar os comandos administrativos restantes com dados de teste identificáveis, sem afetar dados reais.
 - Revisar layout mobile em largura próxima de 390 px: navegação, cards, formulários, chat e combate sem rolagem horizontal.
 - Validar a nova engrenagem e o ajuste de Vida como Pink/Mestre no site publicado. A solicitação segura de credenciais não foi concluída nesta rodada.
-- Após `2026-09-15 02:13:29 UTC`, confirmar `chat_media.deleted_at` e a ausência física do objeto no bucket `chat-media`. Uma verificação condicional horária foi agendada a partir de 14/09 16:30 em `America/Sao_Paulo` para o registro-alvo.
+- Validar visualmente a confirmação e a remoção do Personagem do Mundo na interface após a publicação desta conclusão.
 - Confirmar que os commits de documentação/correção desta continuação também chegam a `READY` no projeto Vercel correto.
 
 ## Bugs conhecidos
@@ -92,17 +95,17 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Não há bug funcional aberto confirmado neste momento.
 - Corrigidos em `42292c7`: histórico exibindo `[object Object]` e estado do chat herdado ao trocar sessão/campanha.
 - Corrigido em `2422568`: Alterar avatar em Personagens chamava o fluxo da identidade do Mestre e, na primeira correção, o RPC incorreto. O fluxo publicado agora usa `game_action/avatar_select` com o `character_id` selecionado.
-- Riscos ainda não encerrados: regressão visual mobile, troca de conta, sincronização interativa entre duas sessões e remoção física da imagem temporária.
+- Riscos ainda não encerrados: regressão visual mobile, troca de conta e sincronização interativa entre duas sessões.
 - Limitação operacional desta continuação: o ambiente atual não expõe navegador interativo. A integração TinyFish foi localizada e sugerida, mas ainda não está instalada/conectada. Qualquer item não comprovável por API, banco ou inspeção de código permanece explicitamente como não testado.
-- Há duas salas antigas de teste `Verificação ...` ainda ativas, além da sala vazia `combate`; são artefatos identificáveis de validações anteriores e devem ser encerrados/arquivados pela interface após o teste interativo, não tratados como bug do produto.
+- Há uma sala antiga de teste `Verificação ...` ainda ativa, além da sala vazia `combate`; são artefatos identificáveis de validações anteriores e devem ser encerrados/arquivados pela interface após o teste interativo, não tratados como bug do produto.
 
 ## Próximo passo exato
 
-1. Instalar/conectar TinyFish para disponibilizar navegador automatizado nesta conversa.
-2. No domínio publicado, entrar primeiro como Pink, conferir visualmente a resposta de darkvsm e o histórico formatado; sair e entrar como darkvsm para validar a troca de sessão sem herança de chat.
-3. Com Pink e jogador em sessões distintas, alterar um recurso pelo mestre, gastar um recurso pelo jogador e observar a atualização Realtime nas duas telas; depois encerrar/arquivar as salas `Verificação ...` remanescentes.
-4. Repetir os mesmos fluxos em viewport de 390 px e confirmar ausência de rolagem horizontal em navegação, cards, formulários, chat e combate.
-5. Aguardar a verificação condicional da mídia-alvo após 14/09/2026 23:13:29 em São Paulo; exigir `deleted_at` preenchido, objeto ausente e HTTP 200 do cron.
+1. Publicar o commit desta conclusão e confirmar o deploy `READY` no projeto Vercel correto.
+2. Validar manualmente como Pink a confirmação e a remoção de um Personagem do Mundo descartável. Confirmar também que o jogador não recebe o controle.
+3. No domínio publicado, entrar primeiro como Pink, conferir visualmente a resposta de darkvsm e o histórico formatado; sair e entrar como darkvsm para validar a troca de sessão sem herança de chat.
+4. Com Pink e jogador em sessões distintas, alterar um recurso pelo mestre, gastar um recurso pelo jogador e observar a atualização Realtime nas duas telas; depois encerrar/arquivar as salas de teste remanescentes.
+5. Repetir os mesmos fluxos em viewport de 390 px e confirmar ausência de rolagem horizontal em navegação, cards, formulários, chat e combate.
 6. Corrigir somente problemas reproduzidos, repetir os gates quando houver alteração de código e atualizar este documento com evidências finais.
 
 ## Continuação verificada — 14/09/2026, 17:15 UTC
@@ -139,3 +142,12 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O deploy de produção `dpl_Cc3gxD8hc7VpE2Rj3uwWysNwX8XL` chegou a `READY` no projeto correto.
 - Validação manual confirmada pelo usuário: `darkvsm` mudou do avatar `Novinha` para `Ladino`, enquanto a identidade Pink permaneceu com `Monge`.
 - O banco registrou `avatar_select` para `darkvsm` às 03:29:20 UTC e manteve o `avatar_id` da identidade Pink inalterado. Nenhuma migration foi necessária.
+
+## Exclusão de Personagem do Mundo — 15/09/2026, 05:54 UTC
+
+- A migration `20260915043804_delete_world_characters` foi recuperada exatamente do histórico do Supabase para o Git. Nenhuma alteração de banco foi executada nesta conclusão.
+- A ação foi adicionada ao perfil público de Personagens do Mundo na Comunidade e é oferecida somente a Pink/Mestre.
+- A confirmação possui apenas `Cancelar` e `Excluir`, sem texto obrigatório.
+- O teste local comprovou que jogador recebe `Somente Pink`, que uma identidade de jogador recebe `Personagem do mundo inválido` e que a exclusão do NPC remove seus vínculos preservando a ficha e a identidade do jogador.
+- `npm test` passou em 24/24, `npm run typecheck` passou e `npm run build` gerou as seis rotas esperadas.
+- Não foram executados teste visual, teste no Supabase real ou deploy da interface. A migration já estava aplicada no Supabase antes desta conclusão.

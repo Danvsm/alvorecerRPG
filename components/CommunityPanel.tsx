@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import type { Row } from "@/lib/types";
 import IdentityBadge from "./IdentityBadge";
@@ -16,6 +16,7 @@ export default function CommunityPanel({
   actor,
   master,
   message,
+  deleteWorldCharacter,
 }: {
   campaign: string;
   identities: Row[];
@@ -26,8 +27,10 @@ export default function CommunityPanel({
   actor: string;
   master: boolean;
   message: (id: string) => void;
+  deleteWorldCharacter?: (id: string) => Promise<void>;
 }) {
   const [selected, setSelected] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [search, setSearch] = useState("");
   const [ranking, setRanking] = useState<Row[]>([]);
   const [error, setError] = useState("");
@@ -97,6 +100,17 @@ export default function CommunityPanel({
           {current.id !== actor && (
             <button onClick={() => message(current.id)}>Mensagem</button>
           )}
+          {master &&
+            deleteWorldCharacter &&
+            current.kind === "npc" &&
+            current.user_id == null && (
+              <button
+                className="danger-button"
+                onClick={() => setPendingDelete(current)}
+              >
+                Excluir definitivamente
+              </button>
+            )}
           <div className="avatar-grid">
             {grants
               .filter((g) => g.identity_id === current.id)
@@ -132,6 +146,82 @@ export default function CommunityPanel({
         ))}
         {error && <p role="alert">{error}</p>}
       </section>
+      {pendingDelete && deleteWorldCharacter && (
+        <DeleteWorldCharacterDialog
+          character={pendingDelete}
+          close={() => setPendingDelete(null)}
+          remove={async () => {
+            await deleteWorldCharacter(pendingDelete.id);
+            setSelected("");
+            setPendingDelete(null);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function DeleteWorldCharacterDialog({
+  character,
+  close,
+  remove,
+}: {
+  character: Row;
+  close: () => void;
+  remove: () => Promise<void>;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    ref.current?.showModal();
+    return () => ref.current?.close();
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby="delete-world-character-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) close();
+      }}
+    >
+      <h2 id="delete-world-character-title">
+        Excluir {character.name} definitivamente?
+      </h2>
+      <p>
+        Conversas, mensagens, comentários, mídias temporárias e cosméticos
+        vinculados também serão removidos. Esta ação não pode ser desfeita.
+      </p>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+      <div className="dialog-actions">
+        <button type="button" disabled={busy} onClick={close}>
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="danger-button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              await remove();
+            } catch (reason) {
+              setError((reason as Error).message);
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Excluindo..." : "Excluir"}
+        </button>
+      </div>
+    </dialog>
   );
 }
