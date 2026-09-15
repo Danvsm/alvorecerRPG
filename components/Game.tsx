@@ -3272,7 +3272,7 @@ export default function Game({ invite }: { invite?: string }) {
               await load(campaign, true);
               setMessage(
                 avatarPickerTarget.kind === "character"
-                  ? "Avatar atualizado na ficha e na Comunidade"
+                  ? "ficha atualizada"
                   : "Avatar alterado",
               );
             })
