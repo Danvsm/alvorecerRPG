@@ -65,6 +65,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Presença online corrigida para iniciar ao abrir o site e permanecer independente de toque ou teclado, sem alterar as métricas de atividade.
 - Diretório da Comunidade ordenado por presença e riqueza real, sem filtro artificial de riqueza, e cabeçalho atualizado com o wallpaper dark fantasy fornecido.
 - Formato global dos avatares configurável por Pink/Mestre entre circular e quadrado, com padrão circular, persistência no tema da campanha e sincronização para os jogadores.
+- Comunidade refinada no estilo social dark fantasy Orkutista, com logo próprio, cabeçalho inspirado no mockup, destaques circulares maiores, composição visual de feed e barra inferior fixa com acesso a início, exploração, criação, conversa e perfil.
 
 ### Estado de validação
 

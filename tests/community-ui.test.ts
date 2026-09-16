@@ -75,7 +75,7 @@ test("the five supplied rank medals are part of the community gallery", async ()
   assert.match(source, /rank > 5/);
 });
 
-test("the supplied community wallpaper is optimized and used by the hero", async () => {
+test("the supplied community wallpaper is optimized and used by the social header", async () => {
   await access(
     new URL("../public/community/community-wallpaper.webp", import.meta.url),
   );
@@ -84,4 +84,33 @@ test("the supplied community wallpaper is optimized and used by the hero", async
     "utf8",
   );
   assert.match(css, /\/community\/community-wallpaper\.webp/);
+});
+
+test("community follows the Orkutista social layout without dropping existing flows", async () => {
+  await access(
+    new URL("../public/community/orkutista-logo.webp", import.meta.url),
+  );
+  const [source, css] = await Promise.all([
+    readFile(
+      new URL("../components/CommunityPanel.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../components/CommunityPanel.module.css", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(source, /\/community\/orkutista-logo\.webp/);
+  assert.match(source, /aria-label="Abrir menu"/);
+  assert.match(source, /Pesquisar na comunidade/);
+  assert.match(source, /Navegação da comunidade/);
+  assert.match(source, />Início</);
+  assert.match(source, />Explorar</);
+  assert.match(source, />Criar</);
+  assert.match(source, />Conversar</);
+  assert.match(source, />Perfil</);
+  assert.match(source, /size="clamp\(104px, 23vw, 118px\)"/);
+  assert.match(css, /\.bottomNav/);
+  assert.match(css, /position: fixed/);
 });

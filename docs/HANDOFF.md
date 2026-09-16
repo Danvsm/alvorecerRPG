@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 16/09/2026, 16:50 UTC.
+Atualizado em 16/09/2026, 21:30 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -387,3 +387,22 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Pink deve alternar entre `Circular` e `Quadrado` em `Configurações > Aparência`.
 2. Conferir no celular o avatar com e sem moldura no menu, Perfil, Comunidade e Combate.
 3. Manter `Circular` selecionado se esse for o formato definitivo desejado.
+
+## Redesign social Orkutista da Comunidade, 16/09/2026, 21:30 UTC
+
+- A alteração ficou restrita à Comunidade e preservou busca, presença real, ranking, mensagens, perfil público, mural, filtros e controles exclusivos do Mestre.
+- O logo Orkutista enviado pelo usuário foi incorporado ao novo cabeçalho. O cabeçalho possui botão do menu principal à esquerda e pesquisa e notificações à direita.
+- A Comunidade passou a recolher a sidebar como sobreposição, da mesma forma que o Combate, sem alterar o menu nas demais páginas.
+- A galeria `Em destaque` foi refeita no estilo stories e os avatares passaram de 88 px para um tamanho responsivo entre 104 e 118 px. Isso corrige a redução percebida depois da adoção do formato circular e mantém molduras e efeitos.
+- Uma composição visual de feed dark fantasy reutiliza o wallpaper existente e a identidade real selecionada. Os ícones de interação nessa composição são somente visuais nesta etapa; nenhuma tabela, RPC ou contador artificial foi criado.
+- A barra inferior fixa reúne `Início`, `Explorar`, `Criar`, `Conversar` e `Perfil`. `Conversar` usa o ícone de envio inspirado em mensagens diretas, no lugar do item visual chamado Comunidade.
+- As ações da barra reaproveitam fluxos existentes: explorar rola até o diretório, criar abre o perfil/mural da identidade atual, conversar abre a lista de mensagens e perfil navega à página Perfil.
+- Nenhuma migration, RLS, função ou dado do Supabase foi alterado.
+- `npm test`: 60/60 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com seis rotas geradas. `git diff --check`: aprovado.
+- Não foram feitos teste visual no navegador, validação mecânica nem revisão em celular. A fidelidade final, espaçamentos e comportamento em aparelho real permanecem para a validação manual do usuário.
+
+### Próximo passo recomendado para a Comunidade
+
+1. Validar no celular o tamanho dos avatares em destaque, o recorte do logo e do wallpaper e a barra inferior durante a rolagem.
+2. Conferir a abertura do menu, pesquisa, notificações, conversa e perfil sem perda das funcionalidades anteriores.
+3. Enviar prints dos ajustes de fidelidade necessários antes de iniciar curtidas, stories ou publicação de feed reais.

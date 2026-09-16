@@ -2,13 +2,22 @@
 
 import Image from "next/image";
 import {
+  Bookmark,
   ChevronRight,
+  Compass,
   Crown,
+  Heart,
+  Home,
+  Menu,
   MessageCircle,
+  MoreVertical,
+  Plus,
   Search,
+  Send,
   SlidersHorizontal,
   Sparkles,
   Trophy,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +26,7 @@ import { orderCommunityIdentities } from "@/lib/community";
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
 import IdentityAvatar from "./IdentityAvatar";
+import NotificationBell from "./NotificationBell";
 import ProfileWall from "./ProfileWall";
 import styles from "./CommunityPanel.module.css";
 
@@ -82,6 +92,10 @@ export default function CommunityPanel({
   urls,
   actor,
   master,
+  notifications,
+  openMenu,
+  saveNotification,
+  navigate,
   message,
   changeActor,
   createWorldCharacter,
@@ -95,6 +109,10 @@ export default function CommunityPanel({
   urls: Record<string, string>;
   actor: string;
   master: boolean;
+  notifications: Row[];
+  openMenu: () => void;
+  saveNotification: (op: string, details: Row) => Promise<unknown>;
+  navigate: (page: string) => void;
   message: (id: string) => void;
   changeActor?: (id: string) => void;
   createWorldCharacter?: () => void;
@@ -103,13 +121,18 @@ export default function CommunityPanel({
   const [selected, setSelected] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [tab, setTab] = useState<CommunityTab>("discover");
+  const [bottomActive, setBottomActive] = useState("home");
   const [filter, setFilter] = useState<CommunityFilter>("all");
   const [visibleCount, setVisibleCount] = useState(12);
   const [ranking, setRanking] = useState<Row[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const communityRef = useRef<HTMLDivElement>(null);
   const directoryRef = useRef<HTMLElement>(null);
+  const profileRef = useRef<HTMLElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -177,6 +200,9 @@ export default function CommunityPanel({
     [ranking],
   );
   const current = activeIdentities.find((identity) => identity.id === selected);
+  const actorIdentity = activeIdentities.find(
+    (identity) => identity.id === actor,
+  );
   const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
   const matchesSearch = (identity: Row) =>
     !normalizedSearch ||
@@ -200,6 +226,7 @@ export default function CommunityPanel({
         .slice(0, 6),
     [activeIdentities, rankByIdentity],
   );
+  const feedIdentity = actorIdentity || featured[0];
 
   const directory = useMemo(() => {
     const byName = orderCommunityIdentities(
@@ -255,31 +282,131 @@ export default function CommunityPanel({
   const selectTab = (nextTab: CommunityTab) => {
     setTab(nextTab);
     setSelected("");
+    setBottomActive(nextTab === "messages" ? "messages" : "explore");
+  };
+
+  const revealSearch = () => {
+    setSearchOpen(true);
+    window.requestAnimationFrame(() => searchRef.current?.focus());
+  };
+
+  const revealProfile = () => {
+    if (!actor) return;
+    setSelected(actor);
+    setBottomActive("create");
+    window.requestAnimationFrame(() =>
+      profileRef.current?.scrollIntoView({ behavior: "smooth" }),
+    );
   };
 
   return (
-    <div className={styles.community}>
-      <header className={styles.hero}>
-        <div className={styles.heroShade} />
-        <div className={styles.heroContent}>
-          <p>JOGADORES · HISTÓRIAS · UM SÓ MUNDO</p>
-          <h1>Comunidade</h1>
-          <span>
-            Encontre novos aliados, acompanhe suas histórias e faça parte do
-            Alvorecer.
-          </span>
-          <label className={styles.search}>
+    <div className={styles.community} ref={communityRef}>
+      <header className={styles.socialHeader}>
+        <div className={styles.headerShade} />
+        <button
+          type="button"
+          className={styles.headerButton}
+          aria-label="Abrir menu"
+          onClick={openMenu}
+        >
+          <Menu aria-hidden="true" />
+        </button>
+        <Image
+          className={styles.logo}
+          src="/community/orkutista-logo.webp"
+          width={480}
+          height={160}
+          sizes="(max-width: 480px) 190px, 260px"
+          alt="Orkutista, seu mundo"
+          priority
+        />
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.headerButton}
+            aria-label="Pesquisar na comunidade"
+            aria-expanded={searchOpen}
+            onClick={revealSearch}
+          >
             <Search aria-hidden="true" />
-            <span className="visually-hidden">Buscar jogador</span>
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar jogador"
-            />
-          </label>
+          </button>
+          <NotificationBell
+            notifications={notifications}
+            save={saveNotification}
+          />
         </div>
       </header>
+
+      <div
+        className={`${styles.searchDock} ${searchOpen || search ? styles.searchOpen : ""}`}
+      >
+        <label className={styles.search}>
+          <Search aria-hidden="true" />
+          <span className="visually-hidden">Buscar jogador</span>
+          <input
+            ref={searchRef}
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onBlur={() => {
+              if (!search) setSearchOpen(false);
+            }}
+            placeholder="Buscar jogador"
+          />
+        </label>
+      </div>
+
+      {featured.length > 0 && (
+        <section className={styles.featured}>
+          <div className={styles.sectionHeading}>
+            <h2>
+              <Sparkles aria-hidden="true" />
+              Em destaque
+            </h2>
+            <button
+              type="button"
+              onClick={() => directoryRef.current?.scrollIntoView()}
+            >
+              Ver todos <ChevronRight aria-hidden="true" />
+            </button>
+          </div>
+          <div className={styles.featuredRail}>
+            <button
+              type="button"
+              className={`${styles.featuredProfile} ${styles.createStory}`}
+              onClick={revealProfile}
+            >
+              <span className={styles.storyPlus}>
+                <Plus aria-hidden="true" />
+              </span>
+              <strong>Seu story</strong>
+              <small>Compartilhe</small>
+            </button>
+            {featured.map((identity) => (
+              <button
+                type="button"
+                className={styles.featuredProfile}
+                key={identity.id}
+                onClick={() => setSelected(identity.id)}
+              >
+                <span className={styles.avatarWrap}>
+                  <IdentityAvatar
+                    identity={identity}
+                    cosmetics={cosmetics}
+                    equipment={equipment}
+                    urls={urls}
+                    size="clamp(104px, 23vw, 118px)"
+                    className={styles.featuredAvatar}
+                  />
+                  <OnlineDot online={isOnline(identity)} />
+                </span>
+                <strong>{identity.name}</strong>
+                <small>{profileCaption(identity)}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <nav
         className={styles.tabs}
@@ -325,48 +452,63 @@ export default function CommunityPanel({
         </section>
       )}
 
-      {tab === "discover" && featured.length > 0 && (
-        <section className={styles.featured}>
-          <div className={styles.sectionHeading}>
-            <h2>
-              <Sparkles aria-hidden="true" />
-              Em destaque
-            </h2>
-            <button
-              type="button"
-              onClick={() => directoryRef.current?.scrollIntoView()}
+      {tab === "discover" && feedIdentity && (
+        <section className={styles.feed} aria-label="Início da comunidade">
+          <article className={styles.feedCard}>
+            <header className={styles.feedAuthor}>
+              <span className={styles.avatarWrap}>
+                <IdentityAvatar
+                  identity={feedIdentity}
+                  cosmetics={cosmetics}
+                  equipment={equipment}
+                  urls={urls}
+                  size={56}
+                />
+                <OnlineDot online={isOnline(feedIdentity)} />
+              </span>
+              <span>
+                <strong>{feedIdentity.name}</strong>
+                <small>{profileCaption(feedIdentity)}</small>
+              </span>
+              <MoreVertical aria-hidden="true" />
+            </header>
+            <p className={styles.feedText}>
+              Grandes histórias também são vividas juntas. O mundo de Alvorecer
+              continua em cada novo encontro.
+            </p>
+            <div className={styles.feedArtwork}>
+              <Image
+                src="/community/community-wallpaper.webp"
+                width={1536}
+                height={700}
+                sizes="(max-width: 760px) 100vw, 820px"
+                alt="Castelo de Alvorecer sob um eclipse vermelho"
+              />
+              <span>UM SÓ MUNDO. MUITAS HISTÓRIAS.</span>
+            </div>
+            <div
+              className={styles.feedActions}
+              aria-label="Ações da publicação"
             >
-              Ver todos <ChevronRight aria-hidden="true" />
-            </button>
-          </div>
-          <div className={styles.featuredRail}>
-            {featured.map((identity) => (
-              <button
-                type="button"
-                className={styles.featuredProfile}
-                key={identity.id}
-                onClick={() => setSelected(identity.id)}
-              >
-                <span className={styles.avatarWrap}>
-                  <IdentityAvatar
-                    identity={identity}
-                    cosmetics={cosmetics}
-                    equipment={equipment}
-                    urls={urls}
-                    size={88}
-                  />
-                  <OnlineDot online={isOnline(identity)} />
-                </span>
-                <strong>{identity.name}</strong>
-                <small>{profileCaption(identity)}</small>
-              </button>
-            ))}
-          </div>
+              <span title="Curtir">
+                <Heart aria-hidden="true" />
+              </span>
+              <span title="Comentar">
+                <MessageCircle aria-hidden="true" />
+              </span>
+              <span title="Compartilhar">
+                <Send aria-hidden="true" />
+              </span>
+              <span title="Salvar">
+                <Bookmark aria-hidden="true" />
+              </span>
+            </div>
+          </article>
         </section>
       )}
 
       {current && (
-        <section className={styles.publicProfile}>
+        <section className={styles.publicProfile} ref={profileRef}>
           <div className={styles.profileHeading}>
             <span className={styles.avatarWrap}>
               <IdentityAvatar
@@ -549,6 +691,68 @@ export default function CommunityPanel({
       <footer className={styles.footer}>
         MAIS QUE UM JOGO, UM NOVO AMANHECER.
       </footer>
+
+      <nav className={styles.bottomNav} aria-label="Navegação da comunidade">
+        <button
+          type="button"
+          className={bottomActive === "home" ? styles.activeBottomItem : ""}
+          onClick={() => {
+            setTab("discover");
+            setSelected("");
+            setBottomActive("home");
+            communityRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          <Home aria-hidden="true" />
+          <span>Início</span>
+        </button>
+        <button
+          type="button"
+          className={bottomActive === "explore" ? styles.activeBottomItem : ""}
+          onClick={() => {
+            setTab("discover");
+            setBottomActive("explore");
+            directoryRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          <Compass aria-hidden="true" />
+          <span>Explorar</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.createButton} ${
+            bottomActive === "create" ? styles.activeBottomItem : ""
+          }`}
+          onClick={revealProfile}
+        >
+          <Plus aria-hidden="true" />
+          <span>Criar</span>
+        </button>
+        <button
+          type="button"
+          className={bottomActive === "messages" ? styles.activeBottomItem : ""}
+          onClick={() => {
+            setTab("messages");
+            setSelected("");
+            setBottomActive("messages");
+            directoryRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          <Send aria-hidden="true" />
+          <span>Conversar</span>
+        </button>
+        <button
+          type="button"
+          className={bottomActive === "profile" ? styles.activeBottomItem : ""}
+          onClick={() => {
+            setBottomActive("profile");
+            navigate("Perfil");
+          }}
+        >
+          <UserRound aria-hidden="true" />
+          <span>Perfil</span>
+        </button>
+      </nav>
 
       {pendingDelete && deleteWorldCharacter && (
         <DeleteWorldCharacterDialog

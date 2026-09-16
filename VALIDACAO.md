@@ -444,3 +444,25 @@ Evidências:
 - `git diff --check`: aprovado.
 
 Não testado: aparência real dos dois formatos, encaixe visual de cada moldura e sincronização entre dois navegadores publicados. A validação visual permanece com o usuário.
+
+## Redesign social Orkutista da Comunidade, 16/09/2026, 21:30 UTC
+
+Validação técnica concluída:
+
+1. O novo cabeçalho usa o logo local fornecido, botão do menu principal, pesquisa e o componente funcional de notificações já existente.
+2. A sidebar fica recolhida somente no modo Comunidade e abre como sobreposição. As demais páginas mantêm seu layout anterior.
+3. Os destaques continuam usando `IdentityAvatar`, presença real, moldura e efeitos equipados. O tamanho responsivo passou para o intervalo de 104 a 118 px.
+4. Busca, descoberta, mensagens, ranking, filtros, perfil público, mural e controles de Pink/Mestre permanecem presentes no componente.
+5. A navegação inferior é fixa e contém `Início`, `Explorar`, `Criar`, `Conversar` e `Perfil`; o item de conversa usa o ícone de envio.
+6. O logo existe em `public/community/orkutista-logo.webp` e o wallpaper WebP existente é usado no cabeçalho e na composição visual do feed.
+7. A composição de feed não cria estado falso no banco. Curtir, comentar, compartilhar e salvar são somente elementos visuais nesta etapa.
+8. Nenhuma migration, tabela, policy, RLS ou função do Supabase foi modificada.
+
+Evidências:
+
+- `npm test`: 60/60 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- `git diff --check`: aprovado.
+
+Não testado por solicitação do usuário: aparência no navegador, fidelidade final ao mockup, rolagem da barra inferior, responsividade em aparelhos reais e interações manuais. A validação será feita pelo usuário após o deploy.

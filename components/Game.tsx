@@ -767,6 +767,15 @@ export default function Game({ invite }: { invite?: string }) {
         : "Avatares alterados para o formato quadrado",
     );
   }
+  async function saveNotification(op: string, d: Row) {
+    const response = await browserDb().rpc("identity_action", {
+      c: campaign,
+      op,
+      d,
+    });
+    if (response.error) throw new Error(response.error.message);
+    await load(campaign, true);
+  }
   async function admin(action: string, d: Row = {}) {
     const s = await browserDb().auth.getSession();
     const r = await fetch("/api/admin", {
@@ -1256,7 +1265,13 @@ export default function Game({ invite }: { invite?: string }) {
     );
   return (
     <div
-      className={page === "Combate" ? "app combat-mode" : "app"}
+      className={
+        page === "Combate"
+          ? "app combat-mode"
+          : page === "Comunidade"
+            ? "app community-mode"
+            : "app"
+      }
       style={
         {
           "--primary": currentCampaign?.theme?.primary || "#9E1B32",
@@ -1337,38 +1352,38 @@ export default function Game({ invite }: { invite?: string }) {
         />
       )}
       <div className="workspace">
-        <header className="topbar">
-          <button
-            className="mobile-toggle"
-            aria-label="Abrir menu"
-            onClick={() => setMenu(!menu)}
-          >
-            <Menu />
-          </button>
-          <span>
-            ALVORECER <span className="divider">/</span>{" "}
-            {currentCampaign?.name || "Campanha"}
-          </span>
-          <small
-            className={connection === "Tempo real ativo" ? "online" : "muted"}
-          >
-            {connection}
-          </small>
-          <NotificationBell
-            notifications={rows("notifications")}
-            save={async (op, d) => {
-              const r = await browserDb().rpc("identity_action", {
-                c: campaign,
-                op,
-                d,
-              });
-              if (r.error) throw new Error(r.error.message);
-              await load(campaign, true);
-            }}
-          />
-        </header>
+        {page !== "Comunidade" && (
+          <header className="topbar">
+            <button
+              className="mobile-toggle"
+              aria-label="Abrir menu"
+              onClick={() => setMenu(!menu)}
+            >
+              <Menu />
+            </button>
+            <span>
+              ALVORECER <span className="divider">/</span>{" "}
+              {currentCampaign?.name || "Campanha"}
+            </span>
+            <small
+              className={connection === "Tempo real ativo" ? "online" : "muted"}
+            >
+              {connection}
+            </small>
+            <NotificationBell
+              notifications={rows("notifications")}
+              save={saveNotification}
+            />
+          </header>
+        )}
         <main
-          className={page === "Combate" ? "content combat-content" : "content"}
+          className={
+            page === "Combate"
+              ? "content combat-content"
+              : page === "Comunidade"
+                ? "content community-content"
+                : "content"
+          }
         >
           {page !== "Combate" && page !== "Comunidade" && (
             <div className="page-heading">
@@ -2843,6 +2858,10 @@ export default function Game({ invite }: { invite?: string }) {
               urls={avatarUrls}
               actor={socialActor}
               master={Boolean(isMaster)}
+              notifications={rows("notifications")}
+              openMenu={() => setMenu(true)}
+              saveNotification={saveNotification}
+              navigate={navigate}
               message={(id) => setChatPeer({ id, nonce: Date.now() })}
               changeActor={isMaster ? setSpeakingAs : undefined}
               createWorldCharacter={

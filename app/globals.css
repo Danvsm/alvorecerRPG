@@ -2550,6 +2550,32 @@ dialog::backdrop {
   box-shadow: 0 8px 32px #0009;
 }
 
+/* Comunidade: experiência social independente com navegação própria. */
+.community-mode .workspace {
+  margin-left: 0;
+  background: #070607;
+}
+.community-mode .sidebar {
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+.community-mode .sidebar.open {
+  transform: translateX(0);
+}
+.community-mode .scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background: #0009;
+}
+.content.community-content {
+  max-width: none;
+  padding: 0;
+}
+
 /* Combate: leitura rápida e operação mobile-first. */
 .combat-mode .workspace {
   margin-left: 0;
