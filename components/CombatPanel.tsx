@@ -60,6 +60,7 @@ type CombatPanelProps = {
     resource: CombatResourceKey,
     delta: number,
   ) => Promise<void>;
+  onDamageEnemy: (participant: Row, amount: number) => Promise<void>;
   onConsume: (data: Row) => void;
 };
 
@@ -388,6 +389,155 @@ function ResourceDialog({
   );
 }
 
+function DamageDialog({
+  participant,
+  identities,
+  cosmetics,
+  equipment,
+  avatarUrls,
+  busy,
+  close,
+  damage,
+}: Pick<
+  CombatPanelProps,
+  "identities" | "cosmetics" | "equipment" | "avatarUrls"
+> & {
+  participant: Row;
+  busy: boolean;
+  close: () => void;
+  damage: (amount: number) => Promise<void>;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [amount, setAmount] = useState("1");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    ref.current?.showModal();
+    return () => ref.current?.close();
+  }, []);
+
+  function stepAmount(step: number) {
+    const value = Number(amount);
+    setAmount(
+      String(Math.max(1, (Number.isInteger(value) ? value : 1) + step)),
+    );
+  }
+
+  async function submit() {
+    const value = Number(amount);
+    if (!Number.isInteger(value) || value < 1 || value > 100000) {
+      setError("Digite uma quantidade inteira entre 1 e 100000");
+      return;
+    }
+    setError("");
+    try {
+      await damage(value);
+    } catch (caught) {
+      setError((caught as Error).message);
+    }
+  }
+
+  return (
+    <dialog
+      ref={ref}
+      className="combat-sheet combat-damage-sheet"
+      aria-labelledby="combat-damage-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) close();
+      }}
+    >
+      <div className="combat-sheet-handle" aria-hidden="true" />
+      <div className="combat-sheet-heading combat-resource-heading">
+        <div className="combat-sheet-identity">
+          <ParticipantIdentity
+            participant={participant}
+            identities={identities}
+            cosmetics={cosmetics}
+            equipment={equipment}
+            avatarUrls={avatarUrls}
+            avatarSize={64}
+          />
+          <span>
+            <small>Alvo inimigo</small>
+            <h2 id="combat-damage-title">{participant.name}</h2>
+          </span>
+        </div>
+        <button
+          className="combat-icon-button"
+          aria-label="Fechar"
+          disabled={busy}
+          onClick={close}
+        >
+          <X size={19} />
+        </button>
+      </div>
+
+      <div className="combat-damage-intro">
+        <Swords size={22} aria-hidden="true" />
+        <span>
+          <strong>Causar dano</strong>
+          <small>Quanto dano seu personagem causou?</small>
+        </span>
+      </div>
+
+      <div className="combat-amount-stepper">
+        <button
+          aria-label="Diminuir dano"
+          disabled={busy || Number(amount) <= 1}
+          onClick={() => stepAmount(-1)}
+        >
+          <Minus size={22} />
+        </button>
+        <label>
+          Dano causado
+          <input
+            autoFocus
+            type="number"
+            inputMode="numeric"
+            min="1"
+            max="100000"
+            step="1"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void submit();
+              }
+            }}
+          />
+        </label>
+        <button
+          aria-label="Aumentar dano"
+          disabled={busy}
+          onClick={() => stepAmount(1)}
+        >
+          <Plus size={22} />
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="combat-damage-actions">
+        <button disabled={busy} onClick={close}>
+          Cancelar
+        </button>
+        <button
+          className="combat-damage-submit"
+          disabled={busy}
+          onClick={() => void submit()}
+        >
+          <Swords size={18} />
+          {busy ? "Aplicando..." : "Causar dano"}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 function RosterDialog({
   roomParticipants,
   close,
@@ -618,9 +768,12 @@ export default function CombatPanel(props: CombatPanelProps) {
     onSelectRoom,
     onHistory,
     onAdjustResource,
+    onDamageEnemy,
     onConsume,
   } = props;
   const [selectedParticipantId, setSelectedParticipantId] = useState("");
+  const [selectedDamageTargetId, setSelectedDamageTargetId] = useState("");
+  const [damagedParticipantId, setDamagedParticipantId] = useState("");
   const [rosterOpen, setRosterOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const room = rooms.find((item) => item.id === selectedRoomId) || rooms[0];
@@ -632,6 +785,15 @@ export default function CombatPanel(props: CombatPanelProps) {
   const selectedParticipant = roomParticipants.find(
     (participant) => participant.id === selectedParticipantId,
   );
+  const selectedDamageTarget = roomParticipants.find(
+    (participant) => participant.id === selectedDamageTargetId,
+  );
+
+  useEffect(() => {
+    if (!damagedParticipantId) return;
+    const timer = setTimeout(() => setDamagedParticipantId(""), 700);
+    return () => clearTimeout(timer);
+  }, [damagedParticipantId]);
 
   return (
     <div className="combat-page">
@@ -758,10 +920,17 @@ export default function CombatPanel(props: CombatPanelProps) {
                     );
                     const canAdjust =
                       participant.life !== null && (isMaster || ownCharacter);
+                    const canDamage =
+                      !isMaster &&
+                      participant.side === "enemy" &&
+                      participant.state !== "zero";
                     const canConsume = Boolean(
                       participant.character_id && (isMaster || ownCharacter),
                     );
-                    const selected = participant.id === selectedParticipantId;
+                    const selected =
+                      participant.id === selectedParticipantId ||
+                      participant.id === selectedDamageTargetId;
+                    const damaged = participant.id === damagedParticipantId;
                     const overview = (
                       <>
                         <div className="combat-card-heading">
@@ -815,17 +984,25 @@ export default function CombatPanel(props: CombatPanelProps) {
                     );
                     return (
                       <article
-                        className={`combat-participant-card is-${side}${canAdjust ? " can-adjust" : ""}${selected ? " is-selected" : ""}`}
+                        className={`combat-participant-card is-${side}${canAdjust || canDamage ? " can-adjust" : ""}${selected ? " is-selected" : ""}${damaged ? " is-hit" : ""}`}
                         key={participant.id}
                       >
-                        {canAdjust ? (
+                        {canAdjust || canDamage ? (
                           <button
                             className="combat-card-control"
-                            aria-label={`Ajustar Vida, Mana ou Fôlego de ${participant.name}`}
-                            disabled={busy}
-                            onClick={() =>
-                              setSelectedParticipantId(participant.id)
+                            aria-label={
+                              canDamage
+                                ? `Causar dano em ${participant.name}`
+                                : `Ajustar Vida, Mana ou Fôlego de ${participant.name}`
                             }
+                            disabled={busy}
+                            onClick={() => {
+                              if (canDamage) {
+                                setSelectedDamageTargetId(participant.id);
+                              } else {
+                                setSelectedParticipantId(participant.id);
+                              }
+                            }}
                           >
                             {overview}
                           </button>
@@ -890,6 +1067,23 @@ export default function CombatPanel(props: CombatPanelProps) {
           adjust={(resource, delta) =>
             onAdjustResource(selectedParticipant, resource, delta)
           }
+        />
+      )}
+      {selectedDamageTarget && !isMaster && (
+        <DamageDialog
+          key={selectedDamageTarget.id}
+          participant={selectedDamageTarget}
+          identities={identities}
+          cosmetics={cosmetics}
+          equipment={equipment}
+          avatarUrls={avatarUrls}
+          busy={busy}
+          close={() => setSelectedDamageTargetId("")}
+          damage={async (amount) => {
+            await onDamageEnemy(selectedDamageTarget, amount);
+            setSelectedDamageTargetId("");
+            setDamagedParticipantId(selectedDamageTarget.id);
+          }}
         />
       )}
       {rosterOpen && (

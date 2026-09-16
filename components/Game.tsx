@@ -66,7 +66,7 @@ import {
   type AvatarPolicyOperation,
   type AvatarSelectionTarget,
 } from "@/lib/avatar";
-import { combatResourceCommand } from "@/lib/combat";
+import { combatDamagePayload, combatResourceCommand } from "@/lib/combat";
 import { cosmeticsActionRequest } from "@/lib/cosmetics";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
 import {
@@ -132,6 +132,7 @@ const historyActions: Row = {
   life: "Vida alterada",
   mana: "Mana alterada",
   stamina: "Fôlego alterado",
+  combat_damage: "Dano causado",
   balance: "Saldo alterado",
   notes: "Anotações atualizadas",
   buy_advantage: "Vantagem adquirida",
@@ -2523,6 +2524,17 @@ export default function Game({ invite }: { invite?: string }) {
                     characters: chars,
                   });
                   await command(request.op, request.data);
+                })
+              }
+              onDamageEnemy={(participant, amount) =>
+                perform(async () => {
+                  const { error } = await browserDb().rpc("combat_damage", {
+                    c: campaign,
+                    d: combatDamagePayload(participant, amount),
+                  });
+                  if (error) throw new Error(error.message);
+                  await load(campaign, true);
+                  setMessage("Dano registrado");
                 })
               }
               onConsume={(payload) => run(() => action("consume", payload))}

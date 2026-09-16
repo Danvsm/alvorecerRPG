@@ -855,6 +855,27 @@ function CombatPage({
           }),
         );
       }}
+      onDamageEnemy={async (target, amount) => {
+        setPreviewParticipants((current) =>
+          current.map((participant) => {
+            if (participant.id !== target.id) return participant;
+            const life = Math.max(0, Number(participant.life) - amount);
+            const ratio = life / Math.max(Number(participant.life_max), 1);
+            return {
+              ...participant,
+              life,
+              state:
+                life === 0
+                  ? "zero"
+                  : ratio > 0.6
+                    ? "green"
+                    : ratio >= 0.3
+                      ? "yellow"
+                      : "red",
+            };
+          }),
+        );
+      }}
       onConsume={() => {}}
     />
   );

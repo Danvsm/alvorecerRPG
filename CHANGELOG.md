@@ -57,6 +57,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Combate atualizado com cards clicáveis e aba inferior animada para ajustar Vida, Mana e Fôlego; Pink pode reduzir ou recuperar qualquer participante, enquanto jogador pode apenas reduzir os próprios recursos.
 - Navegação lateral recolhível no Combate, wallpaper sem moldura e superfícies visuais simplificadas para concentrar os cards nos participantes.
 - Ações do Combate consolidadas em um menu de três pontos e faixas de Aliados/Inimigos refinadas com frases, wallpaper sutil e identificação cromática.
+- Jogadores podem causar dano em inimigos pela área de Combate, com quantidade informada em uma única confirmação, proteção transacional no backend e retorno visual de impacto no card atingido.
 
 ### Estado de validação
 

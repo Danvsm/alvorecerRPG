@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { combatResourceCommand, type CombatResourceKey } from "../lib/combat";
+import { readFile } from "node:fs/promises";
+import {
+  combatDamagePayload,
+  combatResourceCommand,
+  type CombatResourceKey,
+} from "../lib/combat";
 
 const ownCharacter = {
   id: "character-own",
@@ -92,4 +97,34 @@ test("combat resource adjustments reject zero and fractional values", () => {
       }),
     );
   }
+});
+
+test("player damage routes an enemy participant and a positive integer amount", () => {
+  assert.deepEqual(combatDamagePayload({ id: "enemy", side: "enemy" }, 17), {
+    participant_id: "enemy",
+    amount: 17,
+  });
+  assert.throws(
+    () => combatDamagePayload({ id: "ally", side: "ally" }, 17),
+    /inimigo/,
+  );
+  for (const amount of [0, -1, 1.5, 100001]) {
+    assert.throws(() =>
+      combatDamagePayload({ id: "enemy", side: "enemy" }, amount),
+    );
+  }
+});
+
+test("combat enemy cards route player damage through the protected RPC", async () => {
+  const [panel, game] = await Promise.all([
+    readFile(new URL("../components/CombatPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(panel, /participant\.side === "enemy"/);
+  assert.match(panel, /setSelectedDamageTargetId\(participant\.id\)/);
+  assert.match(panel, /await onDamageEnemy\(selectedDamageTarget, amount\)/);
+  assert.match(panel, /combat-participant-card is-\$\{side\}/);
+  assert.match(panel, /is-hit/);
+  assert.match(game, /rpc\("combat_damage"/);
+  assert.match(game, /combatDamagePayload\(participant, amount\)/);
 });

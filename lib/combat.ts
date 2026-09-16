@@ -9,6 +9,16 @@ export const combatResourceKeys = ["life", "mana", "stamina"] as const;
 
 export type CombatResourceKey = (typeof combatResourceKeys)[number];
 
+export function combatDamagePayload(participant: Row, amount: number): Row {
+  if (participant.side !== "enemy") {
+    throw new Error("Selecione um inimigo");
+  }
+  if (!Number.isInteger(amount) || amount < 1 || amount > 100000) {
+    throw new Error("Informe uma quantidade inteira entre 1 e 100000");
+  }
+  return { participant_id: participant.id, amount };
+}
+
 export function combatResourceCommand({
   participant,
   resource,

@@ -2837,6 +2837,29 @@ dialog::backdrop {
 .combat-participant-card.can-adjust:active {
   transform: translateY(1px);
 }
+.combat-participant-card.is-hit {
+  border-color: #f14e62;
+  box-shadow:
+    inset 0 0 0 1px #f14e62b8,
+    0 0 24px #e1253f66;
+  animation: combat-damage-hit 0.62s ease-out;
+}
+@keyframes combat-damage-hit {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  12%,
+  38%,
+  64% {
+    transform: translateX(-6px);
+  }
+  25%,
+  51%,
+  77% {
+    transform: translateX(6px);
+  }
+}
 .combat-card-heading {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -3292,6 +3315,40 @@ dialog.combat-sheet {
 .combat-resource-actions.can-gain {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.combat-damage-intro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 4px;
+  padding: 12px;
+  border: 1px solid #6f2936;
+  border-radius: 10px;
+  background: #35131a;
+  color: #ff7c90;
+}
+.combat-damage-intro strong,
+.combat-damage-intro small {
+  display: block;
+}
+.combat-damage-intro small {
+  margin-top: 2px;
+  color: #c7a3aa;
+}
+.combat-damage-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 9px;
+  margin-top: 16px;
+}
+.combat-damage-actions button {
+  min-height: 54px;
+  font-weight: 700;
+}
+.combat-damage-submit {
+  border-color: #aa3448;
+  background: #681c2b;
+  color: #ffe1e6;
+}
 .combat-resource-actions button {
   min-height: 58px;
   font-weight: 700;
@@ -3580,7 +3637,8 @@ dialog.combat-sheet {
   }
   dialog.combat-sheet,
   .combat-sheet::backdrop,
-  .combat-participant-card.can-adjust {
+  .combat-participant-card.can-adjust,
+  .combat-participant-card.is-hit {
     animation: none;
     transition: none;
   }

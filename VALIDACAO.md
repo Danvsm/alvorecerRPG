@@ -325,5 +325,30 @@ Evidências:
 - O item Configurações continua condicionado a `isMaster`; jogador recebe apenas as opções não administrativas.
 - As frases das equipes não são mais ocultadas pelo breakpoint mobile.
 - O wallpaper reutilizado nas faixas possui opacidade inferior a 0,08, com sobreposição azul para Aliados e vermelha para Inimigos.
-- TypeScript e build devem ser repetidos antes da publicação.
+- A validação automatizada mais recente também cobriu estes componentes: `npm test` 52/52, TypeScript e build aprovados.
 - Não testado: aparência, abertura do menu, quebra das frases em aparelhos reais e fidelidade final ao print. A validação permanece com o usuário.
+
+## Dano do jogador contra inimigos, 16/09/2026, 15:57 UTC
+
+Validação automatizada concluída:
+
+1. O card inimigo do jogador abre o fluxo `onDamageEnemy`; aliado não é roteado para essa ação.
+2. O frontend envia `participant_id` e quantidade inteira positiva somente para a RPC `combat_damage`.
+3. A RPC exige conta com papel `player`, associação ativa à campanha e um personagem próprio como aliado na mesma sala ativa.
+4. Alvo de aliado, alvo em sala encerrada, jogador sem participante aliado e chamada do Mestre pela rota do jogador são rejeitados.
+5. Quantidades zero, negativas, fracionárias ou acima do limite são rejeitadas no frontend e novamente no backend.
+6. Inimigo baseado em criatura tem `combat_participants.life` reduzida sem passar de zero.
+7. Inimigo baseado em personagem tem o recurso real `character_resources.life` reduzido sob trava transacional.
+8. A resposta ao jogador confirma somente a aceitação e o participante, sem revelar valores ocultos de Vida.
+9. Após sucesso, a UI fecha a aba e marca apenas o card atingido com o estado temporário `is-hit`.
+10. A promessa da ação é capturada pela própria aba, mantendo o erro visível sem rejeição não tratada nos cliques.
+
+Evidências:
+
+- `npm test`: 52/52 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- `git diff --check`: aprovado.
+- Supabase real: migration `20260916155848_combat_player_damage` aplicada; `combat_damage` confirmada como `SECURITY DEFINER`, com `search_path=public`, acesso de `authenticated` e sem acesso de `anon`.
+- Advisors executados após a migration. O alerta de execução autenticada da nova função é esperado para esta RPC pública e protegida; nenhum outro aviso novo foi atribuído à alteração.
+- Não testado por solicitação do usuário: aparência, tremor real, interação mecânica, responsividade e fluxo publicado em celular. A validação será manual após o deploy.

@@ -294,3 +294,23 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Os títulos de Aliados e Inimigos receberam uma faixa curta com reutilização muito sutil do wallpaper, linha superior quase transparente e tons azul ou vermelho de baixa opacidade.
 - Nenhuma mecânica, permissão, RPC, migration ou card de participante foi alterado.
 - Não foi feita validação visual no navegador. O usuário fará a conferência pelo celular após o deploy.
+
+## Dano do jogador contra inimigos, 16/09/2026, 15:57 UTC
+
+- No painel do jogador, o card de um inimigo ativo abre uma aba inferior para informar uma quantidade inteira de dano e aplicar a ação com uma única confirmação.
+- Depois da confirmação aceita pelo backend, a aba fecha e o card atingido recebe um tremor curto com destaque vermelho. O efeito respeita `prefers-reduced-motion`.
+- Aliados não recebem a ação de dano. O ajuste dos próprios recursos do jogador e os controles completos de Pink/Mestre permanecem nos fluxos anteriores.
+- A nova RPC `combat_damage` exige membro ativo com papel `player`, personagem próprio e não arquivado entre os aliados da mesma sala ativa, alvo com lado `enemy` e valor inteiro entre 1 e 100000.
+- A redução é transacional e usa trava no participante e, quando o inimigo é um personagem, também no recurso real de Vida. O valor nunca fica abaixo de zero.
+- A resposta da RPC não revela a Vida anterior, a Vida restante nem o dano efetivo de inimigos ocultos. O evento completo fica registrado no histórico administrativo como `combat_damage`.
+- Chamadas diretas contra aliado, sala encerrada, campanha sem participação, jogador fora da sala, valor inválido ou uso da rota pelo Mestre são rejeitadas no backend.
+- A migration local `20260916052558_combat_player_damage.sql` foi aplicada no Supabase real como `20260916155848_combat_player_damage`. A função ficou com `search_path=public`, execução liberada para `authenticated` e bloqueada para `anon`.
+- Os advisors foram executados após a migration. O aviso genérico para RPCs `SECURITY DEFINER` inclui `combat_damage` porque sua execução autenticada é intencional; as verificações de campanha, papel, sala, atacante e alvo permanecem dentro da função. Os demais avisos já existentes não pertencem a esta entrega focada.
+- `npm test` passou em 52/52, incluindo a integração entre card e RPC e os limites reais do banco. `npm run typecheck`, `npm run build` e `git diff --check` passaram.
+- Não foram realizados teste visual, teste mecânico no navegador ou validação manual em celular, conforme orientação do usuário.
+
+### Próximo passo recomendado para o dano
+
+1. O usuário deve entrar como jogador, tocar em um inimigo, informar o dano e confirmar.
+2. Conferir no celular o fechamento da aba, o tremor vermelho do card e a atualização do estado visual do inimigo.
+3. Tentar tocar em um aliado e confirmar que a ação de dano não aparece.
