@@ -15,10 +15,8 @@ import {
   Search,
   Send,
   SlidersHorizontal,
-  Sparkles,
   Trophy,
   UserRound,
-  Users,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
@@ -30,18 +28,8 @@ import NotificationBell from "./NotificationBell";
 import ProfileWall from "./ProfileWall";
 import styles from "./CommunityPanel.module.css";
 
-type CommunityTab = "discover" | "messages" | "ranking";
+type CommunityView = "home" | "explore" | "create" | "messages" | "profile";
 type CommunityFilter = "all" | "online" | "players" | "world";
-
-const tabs: Array<{
-  id: CommunityTab;
-  label: string;
-  icon: typeof Sparkles;
-}> = [
-  { id: "discover", label: "Descobrir", icon: Sparkles },
-  { id: "messages", label: "Mensagens", icon: MessageCircle },
-  { id: "ranking", label: "Ranking", icon: Trophy },
-];
 
 const profileCaption = (identity: Row) => {
   if (identity.subtitle) return identity.subtitle;
@@ -95,7 +83,6 @@ export default function CommunityPanel({
   notifications,
   openMenu,
   saveNotification,
-  navigate,
   message,
   changeActor,
   createWorldCharacter,
@@ -112,7 +99,6 @@ export default function CommunityPanel({
   notifications: Row[];
   openMenu: () => void;
   saveNotification: (op: string, details: Row) => Promise<unknown>;
-  navigate: (page: string) => void;
   message: (id: string) => void;
   changeActor?: (id: string) => void;
   createWorldCharacter?: () => void;
@@ -122,8 +108,8 @@ export default function CommunityPanel({
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [tab, setTab] = useState<CommunityTab>("discover");
-  const [bottomActive, setBottomActive] = useState("home");
+  const [view, setView] = useState<CommunityView>("home");
+  const [rankingMode, setRankingMode] = useState(false);
   const [filter, setFilter] = useState<CommunityFilter>("all");
   const [visibleCount, setVisibleCount] = useState(12);
   const [ranking, setRanking] = useState<Row[]>([]);
@@ -188,7 +174,7 @@ export default function CommunityPanel({
     };
   }, [campaign]);
 
-  useEffect(() => setVisibleCount(12), [search, filter, tab]);
+  useEffect(() => setVisibleCount(12), [search, filter, rankingMode, view]);
 
   const activeIdentities = useMemo(
     () => identities.filter((identity) => identity.active),
@@ -252,17 +238,16 @@ export default function CommunityPanel({
         activeIdentities.find((identity) => identity.id === entry.identity_id),
       )
       .filter(Boolean) as Row[];
-    const source =
-      tab === "ranking"
-        ? byRank
-        : tab === "messages"
-          ? byOnline
-          : filter === "all" || filter === "online"
-            ? byWealth
-            : byName;
+    const source = rankingMode
+      ? byRank
+      : view === "messages"
+        ? byOnline
+        : filter === "all" || filter === "online"
+          ? byWealth
+          : byName;
     return source.filter((identity) => {
       if (!matchesSearch(identity)) return false;
-      if (tab === "messages" && identity.id === actor) return false;
+      if (view === "messages" && identity.id === actor) return false;
       if (filter === "online" && !isOnline(identity)) return false;
       if (filter === "players" && !["player", "master"].includes(identity.kind))
         return false;
@@ -275,25 +260,31 @@ export default function CommunityPanel({
     filter,
     normalizedSearch,
     onlineUserIds,
+    rankingMode,
     ranking,
-    tab,
+    view,
   ]);
 
-  const selectTab = (nextTab: CommunityTab) => {
-    setTab(nextTab);
-    setSelected("");
-    setBottomActive(nextTab === "messages" ? "messages" : "explore");
-  };
-
   const revealSearch = () => {
+    setView("explore");
+    setRankingMode(false);
+    setSelected("");
     setSearchOpen(true);
     window.requestAnimationFrame(() => searchRef.current?.focus());
   };
 
-  const revealProfile = () => {
+  const revealCreate = () => {
     if (!actor) return;
     setSelected(actor);
-    setBottomActive("create");
+    setView("create");
+    window.requestAnimationFrame(() =>
+      profileRef.current?.scrollIntoView({ behavior: "smooth" }),
+    );
+  };
+
+  const revealProfile = (identityId: string) => {
+    setSelected(identityId);
+    setView("profile");
     window.requestAnimationFrame(() =>
       profileRef.current?.scrollIntoView({ behavior: "smooth" }),
     );
@@ -338,7 +329,9 @@ export default function CommunityPanel({
       </header>
 
       <div
-        className={`${styles.searchDock} ${searchOpen || search ? styles.searchOpen : ""}`}
+        className={`${styles.searchDock} ${
+          view === "explore" && (searchOpen || search) ? styles.searchOpen : ""
+        }`}
       >
         <label className={styles.search}>
           <Search aria-hidden="true" />
@@ -356,25 +349,13 @@ export default function CommunityPanel({
         </label>
       </div>
 
-      {featured.length > 0 && (
+      {view === "home" && featured.length > 0 && (
         <section className={styles.featured}>
-          <div className={styles.sectionHeading}>
-            <h2>
-              <Sparkles aria-hidden="true" />
-              Em destaque
-            </h2>
-            <button
-              type="button"
-              onClick={() => directoryRef.current?.scrollIntoView()}
-            >
-              Ver todos <ChevronRight aria-hidden="true" />
-            </button>
-          </div>
           <div className={styles.featuredRail}>
             <button
               type="button"
               className={`${styles.featuredProfile} ${styles.createStory}`}
-              onClick={revealProfile}
+              onClick={revealCreate}
             >
               <span className={styles.storyPlus}>
                 <Plus aria-hidden="true" />
@@ -387,7 +368,7 @@ export default function CommunityPanel({
                 type="button"
                 className={styles.featuredProfile}
                 key={identity.id}
-                onClick={() => setSelected(identity.id)}
+                onClick={() => revealProfile(identity.id)}
               >
                 <span className={styles.avatarWrap}>
                   <IdentityAvatar
@@ -408,27 +389,7 @@ export default function CommunityPanel({
         </section>
       )}
 
-      <nav
-        className={styles.tabs}
-        aria-label="Seções da Comunidade"
-        role="tablist"
-      >
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? styles.activeTab : ""}
-            onClick={() => selectTab(id)}
-          >
-            <Icon aria-hidden="true" />
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {master && changeActor && createWorldCharacter && (
+      {view === "create" && master && changeActor && createWorldCharacter && (
         <section className={styles.masterBar} aria-label="Controles do Mestre">
           <Crown aria-hidden="true" />
           <label>
@@ -452,7 +413,7 @@ export default function CommunityPanel({
         </section>
       )}
 
-      {tab === "discover" && feedIdentity && (
+      {view === "home" && feedIdentity && (
         <section className={styles.feed} aria-label="Início da comunidade">
           <article className={styles.feedCard}>
             <header className={styles.feedAuthor}>
@@ -507,7 +468,7 @@ export default function CommunityPanel({
         </section>
       )}
 
-      {current && (
+      {current && (view === "create" || view === "profile") && (
         <section className={styles.publicProfile} ref={profileRef}>
           <div className={styles.profileHeading}>
             <span className={styles.avatarWrap}>
@@ -531,7 +492,13 @@ export default function CommunityPanel({
                 </span>
               )}
             </div>
-            <button type="button" onClick={() => setSelected("")}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelected("");
+                setView("home");
+              }}
+            >
               Fechar
             </button>
           </div>
@@ -585,108 +552,124 @@ export default function CommunityPanel({
         </section>
       )}
 
-      <section className={styles.directory} ref={directoryRef}>
-        <div className={styles.sectionHeading}>
-          <h2>
-            {tab === "ranking" ? (
-              <Trophy aria-hidden="true" />
-            ) : tab === "messages" ? (
-              <MessageCircle aria-hidden="true" />
-            ) : (
-              <Users aria-hidden="true" />
-            )}
-            {tab === "ranking"
-              ? "Ranking de riqueza"
-              : tab === "messages"
+      {(view === "explore" || view === "messages") && (
+        <section className={styles.directory} ref={directoryRef}>
+          <div className={styles.sectionHeading}>
+            <h2>
+              {view === "messages" ? (
+                <MessageCircle aria-hidden="true" />
+              ) : rankingMode ? (
+                <Trophy aria-hidden="true" />
+              ) : (
+                <Compass aria-hidden="true" />
+              )}
+              {view === "messages"
                 ? "Escolha com quem conversar"
-                : "Todos os jogadores"}
-          </h2>
-          <label className={styles.filter}>
-            <SlidersHorizontal aria-hidden="true" />
-            <span className="visually-hidden">Filtrar perfis</span>
-            <select
-              value={filter}
-              onChange={(event) =>
-                setFilter(event.target.value as CommunityFilter)
-              }
-            >
-              <option value="all">Todos</option>
-              <option value="online">Online agora</option>
-              <option value="players">Jogadores e Mestre</option>
-              <option value="world">Personagens do Mundo</option>
-            </select>
-          </label>
-        </div>
-
-        <div className={styles.directoryGrid}>
-          {directory.slice(0, visibleCount).map((identity) => {
-            const rank = rankByIdentity.get(identity.id);
-            return (
-              <article className={styles.profileRow} key={identity.id}>
+                : rankingMode
+                  ? "Ranking de riqueza"
+                  : "Explorar jogadores"}
+            </h2>
+            <div className={styles.directoryTools}>
+              {view === "explore" && (
                 <button
                   type="button"
-                  className={styles.profileTrigger}
-                  onClick={() => setSelected(identity.id)}
+                  className={rankingMode ? styles.activeRanking : ""}
+                  aria-pressed={rankingMode}
+                  onClick={() => setRankingMode((active) => !active)}
                 >
-                  <span className={styles.avatarWrap}>
-                    <IdentityAvatar
-                      identity={identity}
-                      cosmetics={cosmetics}
-                      equipment={equipment}
-                      urls={urls}
-                      size={66}
-                    />
-                    <OnlineDot online={isOnline(identity)} />
-                  </span>
-                  <span className={styles.profileMeta}>
-                    <strong>{identity.name}</strong>
-                    <small>{profileCaption(identity)}</small>
-                    <em>“{profileLine(identity)}”</em>
-                  </span>
+                  <Trophy aria-hidden="true" />
+                  Ranking
                 </button>
-                {tab === "messages" && identity.id !== actor ? (
+              )}
+              <label className={styles.filter}>
+                <SlidersHorizontal aria-hidden="true" />
+                <span className="visually-hidden">Filtrar perfis</span>
+                <select
+                  value={filter}
+                  onChange={(event) =>
+                    setFilter(event.target.value as CommunityFilter)
+                  }
+                >
+                  <option value="all">Todos</option>
+                  <option value="online">Online agora</option>
+                  <option value="players">Jogadores e Mestre</option>
+                  <option value="world">Personagens do Mundo</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.directoryGrid}>
+            {directory.slice(0, visibleCount).map((identity) => {
+              const rank = rankByIdentity.get(identity.id);
+              return (
+                <article className={styles.profileRow} key={identity.id}>
                   <button
                     type="button"
-                    className={styles.messageAction}
-                    aria-label={`Conversar com ${identity.name}`}
-                    onClick={() => message(identity.id)}
+                    className={styles.profileTrigger}
+                    onClick={() => revealProfile(identity.id)}
                   >
-                    <MessageCircle aria-hidden="true" />
+                    <span className={styles.avatarWrap}>
+                      <IdentityAvatar
+                        identity={identity}
+                        cosmetics={cosmetics}
+                        equipment={equipment}
+                        urls={urls}
+                        size={66}
+                      />
+                      <OnlineDot online={isOnline(identity)} />
+                    </span>
+                    <span className={styles.profileMeta}>
+                      <strong>{identity.name}</strong>
+                      <small>{profileCaption(identity)}</small>
+                      <em>“{profileLine(identity)}”</em>
+                    </span>
                   </button>
-                ) : rank ? (
-                  <RankMedal rank={rank} />
-                ) : identity.kind === "master" ? (
-                  <span className={styles.masterMark} title="Mestre">
-                    <Crown aria-hidden="true" />
-                  </span>
-                ) : null}
-                <ChevronRight
-                  className={styles.rowChevron}
-                  aria-hidden="true"
-                />
-              </article>
-            );
-          })}
-        </div>
+                  {view === "messages" && identity.id !== actor ? (
+                    <button
+                      type="button"
+                      className={styles.messageAction}
+                      aria-label={`Conversar com ${identity.name}`}
+                      onClick={() => message(identity.id)}
+                    >
+                      <MessageCircle aria-hidden="true" />
+                    </button>
+                  ) : rank ? (
+                    <RankMedal rank={rank} />
+                  ) : identity.kind === "master" ? (
+                    <span className={styles.masterMark} title="Mestre">
+                      <Crown aria-hidden="true" />
+                    </span>
+                  ) : null}
+                  <ChevronRight
+                    className={styles.rowChevron}
+                    aria-hidden="true"
+                  />
+                </article>
+              );
+            })}
+          </div>
 
-        {!directory.length && (
-          <p className={styles.empty}>Nenhum perfil encontrado.</p>
-        )}
-        {visibleCount < directory.length && (
-          <button
-            type="button"
-            className={styles.loadMore}
-            onClick={() => setVisibleCount((count) => count + 12)}
-          >
-            Mostrar mais
-          </button>
-        )}
-        {error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
-        )}
-      </section>
+          {!directory.length && (
+            <p className={styles.empty}>Nenhum perfil encontrado.</p>
+          )}
+          {visibleCount < directory.length && (
+            <button
+              type="button"
+              className={styles.loadMore}
+              onClick={() => setVisibleCount((count) => count + 12)}
+            >
+              Mostrar mais
+            </button>
+          )}
+        </section>
+      )}
+
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
 
       <footer className={styles.footer}>
         MAIS QUE UM JOGO, UM NOVO AMANHECER.
@@ -695,11 +678,11 @@ export default function CommunityPanel({
       <nav className={styles.bottomNav} aria-label="Navegação da comunidade">
         <button
           type="button"
-          className={bottomActive === "home" ? styles.activeBottomItem : ""}
+          className={view === "home" ? styles.activeBottomItem : ""}
           onClick={() => {
-            setTab("discover");
+            setView("home");
             setSelected("");
-            setBottomActive("home");
+            setRankingMode(false);
             communityRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
         >
@@ -708,11 +691,14 @@ export default function CommunityPanel({
         </button>
         <button
           type="button"
-          className={bottomActive === "explore" ? styles.activeBottomItem : ""}
+          className={view === "explore" ? styles.activeBottomItem : ""}
           onClick={() => {
-            setTab("discover");
-            setBottomActive("explore");
-            directoryRef.current?.scrollIntoView({ behavior: "smooth" });
+            setView("explore");
+            setSelected("");
+            setRankingMode(false);
+            window.requestAnimationFrame(() =>
+              directoryRef.current?.scrollIntoView({ behavior: "smooth" }),
+            );
           }}
         >
           <Compass aria-hidden="true" />
@@ -721,21 +707,23 @@ export default function CommunityPanel({
         <button
           type="button"
           className={`${styles.createButton} ${
-            bottomActive === "create" ? styles.activeBottomItem : ""
+            view === "create" ? styles.activeBottomItem : ""
           }`}
-          onClick={revealProfile}
+          onClick={revealCreate}
         >
           <Plus aria-hidden="true" />
           <span>Criar</span>
         </button>
         <button
           type="button"
-          className={bottomActive === "messages" ? styles.activeBottomItem : ""}
+          className={view === "messages" ? styles.activeBottomItem : ""}
           onClick={() => {
-            setTab("messages");
+            setView("messages");
             setSelected("");
-            setBottomActive("messages");
-            directoryRef.current?.scrollIntoView({ behavior: "smooth" });
+            setRankingMode(false);
+            window.requestAnimationFrame(() =>
+              directoryRef.current?.scrollIntoView({ behavior: "smooth" }),
+            );
           }}
         >
           <Send aria-hidden="true" />
@@ -743,11 +731,9 @@ export default function CommunityPanel({
         </button>
         <button
           type="button"
-          className={bottomActive === "profile" ? styles.activeBottomItem : ""}
-          onClick={() => {
-            setBottomActive("profile");
-            navigate("Perfil");
-          }}
+          className={styles.disabledBottomItem}
+          title="Perfil da comunidade em breve"
+          disabled
         >
           <UserRound aria-hidden="true" />
           <span>Perfil</span>

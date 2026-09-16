@@ -1278,6 +1278,7 @@ export default function Game({ invite }: { invite?: string }) {
           "--highlight": currentCampaign?.theme?.highlight || "#D02A43",
           "--background": currentCampaign?.theme?.background || "#09090B",
           "--avatar-shape-radius": avatarRadius(avatarShape),
+          "--avatar-frame-photo-inset": avatarShape === "circle" ? "4%" : "14%",
         } as React.CSSProperties
       }
     >
@@ -2861,7 +2862,6 @@ export default function Game({ invite }: { invite?: string }) {
               notifications={rows("notifications")}
               openMenu={() => setMenu(true)}
               saveNotification={saveNotification}
-              navigate={navigate}
               message={(id) => setChatPeer({ id, nonce: Date.now() })}
               changeActor={isMaster ? setSpeakingAs : undefined}
               createWorldCharacter={

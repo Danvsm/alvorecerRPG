@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 16/09/2026, 21:30 UTC.
+Atualizado em 16/09/2026, 21:50 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -406,3 +406,22 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Validar no celular o tamanho dos avatares em destaque, o recorte do logo e do wallpaper e a barra inferior durante a rolagem.
 2. Conferir a abertura do menu, pesquisa, notificações, conversa e perfil sem perda das funcionalidades anteriores.
 3. Enviar prints dos ajustes de fidelidade necessários antes de iniciar curtidas, stories ou publicação de feed reais.
+
+## Separação das áreas sociais e ajuste circular, 16/09/2026, 21:50 UTC
+
+- Os ícones do cabeçalho da Comunidade ficaram sem borda, sem superfície própria e com fundo transparente.
+- O Início não exibe mais `Em destaque`, `Ver todos` nem a faixa `Descobrir`, `Mensagens` e `Ranking`. Ele contém somente stories e a composição visual do feed.
+- `Explorar` passou a substituir o conteúdo do Início por um diretório próprio. O ranking real permanece acessível dentro de Explorar por um controle compacto.
+- `Conversar` também substitui o conteúdo e mostra somente a lista apropriada para iniciar mensagens.
+- `Criar` reutiliza temporariamente o perfil/mural da identidade atual. O botão `Perfil` da barra inferior está desativado e não navega para o Perfil administrativo do jogador, aguardando o futuro design do perfil social.
+- A barra inferior continua fixa, mas agora ocupa toda a largura da Comunidade, encosta na borda inferior e usa somente uma linha superior. Foram removidos margem lateral, contorno completo e cantos arredondados de caixa flutuante.
+- Quando o formato global é circular, a foto de uma identidade com moldura usa inset de 4% em vez de 14%. Assim, a foto ocupa praticamente o mesmo diâmetro da versão sem moldura. O modo quadrado preserva o encaixe anterior de 14%.
+- Busca, notificações, presença, mensagens, ranking, perfil público, mural, filtros e ações protegidas do Mestre continuam presentes. Nenhuma migration, RLS, RPC ou dado do Supabase foi alterado.
+- `npm test`: 60/60 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com seis rotas geradas. `git diff --check`: aprovado.
+- Não foram feitos teste visual, teste mecânico no navegador ou validação em celular. O usuário fará essa conferência após o deploy.
+
+### Próximo passo recomendado
+
+1. Validar no celular os avatares com e sem moldura no story e confirmar se o diâmetro visual ficou equivalente.
+2. Alternar entre Início, Explorar, Criar e Conversar e confirmar que somente uma área aparece por vez.
+3. Conferir o header transparente e a barra inferior integrada à borda da tela.

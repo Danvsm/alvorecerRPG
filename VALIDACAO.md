@@ -466,3 +466,25 @@ Evidências:
 - `git diff --check`: aprovado.
 
 Não testado por solicitação do usuário: aparência no navegador, fidelidade final ao mockup, rolagem da barra inferior, responsividade em aparelhos reais e interações manuais. A validação será feita pelo usuário após o deploy.
+
+## Separação das áreas sociais e ajuste circular, 16/09/2026, 21:50 UTC
+
+Validação técnica concluída:
+
+1. O Início renderiza stories e feed somente quando `view === "home"`.
+2. Explorar e Conversar possuem estados próprios e renderizam o diretório apenas quando sua área está ativa.
+3. Ranking permanece ligado aos dados reais e é alternado dentro de Explorar, sem retornar a faixa de três botões no Início.
+4. O botão Perfil da barra inferior está desativado e não chama a página Perfil existente.
+5. O header mantém menu, busca e notificações com fundo transparente e sem borda nos acionadores.
+6. A barra inferior usa largura integral da Comunidade, posição fixa na borda inferior, linha superior e raio zero.
+7. O formato circular define `--avatar-frame-photo-inset` como 4%; o formato quadrado mantém 14%. O `AvatarFrame` lê essa variável de forma central.
+8. Nenhuma migration, tabela, policy, RLS ou função do Supabase foi modificada.
+
+Evidências:
+
+- `npm test`: 60/60 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- `git diff --check`: aprovado.
+
+Não testado: aparência real dos ícones, equivalência visual do diâmetro com cada moldura, troca entre as áreas no navegador, barra inferior no Safari mobile e fidelidade final ao print. A validação permanece manual com o usuário.

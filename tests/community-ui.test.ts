@@ -13,8 +13,10 @@ test("community uses the central framed avatar and protected presence RPC", asyn
   assert.match(source, /rpc\("community_presence"/);
   assert.match(source, /entry\.online/);
   assert.match(source, /Online agora/);
-  assert.match(source, /Descobrir/);
-  assert.match(source, /Mensagens/);
+  assert.match(source, /type CommunityView/);
+  assert.match(source, /view === "home"/);
+  assert.match(source, /view === "explore"/);
+  assert.match(source, /view === "messages"/);
   assert.match(source, /Ranking/);
 });
 
@@ -110,7 +112,14 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.match(source, />Criar</);
   assert.match(source, />Conversar</);
   assert.match(source, />Perfil</);
+  assert.match(source, /Perfil da comunidade em breve/);
+  assert.doesNotMatch(source, /Seções da Comunidade/);
+  assert.doesNotMatch(source, /Em destaque/);
+  assert.doesNotMatch(source, /Ver todos/);
   assert.match(source, /size="clamp\(104px, 23vw, 118px\)"/);
   assert.match(css, /\.bottomNav/);
   assert.match(css, /position: fixed/);
+  assert.match(css, /width: min\(100%, 980px\)/);
+  assert.match(css, /border-top: 1px solid/);
+  assert.match(css, /background: transparent/);
 });

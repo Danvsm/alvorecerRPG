@@ -64,6 +64,8 @@ test("master avatar shape controls the central avatar and gallery", async () => 
   assert.match(game, /setAvatarShape\("circle"\)/);
   assert.match(game, /setAvatarShape\("square"\)/);
   assert.match(game, /--avatar-shape-radius/);
+  assert.match(game, /--avatar-frame-photo-inset/);
   assert.match(styles, /\.avatar-frame-photo[\s\S]*--avatar-shape-radius/);
+  assert.match(styles, /var\(--avatar-frame-photo-inset, 14%\)/);
   assert.match(styles, /\.avatar-choice[\s\S]*--avatar-shape-radius/);
 });

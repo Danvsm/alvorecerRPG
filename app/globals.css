@@ -2217,7 +2217,7 @@ dialog::backdrop {
   border: 3px solid transparent;
 }
 .avatar-frame.has-frame .avatar-frame-photo {
-  inset: 14%;
+  inset: var(--avatar-frame-photo-inset, 14%);
   border: 0;
 }
 .avatar-frame-photo img {
