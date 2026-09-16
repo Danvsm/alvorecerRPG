@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 16/09/2026, 04:47 UTC.
+Atualizado em 16/09/2026, 05:02 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -284,3 +284,13 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. O usuário deve validar no celular o tamanho dos cards, o encaixe do wallpaper, a abertura do menu e a animação da aba inferior.
 2. Testar como Pink perda e recuperação de Vida, Mana e Fôlego em aliado e inimigo.
 3. Testar como jogador somente a perda dos três recursos no próprio personagem e enviar prints dos ajustes visuais necessários.
+
+## Cabeçalhos de equipes e menu de ações do Combate, 16/09/2026, 05:02 UTC
+
+- As três ações que ocupavam o lado direito do wallpaper foram consolidadas em um único botão de três pontos no próprio lado direito.
+- A seta do lado esquerdo continua dedicada a abrir o menu principal do site.
+- O menu de três pontos reúne Participantes, Histórico e Configurações. Configurações continua disponível somente para Pink/Mestre.
+- As frases `Juntos somos mais fortes.` e `Eles não mostrarão piedade.` voltaram a aparecer também no layout mobile.
+- Os títulos de Aliados e Inimigos receberam uma faixa curta com reutilização muito sutil do wallpaper, linha superior quase transparente e tons azul ou vermelho de baixa opacidade.
+- Nenhuma mecânica, permissão, RPC, migration ou card de participante foi alterado.
+- Não foi feita validação visual no navegador. O usuário fará a conferência pelo celular após o deploy.

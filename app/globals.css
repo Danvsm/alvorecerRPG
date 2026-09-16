@@ -2537,7 +2537,7 @@ dialog::backdrop {
 .combat-hero {
   position: relative;
   min-height: 156px;
-  overflow: hidden;
+  overflow: visible;
   border-bottom: 1px solid #ad93603d;
   box-shadow: 0 20px 38px -28px #c19b5666;
   isolation: isolate;
@@ -2564,18 +2564,79 @@ dialog::backdrop {
   gap: 20px;
   padding: 20px 24px;
 }
+.combat-action-menu {
+  position: relative;
+  z-index: 6;
+  flex-shrink: 0;
+}
+.combat-action-menu > summary {
+  width: 42px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 0;
+  list-style: none;
+  border-color: #9e814f70;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 7px;
+  background: #090a0dbd;
+  color: #ead7ae;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
 .combat-navigation-button {
   width: 42px;
   min-width: 42px;
+  height: 48px;
   min-height: 48px;
   padding: 0;
   border-color: #9e814f70;
+  border-radius: 7px;
   background: #090a0dbd;
   color: #ead7ae;
   backdrop-filter: blur(8px);
 }
+.combat-action-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.combat-action-menu[open] > summary {
+  border-color: #d0a85d;
+  background: #211a10e8;
+}
+.combat-action-menu > div {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 196px;
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid #5a4b35;
+  border-radius: 10px;
+  background: #101116f5;
+  box-shadow: 0 18px 42px #000b;
+  backdrop-filter: blur(12px);
+}
+.combat-action-menu > div > button {
+  width: 100%;
+  min-height: 40px;
+  justify-content: flex-start;
+  padding: 8px 10px;
+  border-color: transparent;
+  background: transparent;
+  color: #d8d4cc;
+  text-align: left;
+}
+.combat-action-menu > div > button:hover,
+.combat-action-menu > div > button:focus-visible {
+  border-color: #5c4a30;
+  background: #292116;
+}
 .combat-title {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 13px;
   min-width: 0;
@@ -2605,12 +2666,6 @@ dialog::backdrop {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.combat-hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.combat-hero-actions button,
 .combat-icon-button {
   width: 42px;
   min-width: 42px;
@@ -2653,21 +2708,43 @@ dialog::backdrop {
 }
 .combat-side-heading {
   position: relative;
-  min-height: 44px;
+  min-height: 58px;
   display: flex;
   align-items: center;
   gap: 9px;
   margin: 0 0 9px;
-  padding: 4px 4px 9px;
+  padding: 4px 8px 5px 4px;
   overflow: hidden;
-  border-bottom: 1px solid #435066;
+  border-top: 1px solid #6686a526;
+  border-bottom: 1px solid #43506652;
+  background: linear-gradient(90deg, #142b493b 0%, #10172222 62%, #090a0d08);
+  box-shadow: inset 0 10px 26px #18365a12;
+  isolation: isolate;
 }
 .combat-side-enemy .combat-side-heading {
-  border-color: #62343d;
+  border-top-color: #a8536226;
+  border-bottom-color: #62343d70;
+  background: linear-gradient(90deg, #5015213d 0%, #24111724 62%, #090a0d08);
+  box-shadow: inset 0 10px 26px #66162514;
+}
+.combat-side-heading::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/combat/combat-header.webp") center 47% / cover no-repeat;
+  opacity: 0.065;
+  content: "";
+}
+.combat-side-enemy .combat-side-heading::before {
+  opacity: 0.075;
+}
+.combat-side-heading > * {
+  position: relative;
+  z-index: 1;
 }
 .combat-side-heading img {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 50px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px #0009);
 }
@@ -2679,7 +2756,7 @@ dialog::backdrop {
 }
 .combat-side-heading > small {
   min-width: 24px;
-  margin-left: auto;
+  margin-left: 1px;
   padding: 3px 7px;
   border: 1px solid #b99a6145;
   border-radius: 999px;
@@ -2688,11 +2765,14 @@ dialog::backdrop {
   text-align: center;
 }
 .combat-side-heading::after {
-  margin-left: 10px;
-  color: #a8a39a;
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  color: #b9b4aa;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 0.78rem;
   font-style: italic;
+  white-space: nowrap;
   content: "Juntos somos mais fortes.";
 }
 .combat-side-enemy .combat-side-heading::after {
@@ -3354,9 +3434,15 @@ dialog.combat-sheet {
     min-height: 124px;
     padding: 14px 12px;
   }
+  .combat-action-menu > summary {
+    width: 38px;
+    height: 42px;
+    min-height: 42px;
+  }
   .combat-navigation-button {
     width: 38px;
     min-width: 38px;
+    height: 42px;
     min-height: 42px;
   }
   .combat-title {
@@ -3372,14 +3458,6 @@ dialog.combat-sheet {
   .combat-title small {
     max-width: 42vw;
     font-size: 0.68rem;
-  }
-  .combat-hero-actions {
-    gap: 5px;
-  }
-  .combat-hero-actions button {
-    width: 40px;
-    min-width: 40px;
-    min-height: 40px;
   }
   .combat-room-picker {
     margin-top: 8px;
@@ -3398,10 +3476,25 @@ dialog.combat-sheet {
     border-radius: 10px;
   }
   .combat-side-heading {
+    min-height: 52px;
+    gap: 7px;
     margin-bottom: 7px;
+    padding-right: 6px;
+  }
+  .combat-side-heading img {
+    width: 40px;
+    height: 44px;
+  }
+  .combat-side-heading h2 {
+    font-size: 1rem;
+  }
+  .combat-side-heading > small {
+    min-width: 22px;
+    padding: 2px 6px;
   }
   .combat-side-heading::after {
-    display: none;
+    display: block;
+    font-size: clamp(0.56rem, 2.35vw, 0.7rem);
   }
   .combat-status {
     max-width: 55px;
@@ -3439,10 +3532,34 @@ dialog.combat-sheet {
   .combat-title h1 {
     font-size: 1.5rem;
   }
-  .combat-hero-actions button {
-    width: 37px;
-    min-width: 37px;
+  .combat-action-menu > summary {
+    width: 36px;
+    height: 40px;
     min-height: 40px;
+  }
+  .combat-navigation-button {
+    width: 36px;
+    min-width: 36px;
+    height: 40px;
+    min-height: 40px;
+  }
+  .combat-side-heading {
+    gap: 5px;
+    padding-inline: 2px 4px;
+  }
+  .combat-side-heading img {
+    width: 36px;
+    height: 42px;
+  }
+  .combat-side-heading h2 {
+    font-size: 0.92rem;
+  }
+  .combat-side-heading > small {
+    min-width: 20px;
+    padding-inline: 5px;
+  }
+  .combat-side-heading::after {
+    font-size: 0.54rem;
   }
   .combat-resource-actions.can-gain {
     grid-template-columns: minmax(0, 1fr);

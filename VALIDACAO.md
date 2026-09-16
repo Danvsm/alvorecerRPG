@@ -318,3 +318,12 @@ Evidências:
 - `npm run build`: aprovado, seis rotas geradas.
 - Nenhuma migration, policy, RLS ou função do Supabase foi modificada.
 - Não testado por solicitação do usuário: aparência no navegador, animação real, interação mecânica, responsividade em aparelhos e fluxo publicado Pink/jogador. A validação será manual após o deploy.
+
+## Ajuste visual dos cabeçalhos do Combate, 16/09/2026, 05:02 UTC
+
+- O lado esquerdo do cabeçalho mantém a seta do menu principal, e o lado direito renderiza somente um acionador de três pontos para as opções do Combate.
+- O item Configurações continua condicionado a `isMaster`; jogador recebe apenas as opções não administrativas.
+- As frases das equipes não são mais ocultadas pelo breakpoint mobile.
+- O wallpaper reutilizado nas faixas possui opacidade inferior a 0,08, com sobreposição azul para Aliados e vermelha para Inimigos.
+- TypeScript e build devem ser repetidos antes da publicação.
+- Não testado: aparência, abertura do menu, quebra das frases em aparelhos reais e fidelidade final ao print. A validação permanece com o usuário.

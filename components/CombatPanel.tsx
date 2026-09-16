@@ -9,6 +9,7 @@ import {
   Heart,
   History,
   Minus,
+  MoreHorizontal,
   Plus,
   Settings,
   Shield,
@@ -92,6 +93,10 @@ function statusClass(participant: Row) {
 function resourceRatio(current: number, maximum: number) {
   if (!maximum) return 0;
   return Math.max(0, Math.min(100, (current / maximum) * 100));
+}
+
+function closeCombatOptions(target: HTMLElement) {
+  target.closest("details")?.removeAttribute("open");
 }
 
 function CombatResource({
@@ -661,32 +666,46 @@ export default function CombatPanel(props: CombatPanelProps) {
               <small>{room?.name || "Nenhuma sala ativa"}</small>
             </div>
           </div>
-          <nav className="combat-hero-actions" aria-label="Ações do combate">
-            <button
-              aria-label="Ver participantes"
-              title="Participantes"
-              disabled={!room}
-              onClick={() => setRosterOpen(true)}
-            >
-              <Users size={20} />
-            </button>
-            <button
-              aria-label="Abrir histórico"
-              title="Histórico"
-              onClick={onHistory}
-            >
-              <History size={20} />
-            </button>
-            {isMaster && (
+          <details className="combat-action-menu">
+            <summary aria-label="Abrir opções do combate" title="Opções">
+              <MoreHorizontal size={23} />
+            </summary>
+            <div role="menu" aria-label="Opções do combate">
               <button
-                aria-label="Configurações do combate"
-                title="Configurações"
-                onClick={() => setAdminOpen(true)}
+                role="menuitem"
+                disabled={!room}
+                onClick={(event) => {
+                  closeCombatOptions(event.currentTarget);
+                  setRosterOpen(true);
+                }}
               >
-                <Settings size={20} />
+                <Users size={18} />
+                Participantes
               </button>
-            )}
-          </nav>
+              <button
+                role="menuitem"
+                onClick={(event) => {
+                  closeCombatOptions(event.currentTarget);
+                  onHistory();
+                }}
+              >
+                <History size={18} />
+                Histórico
+              </button>
+              {isMaster && (
+                <button
+                  role="menuitem"
+                  onClick={(event) => {
+                    closeCombatOptions(event.currentTarget);
+                    setAdminOpen(true);
+                  }}
+                >
+                  <Settings size={18} />
+                  Configurações
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </header>
 

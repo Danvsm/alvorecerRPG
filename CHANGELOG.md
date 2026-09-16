@@ -56,6 +56,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Molduras secretas equipadas podem fornecer somente a arte e os efeitos necessários à apresentação pública, sem revelar nome, descrição, propriedade ou controles administrativos a outros jogadores.
 - Combate atualizado com cards clicáveis e aba inferior animada para ajustar Vida, Mana e Fôlego; Pink pode reduzir ou recuperar qualquer participante, enquanto jogador pode apenas reduzir os próprios recursos.
 - Navegação lateral recolhível no Combate, wallpaper sem moldura e superfícies visuais simplificadas para concentrar os cards nos participantes.
+- Ações do Combate consolidadas em um menu de três pontos e faixas de Aliados/Inimigos refinadas com frases, wallpaper sutil e identificação cromática.
 
 ### Estado de validação
 
