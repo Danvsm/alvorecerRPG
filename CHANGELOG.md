@@ -58,6 +58,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Navegação lateral recolhível no Combate, wallpaper sem moldura e superfícies visuais simplificadas para concentrar os cards nos participantes.
 - Ações do Combate consolidadas em um menu de três pontos e faixas de Aliados/Inimigos refinadas com frases, wallpaper sutil e identificação cromática.
 - Jogadores podem causar dano em inimigos pela área de Combate, com quantidade informada em uma única confirmação, proteção transacional no backend e retorno visual de impacto no card atingido.
+- Cards de Aliados e Inimigos mantêm ordem determinística durante ataques e ajustes de recursos, sem trocar de posição quando o estado do participante muda.
 
 ### Estado de validação
 

@@ -21,7 +21,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { CombatResourceKey } from "@/lib/combat";
+import { sortCombatParticipants, type CombatResourceKey } from "@/lib/combat";
 import type { Row } from "@/lib/types";
 import IdentityBadge from "./IdentityBadge";
 import ItemThumbnail from "./ItemThumbnail";
@@ -777,10 +777,12 @@ export default function CombatPanel(props: CombatPanelProps) {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const room = rooms.find((item) => item.id === selectedRoomId) || rooms[0];
-  const roomParticipants = participants.filter(
-    (participant) =>
-      participant.room_id === room?.id &&
-      (participant.side === "ally" || participant.side === "enemy"),
+  const roomParticipants = sortCombatParticipants(
+    participants.filter(
+      (participant) =>
+        participant.room_id === room?.id &&
+        (participant.side === "ally" || participant.side === "enemy"),
+    ),
   );
   const selectedParticipant = roomParticipants.find(
     (participant) => participant.id === selectedParticipantId,

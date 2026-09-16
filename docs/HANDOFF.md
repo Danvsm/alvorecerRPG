@@ -314,3 +314,18 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. O usuário deve entrar como jogador, tocar em um inimigo, informar o dano e confirmar.
 2. Conferir no celular o fechamento da aba, o tremor vermelho do card e a atualização do estado visual do inimigo.
 3. Tentar tocar em um aliado e confirmar que a ação de dano não aparece.
+
+## Ordem fixa dos cards do Combate, 16/09/2026, 16:12 UTC
+
+- Aliados e Inimigos agora são ordenados por nome, com o identificador estável como desempate.
+- Vida, Mana, Fôlego, estado de ferimento, revelação e animação de dano não participam da ordenação. Portanto, atacar ou ajustar recursos não muda a posição do card.
+- A ordenação trabalha sobre uma cópia do array recebido e não altera o snapshot compartilhado pela aplicação.
+- Nenhuma função, tabela, policy, RLS ou migration do Supabase foi alterada.
+- O teste específico reproduz uma atualização de dano com entrada do snapshot em ordem diferente e confirma que a sequência final dos cards permanece idêntica.
+- `npm test` passou em 53/53. `npm run typecheck`, `npm run build` e `git diff --check` passaram.
+- Não foi feita validação visual ou mecânica no navegador. O usuário fará a conferência manual após o deploy.
+
+### Próximo passo recomendado
+
+1. Atacar sucessivamente inimigos diferentes no celular e confirmar que cada card permanece no mesmo lugar.
+2. Conferir o mesmo comportamento quando um inimigo muda para Ferido ou Vida zerada.

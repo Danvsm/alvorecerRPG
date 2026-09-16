@@ -9,6 +9,21 @@ export const combatResourceKeys = ["life", "mana", "stamina"] as const;
 
 export type CombatResourceKey = (typeof combatResourceKeys)[number];
 
+const participantNameCollator = new Intl.Collator("pt-BR", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+export function sortCombatParticipants(participants: Row[]): Row[] {
+  return participants.toSorted(
+    (left, right) =>
+      participantNameCollator.compare(
+        String(left.name ?? ""),
+        String(right.name ?? ""),
+      ) || String(left.id ?? "").localeCompare(String(right.id ?? "")),
+  );
+}
+
 export function combatDamagePayload(participant: Row, amount: number): Row {
   if (participant.side !== "enemy") {
     throw new Error("Selecione um inimigo");

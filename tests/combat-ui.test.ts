@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import {
   combatDamagePayload,
   combatResourceCommand,
+  sortCombatParticipants,
   type CombatResourceKey,
 } from "../lib/combat";
 
@@ -127,4 +128,26 @@ test("combat enemy cards route player damage through the protected RPC", async (
   assert.match(panel, /is-hit/);
   assert.match(game, /rpc\("combat_damage"/);
   assert.match(game, /combatDamagePayload\(participant, amount\)/);
+});
+
+test("combat cards keep a stable order when damage changes their state", () => {
+  const before = sortCombatParticipants([
+    { id: "z-2", name: "Zumbi", life: 20, state: "green" },
+    { id: "a-2", name: "Aranha", life: 15, state: "green" },
+    { id: "a-1", name: "Aranha", life: 10, state: "yellow" },
+  ]);
+  const after = sortCombatParticipants([
+    { id: "a-1", name: "Aranha", life: 2, state: "red" },
+    { id: "z-2", name: "Zumbi", life: 0, state: "zero" },
+    { id: "a-2", name: "Aranha", life: 8, state: "yellow" },
+  ]);
+
+  assert.deepEqual(
+    before.map((participant) => participant.id),
+    ["a-1", "a-2", "z-2"],
+  );
+  assert.deepEqual(
+    after.map((participant) => participant.id),
+    before.map((participant) => participant.id),
+  );
 });

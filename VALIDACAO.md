@@ -352,3 +352,22 @@ Evidências:
 - Supabase real: migration `20260916155848_combat_player_damage` aplicada; `combat_damage` confirmada como `SECURITY DEFINER`, com `search_path=public`, acesso de `authenticated` e sem acesso de `anon`.
 - Advisors executados após a migration. O alerta de execução autenticada da nova função é esperado para esta RPC pública e protegida; nenhum outro aviso novo foi atribuído à alteração.
 - Não testado por solicitação do usuário: aparência, tremor real, interação mecânica, responsividade e fluxo publicado em celular. A validação será manual após o deploy.
+
+## Ordem fixa dos cards do Combate, 16/09/2026, 16:12 UTC
+
+Validação automatizada concluída:
+
+1. Participantes são ordenados por nome e usam o ID apenas como desempate.
+2. A função recebe arrays em ordens diferentes antes e depois do dano.
+3. Alterações de Vida e estado não modificam a sequência dos IDs renderizados.
+4. A ordenação é imutável e não modifica o array original do snapshot.
+5. Nenhuma alteração de backend foi necessária para esta correção visual.
+
+Evidências:
+
+- `npm test`: 53/53 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- `git diff --check`: aprovado.
+
+Não testado: posição real dos cards durante ataques consecutivos no navegador e no celular. Essa conferência permanece com o usuário.
