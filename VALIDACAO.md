@@ -371,3 +371,28 @@ Evidências:
 - `git diff --check`: aprovado.
 
 Não testado: posição real dos cards durante ataques consecutivos no navegador e no celular. Essa conferência permanece com o usuário.
+
+## Comunidade dark fantasy e presença online, 16/09/2026, 16:50 UTC
+
+Validação técnica concluída:
+
+1. A Comunidade usa `IdentityAvatar` em destaques, diretório e perfil público, preservando avatar, moldura e efeitos equipados.
+2. Busca e filtros trabalham sobre identidades ativas; Personagens do Mundo continuam acessíveis sem receber estado online falso.
+3. As áreas Descobrir, Mensagens e Ranking reutilizam os dados e ações existentes, sem criar IDs ou vínculos visuais paralelos.
+4. As cinco medalhas enviadas existem como assets WebP e são usadas somente nas colocações de 1 a 5 do ranking real de riqueza.
+5. A RPC `community_presence` retorna somente `user_id` e `online`, considerando sessão não encerrada com heartbeat inferior a dois minutos.
+6. Membro ativo da mesma campanha pode consultar a presença; conta fora da campanha recebe `Sem permissão`.
+7. `anon` não executa a RPC. `authenticated` e `service_role` possuem execução intencional, com validação interna de associação à campanha.
+8. A tabela `activity_sessions` e sua policy não foram abertas para outros jogadores. Horários e métricas continuam visíveis somente conforme a política anterior.
+9. Um índice parcial cobre sessões não encerradas por campanha, usuário e heartbeat.
+
+Evidências:
+
+- `npm test`: 55/55 aprovado, incluindo presença ativa/inativa, rejeição de conta externa, integração da interface e existência das cinco medalhas.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- `git diff --check`: aprovado.
+- Supabase real: migration `20260916164459_community_presence` aplicada; função estável `SECURITY DEFINER`, retorno restrito, `anon_execute=false` e índice parcial confirmados.
+- Advisors executados. O alerta da nova RPC é intencional e foi revisado; os avisos restantes são preexistentes e não pertencem a esta mudança focada.
+
+Não testado por solicitação do usuário: aparência, navegação real das abas, responsividade em aparelhos, presença entre duas sessões publicadas e fidelidade visual final ao mockup. A validação será manual após o deploy.

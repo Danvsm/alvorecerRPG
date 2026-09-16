@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 16/09/2026, 05:02 UTC.
+Atualizado em 16/09/2026, 16:50 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -329,3 +329,23 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 1. Atacar sucessivamente inimigos diferentes no celular e confirmar que cada card permanece no mesmo lugar.
 2. Conferir o mesmo comportamento quando um inimigo muda para Ferido ou Vida zerada.
+
+## Comunidade dark fantasy e presença online, 16/09/2026, 16:50 UTC
+
+- A Comunidade foi reorganizada como uma experiência social dark fantasy responsiva, mantendo a alteração restrita a essa página.
+- O cabeçalho reúne wallpaper, apresentação, busca e as áreas Descobrir, Mensagens e Ranking. A galeria em destaque usa rolagem horizontal, enquanto o diretório usa busca, filtros e carregamento em grupos de 12 para evitar uma lista vertical ilimitada.
+- As ações existentes foram preservadas: abrir perfil público e mural, iniciar conversa, escolher a identidade de publicação, criar Personagem do Mundo e solicitar sua exclusão definitiva quando Pink/Mestre estiver autenticado.
+- Todos os avatares continuam passando pelo componente central `IdentityAvatar`, portanto avatar, moldura equipada e efeitos permanecem vinculados à identidade real.
+- As cinco artes enviadas pelo usuário foram otimizadas para WebP e associadas do 1º ao 5º lugar do ranking de riqueza. Colocações posteriores continuam com indicação numérica.
+- O status online usa `activity_sessions`, com janela de dois minutos compatível com o rastreador existente. A RPC retorna somente `user_id` e o booleano `online`; horários, duração e sessões completas continuam protegidos pela RLS.
+- A função exige associação ativa à campanha, rejeita contas externas, não atribui presença a Personagens do Mundo e permite execução somente a `authenticated` e `service_role`. `anon` permanece sem acesso.
+- A migration local `20260916163449_community_presence.sql` foi aplicada no Supabase real como `20260916164459_community_presence`.
+- `npm test`: 55/55 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com seis rotas geradas. `git diff --check`: aprovado.
+- Os advisors foram executados após a migration. O aviso de RPC `SECURITY DEFINER` é esperado porque `community_presence` é uma API intencional para membros autenticados e valida a campanha dentro da função. Os demais avisos são anteriores e não foram alterados nesta entrega focada.
+- Não foram feitos teste visual, teste mecânico no navegador nem revisão manual em celular, conforme orientação do usuário.
+
+### Próximo passo recomendado para a Comunidade
+
+1. O usuário deve validar no celular o cabeçalho, as três áreas, a rolagem de destaques, os filtros e o encaixe das medalhas.
+2. Abrir Pink e um jogador em sessões distintas e confirmar que a bolinha verde aparece e desaparece dentro da janela de até dois minutos.
+3. Enviar prints somente dos ajustes visuais necessários.

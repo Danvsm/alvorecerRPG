@@ -1340,7 +1340,7 @@ export default function Game({ invite }: { invite?: string }) {
         <main
           className={page === "Combate" ? "content combat-content" : "content"}
         >
-          {page !== "Combate" && (
+          {page !== "Combate" && page !== "Comunidade" && (
             <div className="page-heading">
               <div>
                 <p className="eyebrow">
@@ -2804,27 +2804,20 @@ export default function Game({ invite }: { invite?: string }) {
           )}
           {page === "Histórico" && history()}
           {page === "Comunidade" && (
-            <>
-              {isMaster && (
-                <section className="panel">
-                  <label>
-                    Falar como
-                    <select
-                      value={socialActor}
-                      onChange={(e) => setSpeakingAs(e.target.value)}
-                    >
-                      <option value={ownIdentity?.id}>Pink</option>
-                      {rows("social_identities")
-                        .filter((i) => i.kind === "npc" && i.active)
-                        .map((i) => (
-                          <option key={i.id} value={i.id}>
-                            {i.name}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <button
-                    onClick={() =>
+            <CommunityPanel
+              campaign={campaign}
+              identities={rows("social_identities")}
+              cosmetics={rows("cosmetics")}
+              grants={rows("cosmetic_grants")}
+              equipment={rows("cosmetic_equipment")}
+              urls={avatarUrls}
+              actor={socialActor}
+              master={Boolean(isMaster)}
+              message={(id) => setChatPeer({ id, nonce: Date.now() })}
+              changeActor={isMaster ? setSpeakingAs : undefined}
+              createWorldCharacter={
+                isMaster
+                  ? () =>
                       setForm({
                         title: "Personagem do Mundo",
                         fields: [
@@ -2834,50 +2827,39 @@ export default function Game({ invite }: { invite?: string }) {
                             key: "avatar_id",
                             label: "Avatar",
                             options: rows("campaign_avatars").filter(
-                              (a) => a.active,
+                              (avatar) => avatar.active,
                             ),
                           },
                         ],
-                        submit: async (d) => {
-                          const r = await browserDb().rpc("identity_action", {
-                            c: campaign,
-                            op: "npc",
-                            d,
-                          });
-                          if (r.error) throw new Error(r.error.message);
+                        submit: async (details) => {
+                          const response = await browserDb().rpc(
+                            "identity_action",
+                            {
+                              c: campaign,
+                              op: "npc",
+                              d: details,
+                            },
+                          );
+                          if (response.error)
+                            throw new Error(response.error.message);
                           await load(campaign, true);
                           setForm(null);
                         },
                       })
+                  : undefined
+              }
+              deleteWorldCharacter={
+                isMaster
+                  ? async (id) => {
+                      await admin("delete_world_character", {
+                        identityId: id,
+                      });
+                      await load(campaign, true);
+                      setMessage("Personagem do Mundo excluído");
                     }
-                  >
-                    Criar Personagem do Mundo
-                  </button>
-                </section>
-              )}
-              <CommunityPanel
-                campaign={campaign}
-                identities={rows("social_identities")}
-                cosmetics={rows("cosmetics")}
-                grants={rows("cosmetic_grants")}
-                equipment={rows("cosmetic_equipment")}
-                urls={avatarUrls}
-                actor={socialActor}
-                master={Boolean(isMaster)}
-                message={(id) => setChatPeer({ id, nonce: Date.now() })}
-                deleteWorldCharacter={
-                  isMaster
-                    ? async (id) => {
-                        await admin("delete_world_character", {
-                          identityId: id,
-                        });
-                        await load(campaign, true);
-                        setMessage("Personagem do Mundo excluído");
-                      }
-                    : undefined
-                }
-              />
-            </>
+                  : undefined
+              }
+            />
           )}
           {page === "Convites" && isMaster && (
             <>

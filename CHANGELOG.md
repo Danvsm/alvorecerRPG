@@ -59,6 +59,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Ações do Combate consolidadas em um menu de três pontos e faixas de Aliados/Inimigos refinadas com frases, wallpaper sutil e identificação cromática.
 - Jogadores podem causar dano em inimigos pela área de Combate, com quantidade informada em uma única confirmação, proteção transacional no backend e retorno visual de impacto no card atingido.
 - Cards de Aliados e Inimigos mantêm ordem determinística durante ataques e ajustes de recursos, sem trocar de posição quando o estado do participante muda.
+- Comunidade redesenhada como uma rede social dark fantasy responsiva, com busca, destaques horizontais, filtros, áreas de descoberta, mensagens e ranking, preservando perfil público, mural e controles exclusivos do Mestre.
+- Medalhas fornecidas pelo usuário integradas às cinco primeiras colocações do ranking de riqueza.
+- Indicador de presença online para jogadores e Mestre baseado em heartbeat real, com consulta mínima protegida por campanha e sem expor sessões ou horários de atividade.
 
 ### Estado de validação
 
