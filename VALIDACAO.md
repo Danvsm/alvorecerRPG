@@ -396,3 +396,28 @@ Evidências:
 - Advisors executados. O alerta da nova RPC é intencional e foi revisado; os avisos restantes são preexistentes e não pertencem a esta mudança focada.
 
 Não testado por solicitação do usuário: aparência, navegação real das abas, responsividade em aparelhos, presença entre duas sessões publicadas e fidelidade visual final ao mockup. A validação será manual após o deploy.
+
+## Presença imediata, ordem social e wallpaper da Comunidade, 16/09/2026, 17:08 UTC
+
+Validação técnica concluída:
+
+1. `ActivityTracker` chama `presence_ping` imediatamente ao montar, mantém heartbeat de 30 segundos e solicita nova presença quando a página volta a ficar visível.
+2. O rastreamento de presença é independente de `activity_ping`; ficar sem tocar na tela não encerra a presença nem adiciona tempo às métricas de atividade.
+3. `community_presence` consulta a sessão privada real e não depende de estado visual local inventado.
+4. Conta externa à campanha não consulta nem registra presença. `anon` não executa `presence_ping` ou `community_presence`; `authenticated` usa as duas RPCs com validação interna.
+5. O identificador da sessão não pode ser reaproveitado por outra conta ou campanha.
+6. A ordenação padrão coloca usuários online primeiro e preserva o ranking real de riqueza dentro dos grupos online e offline. Sem presença ativa, a sequência coincide com o ranking de riqueza.
+7. Não existe filtro de riqueza. Os filtros de jogadores, Mestre e Personagens do Mundo continuam disponíveis.
+8. O novo wallpaper existe em WebP otimizado e é usado somente pelo cabeçalho da Comunidade.
+
+Evidências:
+
+- `npm test`: 58/58 aprovado, incluindo heartbeat imediato, autorização de presença, ordem online/riqueza e uso do wallpaper.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, com seis rotas geradas.
+- `git diff --check`: aprovado.
+- Supabase real: migrations `20260916170323_community_live_presence` e `20260916170422_community_presence_user_index` aplicadas.
+- Consulta real: tabela `alvorecer_private.presence_sessions` existente, `community_presence` vinculada a ela, acesso de `authenticated` confirmado e acesso de `anon` negado.
+- Advisors executados após as migrations. O índice adicional eliminou o novo aviso de chave estrangeira sem cobertura. Avisos restantes são preexistentes, informativos ou esperados para RPCs públicas protegidas.
+
+Não testado por solicitação do usuário: presença entre dois navegadores reais, aparência da bolinha, recorte do wallpaper, responsividade e ordem publicada em celular. Essa validação permanece manual após o deploy.

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
+import { orderCommunityIdentities } from "@/lib/community";
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
 import IdentityAvatar from "./IdentityAvatar";
@@ -146,14 +147,20 @@ export default function CommunityPanel({
     const resume = () => {
       if (document.visibilityState === "visible") void refreshPresence();
     };
+    const presenceUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ campaign?: string }>).detail;
+      if (detail?.campaign === campaign) void refreshPresence();
+    };
     void refreshPresence();
     const interval = window.setInterval(refreshPresence, 30000);
     window.addEventListener("focus", resume);
+    window.addEventListener("alvorecer:presence-updated", presenceUpdated);
     document.addEventListener("visibilitychange", resume);
     return () => {
       active = false;
       window.clearInterval(interval);
       window.removeEventListener("focus", resume);
+      window.removeEventListener("alvorecer:presence-updated", presenceUpdated);
       document.removeEventListener("visibilitychange", resume);
     };
   }, [campaign]);
@@ -195,15 +202,37 @@ export default function CommunityPanel({
   );
 
   const directory = useMemo(() => {
-    const byName = [...activeIdentities].sort((left, right) =>
-      left.name.localeCompare(right.name, "pt-BR"),
+    const byName = orderCommunityIdentities(
+      activeIdentities,
+      rankByIdentity,
+      onlineUserIds,
+      "alphabetical",
+    );
+    const byWealth = orderCommunityIdentities(
+      activeIdentities,
+      rankByIdentity,
+      onlineUserIds,
+      "wealth",
+    );
+    const byOnline = orderCommunityIdentities(
+      activeIdentities,
+      rankByIdentity,
+      onlineUserIds,
+      "online",
     );
     const byRank = ranking
       .map((entry) =>
         activeIdentities.find((identity) => identity.id === entry.identity_id),
       )
       .filter(Boolean) as Row[];
-    const source = tab === "ranking" ? byRank : byName;
+    const source =
+      tab === "ranking"
+        ? byRank
+        : tab === "messages"
+          ? byOnline
+          : filter === "all" || filter === "online"
+            ? byWealth
+            : byName;
     return source.filter((identity) => {
       if (!matchesSearch(identity)) return false;
       if (tab === "messages" && identity.id === actor) return false;

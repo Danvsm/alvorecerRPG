@@ -17,7 +17,8 @@
   min-height: 310px;
   overflow: hidden;
   border-bottom: 1px solid #5f4729;
-  background: url("/combat/combat-header.webp") center 42% / cover no-repeat;
+  background: url("/community/community-wallpaper.webp") center / cover
+    no-repeat;
 }
 
 .heroShade {
@@ -567,6 +568,7 @@
 
   .hero {
     min-height: 272px;
+    background-position: 68% center;
   }
 
   .heroShade {

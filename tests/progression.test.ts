@@ -43,6 +43,8 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260915173409_allow_force_delete_avatar_frames.sql",
       "20260916040618_expose_equipped_avatar_frames.sql",
       "20260916163449_community_presence.sql",
+      "20260916170031_community_live_presence.sql",
+      "20260916170404_community_presence_user_index.sql",
     ]) {
       const sql = (
         await readFile(
@@ -112,10 +114,10 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
         ])
       ).rows[0].v;
     await asUser(player);
-    const activitySession = crypto.randomUUID();
-    await db.query("select activity_ping($1,$2,true)", [
+    const presenceSession = crypto.randomUUID();
+    await db.query("select presence_ping($1,$2,true)", [
       campaign,
-      activitySession,
+      presenceSession,
     ]);
     const playerPresence = await db.query<{
       user_id: string;
@@ -129,9 +131,9 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       playerPresence.rows.find((entry) => entry.user_id === master)?.online,
       false,
     );
-    await db.query("select activity_ping($1,$2,false)", [
+    await db.query("select presence_ping($1,$2,false)", [
       campaign,
-      activitySession,
+      presenceSession,
     ]);
     assert.equal(
       (
@@ -145,6 +147,13 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     await asUser(other);
     await assert.rejects(
       db.query("select * from community_presence($1)", [campaign]),
+      /Sem permissão/,
+    );
+    await assert.rejects(
+      db.query("select presence_ping($1,$2,true)", [
+        campaign,
+        crypto.randomUUID(),
+      ]),
       /Sem permissão/,
     );
     await asUser(player);

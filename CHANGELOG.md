@@ -62,6 +62,8 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Comunidade redesenhada como uma rede social dark fantasy responsiva, com busca, destaques horizontais, filtros, áreas de descoberta, mensagens e ranking, preservando perfil público, mural e controles exclusivos do Mestre.
 - Medalhas fornecidas pelo usuário integradas às cinco primeiras colocações do ranking de riqueza.
 - Indicador de presença online para jogadores e Mestre baseado em heartbeat real, com consulta mínima protegida por campanha e sem expor sessões ou horários de atividade.
+- Presença online corrigida para iniciar ao abrir o site e permanecer independente de toque ou teclado, sem alterar as métricas de atividade.
+- Diretório da Comunidade ordenado por presença e riqueza real, sem filtro artificial de riqueza, e cabeçalho atualizado com o wallpaper dark fantasy fornecido.
 
 ### Estado de validação
 

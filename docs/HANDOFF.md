@@ -349,3 +349,23 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. O usuário deve validar no celular o cabeçalho, as três áreas, a rolagem de destaques, os filtros e o encaixe das medalhas.
 2. Abrir Pink e um jogador em sessões distintas e confirmar que a bolinha verde aparece e desaparece dentro da janela de até dois minutos.
 3. Enviar prints somente dos ajustes visuais necessários.
+
+## Presença imediata, ordem social e wallpaper da Comunidade, 16/09/2026, 17:08 UTC
+
+- A causa da presença incorreta era o reaproveitamento de `activity_sessions`: a sessão só começava após uma interação e era encerrada depois de dois minutos sem toque ou teclado, mesmo com o site aberto.
+- A presença online agora possui heartbeat próprio em `alvorecer_private.presence_sessions`. O primeiro `presence_ping` ocorre ao abrir o aplicativo, repete a cada 30 segundos e não interfere nas métricas de atividade já existentes.
+- `community_presence` passou a consultar somente a sessão privada de presença, continua retornando apenas `user_id` e `online` e mantém a janela de expiração de dois minutos para quedas de conexão ou fechamento sem aviso.
+- A interface recebe um evento local após o primeiro heartbeat e atualiza a bolinha verde imediatamente, sem esperar o próximo polling de 30 segundos.
+- A tabela privada não possui acesso direto para `anon` ou `authenticated`. As RPCs exigem autenticação, associação ativa à campanha e impedem reutilizar o identificador de sessão por outra conta ou campanha.
+- Em "Todos os jogadores", o estado padrão coloca perfis online primeiro e usa o ranking real de riqueza como ordem dentro de cada grupo. Sem usuários online, a sequência é integralmente a do ranking. Nenhum filtro de riqueza foi criado; os filtros de tipo continuam mudando a organização conforme solicitado.
+- O wallpaper enviado foi otimizado de aproximadamente 2 MB em PNG para cerca de 30 KB em WebP e aplicado apenas ao cabeçalho da Comunidade, com posição responsiva no mobile.
+- As migrations locais `20260916170031_community_live_presence.sql` e `20260916170404_community_presence_user_index.sql` foram aplicadas no Supabase real como `20260916170323_community_live_presence` e `20260916170422_community_presence_user_index`.
+- A verificação real confirmou tabela privada, leitura pela RPC dedicada, execução permitida para `authenticated`, execução negada para `anon` e cobertura dos índices. O aviso de função `SECURITY DEFINER` é esperado porque as duas RPCs são APIs autenticadas com validação interna. Os demais avisos dos advisors são anteriores ou informativos.
+- `npm test` passou em 58/58. `npm run typecheck`, `npm run build` e `git diff --check` passaram.
+- Não foram realizados teste visual, teste mecânico no navegador nem validação manual em celular, conforme orientação do usuário.
+
+### Próximo passo recomendado
+
+1. Abrir Pink e um jogador em sessões distintas e conferir se as bolinhas surgem logo após entrar no site.
+2. Conferir no celular o recorte do novo wallpaper e a ordem de "Todos os jogadores".
+3. Enviar prints somente se algum ajuste visual for necessário.

@@ -20,7 +20,7 @@ export default function ActivityTracker({
       sessionId = crypto.randomUUID();
       sessionStorage.setItem(key, sessionId);
     }
-    const ping = (active: boolean) => {
+    const pingActivity = (active: boolean) => {
       if (active) started.current = true;
       if (!started.current) return;
       void browserDb().rpc("activity_ping", {
@@ -29,32 +29,63 @@ export default function ActivityTracker({
         active,
       });
     };
+    const pingPresence = async (online: boolean, announce = false) => {
+      try {
+        const response = await browserDb().rpc("presence_ping", {
+          c: campaign,
+          session_id: sessionId,
+          online,
+        });
+        if (!response.error && online && announce) {
+          window.dispatchEvent(
+            new CustomEvent("alvorecer:presence-updated", {
+              detail: { campaign },
+            }),
+          );
+        }
+      } catch {
+        // A próxima batida restaura a presença após uma falha transitória.
+      }
+    };
     const interact = () => {
       const now = Date.now();
       if (now - lastInteraction.current < 15000) return;
       lastInteraction.current = now;
-      if (document.visibilityState === "visible") ping(true);
+      if (document.visibilityState === "visible") pingActivity(true);
     };
     const visibility = () => {
-      if (document.visibilityState === "hidden") ping(false);
-      else interact();
+      if (document.visibilityState === "hidden") pingActivity(false);
+      else {
+        interact();
+        void pingPresence(true, true);
+      }
     };
+    const leave = () => void pingPresence(false);
+    void pingPresence(true, true);
     for (const event of ["pointerdown", "keydown", "touchstart"] as const)
       window.addEventListener(event, interact, { passive: true });
+    window.addEventListener("pagehide", leave);
     document.addEventListener("visibilitychange", visibility);
-    const timer = window.setInterval(() => {
+    const activityTimer = window.setInterval(() => {
       if (
         document.visibilityState === "visible" &&
         Date.now() - lastInteraction.current < 120000
       )
-        ping(true);
-      else ping(false);
+        pingActivity(true);
+      else pingActivity(false);
     }, 45000);
+    const presenceTimer = window.setInterval(
+      () => void pingPresence(true),
+      30000,
+    );
     return () => {
-      window.clearInterval(timer);
-      if (started.current) ping(false);
+      window.clearInterval(activityTimer);
+      window.clearInterval(presenceTimer);
+      if (started.current) pingActivity(false);
+      void pingPresence(false);
       for (const event of ["pointerdown", "keydown", "touchstart"] as const)
         window.removeEventListener(event, interact);
+      window.removeEventListener("pagehide", leave);
       document.removeEventListener("visibilitychange", visibility);
     };
   }, [campaign, userId]);
