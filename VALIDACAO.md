@@ -298,3 +298,23 @@ Evidências:
 - Supabase real: migration `20260916041057_expose_equipped_avatar_frames` aplicada; função, policy e vínculo equipado confirmados por consulta.
 - Advisors executados depois da migration. Nenhum alerta novo foi atribuído à função privada ou à nova policy.
 - Não testado: aparência detalhada em celular, alinhamento em todos os tamanhos reais e conferência manual de cada tela no domínio publicado. Esses pontos ficam para o usuário.
+
+## UX do Combate com Vida, Mana e Fôlego, 16/09/2026, 04:47 UTC
+
+Validação automatizada concluída:
+
+1. O helper de comando aceita `life`, `mana` e `stamina` e envia os três por `combat_update` quando o ator é Mestre.
+2. Para jogador, o helper envia os três por `resource`, sempre com o `character_id` do próprio personagem e delta negativo.
+3. O helper rejeita recuperação por jogador, personagem pertencente a outra conta, zero e valores fracionários.
+4. A UI oferece perda e recuperação somente quando `isMaster` é verdadeiro. Para jogador, a seleção do card depende do vínculo real entre personagem e `userId`.
+5. A RPC existente permanece responsável pela proteção final: somente Mestre executa `combat_update`; `resource` verifica propriedade e rejeita delta positivo para jogador.
+6. O modo Combate recolhe a sidebar sem alterar o comportamento das outras páginas e oferece seta explícita para reabri-la.
+7. O painel inferior usa `dialog`, respeita cancelamento durante operação, apresenta erro capturado e desativa ações enquanto a chamada está ocupada.
+
+Evidências:
+
+- `npm test`: 49/49 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- Nenhuma migration, policy, RLS ou função do Supabase foi modificada.
+- Não testado por solicitação do usuário: aparência no navegador, animação real, interação mecânica, responsividade em aparelhos e fluxo publicado Pink/jogador. A validação será manual após o deploy.

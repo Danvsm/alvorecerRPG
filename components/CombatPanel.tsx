@@ -1,10 +1,15 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
   Eye,
   EyeOff,
   Heart,
   History,
+  Minus,
+  Plus,
   Settings,
   Shield,
   Skull,
@@ -15,6 +20,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import type { CombatResourceKey } from "@/lib/combat";
 import type { Row } from "@/lib/types";
 import IdentityBadge from "./IdentityBadge";
 import ItemThumbnail from "./ItemThumbnail";
@@ -38,6 +44,7 @@ type CombatPanelProps = {
   isMaster: boolean;
   userId: string;
   busy: boolean;
+  onOpenNavigation: () => void;
   onSelectRoom: (roomId: string) => void;
   onHistory: () => void;
   onCreateRoom: () => void;
@@ -47,7 +54,11 @@ type CombatPanelProps = {
   onEndRoom: (room: Row) => void;
   onRemoveParticipant: (participant: Row) => void;
   onRevealParticipant: (participant: Row, reveal: boolean) => void;
-  onAdjustLife: (participant: Row, delta: number) => Promise<void>;
+  onAdjustResource: (
+    participant: Row,
+    resource: CombatResourceKey,
+    delta: number,
+  ) => Promise<void>;
   onConsume: (data: Row) => void;
 };
 
@@ -121,10 +132,11 @@ function ParticipantIdentity({
   cosmetics,
   equipment,
   avatarUrls,
+  avatarSize = 42,
 }: Pick<
   CombatPanelProps,
   "identities" | "cosmetics" | "equipment" | "avatarUrls"
-> & { participant: Row }) {
+> & { participant: Row; avatarSize?: number }) {
   const identity = identities.find(
     (item) => item.id === participant.identity_id,
   );
@@ -139,6 +151,7 @@ function ParticipantIdentity({
         cosmetics={cosmetics}
         equipment={equipment}
         urls={avatarUrls}
+        avatarSize={avatarSize}
       />
     );
   }
@@ -160,26 +173,45 @@ function ParticipantIdentity({
   );
 }
 
-function LifeDialog({
+function ResourceDialog({
   participant,
+  identities,
+  cosmetics,
+  equipment,
+  avatarUrls,
   canGain,
   busy,
   close,
   adjust,
-}: {
+}: Pick<
+  CombatPanelProps,
+  "identities" | "cosmetics" | "equipment" | "avatarUrls"
+> & {
   participant: Row;
   canGain: boolean;
   busy: boolean;
   close: () => void;
-  adjust: (delta: number) => Promise<void>;
+  adjust: (resource: CombatResourceKey, delta: number) => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [amount, setAmount] = useState("");
+  const [resource, setResource] = useState<CombatResourceKey>("life");
+  const [amount, setAmount] = useState("1");
   const [error, setError] = useState("");
+  const { label, Icon } = resourceMeta[resource];
+  const current = Number(participant[resource] ?? 0);
+  const maximum = Number(participant[`${resource}_max`] ?? 0);
+
   useEffect(() => {
     ref.current?.showModal();
     return () => ref.current?.close();
   }, []);
+
+  function stepAmount(step: number) {
+    const value = Number(amount);
+    setAmount(
+      String(Math.max(1, (Number.isInteger(value) ? value : 1) + step)),
+    );
+  }
 
   async function submit(direction: -1 | 1) {
     const value = Number(amount);
@@ -189,8 +221,8 @@ function LifeDialog({
     }
     setError("");
     try {
-      await adjust(direction * value);
-      close();
+      await adjust(resource, direction * value);
+      setAmount("1");
     } catch (caught) {
       setError((caught as Error).message);
     }
@@ -199,17 +231,28 @@ function LifeDialog({
   return (
     <dialog
       ref={ref}
-      className="combat-sheet combat-life-sheet"
-      aria-labelledby="combat-life-title"
+      className="combat-sheet combat-resource-sheet"
+      aria-labelledby="combat-resource-title"
       onCancel={(event) => {
         event.preventDefault();
         if (!busy) close();
       }}
     >
-      <div className="combat-sheet-heading">
-        <div>
-          <small>Ajuste rápido</small>
-          <h2 id="combat-life-title">Vida de {participant.name}</h2>
+      <div className="combat-sheet-handle" aria-hidden="true" />
+      <div className="combat-sheet-heading combat-resource-heading">
+        <div className="combat-sheet-identity">
+          <ParticipantIdentity
+            participant={participant}
+            identities={identities}
+            cosmetics={cosmetics}
+            equipment={equipment}
+            avatarUrls={avatarUrls}
+            avatarSize={64}
+          />
+          <span>
+            <small>Ajustar recursos</small>
+            <h2 id="combat-resource-title">{participant.name}</h2>
+          </span>
         </div>
         <button
           className="combat-icon-button"
@@ -220,54 +263,120 @@ function LifeDialog({
           <X size={19} />
         </button>
       </div>
-      <label className="combat-amount-field">
-        Quantidade
-        <input
-          autoFocus
-          type="number"
-          inputMode="numeric"
-          min="1"
-          step="1"
-          placeholder="37"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              void submit(-1);
-            }
-          }}
-        />
-      </label>
+      <div className={`combat-access-badge${canGain ? " is-master" : ""}`}>
+        {canGain ? (
+          <>
+            <Image
+              src="/combat/master-crown.webp"
+              width={30}
+              height={30}
+              alt=""
+            />
+            <span>
+              <strong>Modo Mestre</strong>
+              <small>Perda e recuperação disponíveis</small>
+            </span>
+          </>
+        ) : (
+          <span>
+            <strong>Seu personagem</strong>
+            <small>Você pode reduzir os próprios recursos</small>
+          </span>
+        )}
+      </div>
+
+      <div className="combat-resource-picker" aria-label="Recurso para ajustar">
+        {(Object.keys(resourceMeta) as CombatResourceKey[]).map((key) => {
+          const meta = resourceMeta[key];
+          return (
+            <button
+              key={key}
+              className={`is-${meta.color}${resource === key ? " selected" : ""}`}
+              aria-pressed={resource === key}
+              disabled={busy}
+              onClick={() => {
+                setResource(key);
+                setError("");
+              }}
+            >
+              <meta.Icon size={19} />
+              {meta.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        className={`combat-current-resource is-${resourceMeta[resource].color}`}
+      >
+        <Icon size={21} />
+        <span>{label} atual</span>
+        <strong>{current}</strong>
+        <small>/ {maximum}</small>
+      </div>
+
+      <div className="combat-amount-stepper">
+        <button
+          aria-label="Diminuir quantidade"
+          disabled={busy || Number(amount) <= 1}
+          onClick={() => stepAmount(-1)}
+        >
+          <Minus size={22} />
+        </button>
+        <label>
+          Quantidade
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            step="1"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void submit(-1);
+              }
+            }}
+          />
+        </label>
+        <button
+          aria-label="Aumentar quantidade"
+          disabled={busy}
+          onClick={() => stepAmount(1)}
+        >
+          <Plus size={22} />
+        </button>
+      </div>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
-      <div className={`combat-life-actions${canGain ? " can-gain" : ""}`}>
+      <div className={`combat-resource-actions${canGain ? " can-gain" : ""}`}>
         <button
-          className="combat-life-loss"
+          className="combat-resource-loss"
           disabled={busy}
           onClick={() => void submit(-1)}
         >
-          <Heart size={17} />
-          {busy ? "Salvando..." : "Perdeu Vida"}
+          <ArrowDown size={18} />
+          {busy ? "Salvando..." : `Perdeu ${label}`}
         </button>
         {canGain && (
           <button
-            className="combat-life-gain"
+            className="combat-resource-gain"
             disabled={busy}
             onClick={() => void submit(1)}
           >
-            <Heart size={17} />
-            {busy ? "Salvando..." : "Ganhou Vida"}
+            <ArrowUp size={18} />
+            {busy ? "Salvando..." : `Ganhou ${label}`}
           </button>
         )}
       </div>
       {!canGain && (
         <p className="combat-sheet-note">
-          A recuperação manual de Vida é reservada ao Mestre. Consumíveis
-          continuam disponíveis nas ações do personagem.
+          A recuperação manual de recursos é reservada ao Mestre. Consumíveis
+          continuam disponíveis nas ações do seu personagem.
         </p>
       )}
     </dialog>
@@ -500,12 +609,13 @@ export default function CombatPanel(props: CombatPanelProps) {
     isMaster,
     userId,
     busy,
+    onOpenNavigation,
     onSelectRoom,
     onHistory,
-    onAdjustLife,
+    onAdjustResource,
     onConsume,
   } = props;
-  const [lifeTarget, setLifeTarget] = useState<Row>();
+  const [selectedParticipantId, setSelectedParticipantId] = useState("");
   const [rosterOpen, setRosterOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const room = rooms.find((item) => item.id === selectedRoomId) || rooms[0];
@@ -513,6 +623,9 @@ export default function CombatPanel(props: CombatPanelProps) {
     (participant) =>
       participant.room_id === room?.id &&
       (participant.side === "ally" || participant.side === "enemy"),
+  );
+  const selectedParticipant = roomParticipants.find(
+    (participant) => participant.id === selectedParticipantId,
   );
 
   return (
@@ -528,6 +641,14 @@ export default function CombatPanel(props: CombatPanelProps) {
         />
         <div className="combat-hero-shade" />
         <div className="combat-hero-content">
+          <button
+            className="combat-navigation-button"
+            aria-label="Abrir menu principal"
+            title="Abrir menu"
+            onClick={onOpenNavigation}
+          >
+            <ChevronRight size={23} />
+          </button>
           <div className="combat-title">
             <Image
               src="/combat/crossed-swords.webp"
@@ -621,11 +742,9 @@ export default function CombatPanel(props: CombatPanelProps) {
                     const canConsume = Boolean(
                       participant.character_id && (isMaster || ownCharacter),
                     );
-                    return (
-                      <article
-                        className={`combat-participant-card is-${side}`}
-                        key={participant.id}
-                      >
+                    const selected = participant.id === selectedParticipantId;
+                    const overview = (
+                      <>
                         <div className="combat-card-heading">
                           <div className="combat-identity">
                             <ParticipantIdentity
@@ -673,15 +792,26 @@ export default function CombatPanel(props: CombatPanelProps) {
                             />
                           </div>
                         )}
-                        {canAdjust && (
+                      </>
+                    );
+                    return (
+                      <article
+                        className={`combat-participant-card is-${side}${canAdjust ? " can-adjust" : ""}${selected ? " is-selected" : ""}`}
+                        key={participant.id}
+                      >
+                        {canAdjust ? (
                           <button
-                            className="combat-adjust-button"
+                            className="combat-card-control"
+                            aria-label={`Ajustar Vida, Mana ou Fôlego de ${participant.name}`}
                             disabled={busy}
-                            onClick={() => setLifeTarget(participant)}
+                            onClick={() =>
+                              setSelectedParticipantId(participant.id)
+                            }
                           >
-                            <Heart size={14} />
-                            Ajustar Vida
+                            {overview}
                           </button>
+                        ) : (
+                          <div className="combat-card-control">{overview}</div>
                         )}
                         {canConsume && (
                           <details className="combat-consumables">
@@ -727,14 +857,20 @@ export default function CombatPanel(props: CombatPanelProps) {
         </div>
       )}
 
-      {lifeTarget && (
-        <LifeDialog
-          key={lifeTarget.id}
-          participant={lifeTarget}
+      {selectedParticipant && (
+        <ResourceDialog
+          key={selectedParticipant.id}
+          participant={selectedParticipant}
+          identities={identities}
+          cosmetics={cosmetics}
+          equipment={equipment}
+          avatarUrls={avatarUrls}
           canGain={isMaster}
           busy={busy}
-          close={() => setLifeTarget(undefined)}
-          adjust={(delta) => onAdjustLife(lifeTarget, delta)}
+          close={() => setSelectedParticipantId("")}
+          adjust={(resource, delta) =>
+            onAdjustResource(selectedParticipant, resource, delta)
+          }
         />
       )}
       {rosterOpen && (

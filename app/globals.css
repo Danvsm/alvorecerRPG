@@ -2503,6 +2503,32 @@ dialog::backdrop {
 }
 
 /* Combate: leitura rápida e operação mobile-first. */
+.combat-mode .workspace {
+  margin-left: 0;
+}
+.combat-mode .sidebar {
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+.combat-mode .sidebar.open {
+  transform: translateX(0);
+}
+.combat-mode .topbar {
+  display: none;
+}
+.combat-mode .scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background: #0009;
+}
+.content.combat-content {
+  max-width: none;
+  padding-top: 0;
+}
 .combat-page {
   width: min(1100px, 100%);
   margin: 0 auto;
@@ -2510,13 +2536,10 @@ dialog::backdrop {
 }
 .combat-hero {
   position: relative;
-  min-height: 138px;
+  min-height: 156px;
   overflow: hidden;
-  border: 1px solid #473929;
-  border-radius: 16px;
-  box-shadow:
-    0 16px 45px #0007,
-    inset 0 0 0 1px #d1aa5c1f;
+  border-bottom: 1px solid #ad93603d;
+  box-shadow: 0 20px 38px -28px #c19b5666;
   isolation: isolate;
 }
 .combat-hero-image {
@@ -2531,15 +2554,25 @@ dialog::backdrop {
   z-index: -2;
   background:
     linear-gradient(90deg, #08090ce8 0%, #0a0b0fc4 48%, #0a0b0fa8 100%),
-    linear-gradient(0deg, #09090be8 0%, transparent 60%);
+    linear-gradient(0deg, var(--background) 0%, #09090be8 12%, transparent 72%);
 }
 .combat-hero-content {
-  min-height: 138px;
+  min-height: 156px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   padding: 20px 24px;
+}
+.combat-navigation-button {
+  width: 42px;
+  min-width: 42px;
+  min-height: 48px;
+  padding: 0;
+  border-color: #9e814f70;
+  background: #090a0dbd;
+  color: #ead7ae;
+  backdrop-filter: blur(8px);
 }
 .combat-title {
   display: flex;
@@ -2593,11 +2626,9 @@ dialog::backdrop {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  margin: 12px 0 8px;
-  padding: 8px 10px;
-  border: 1px solid #2f3038;
-  border-radius: 10px;
-  background: #101116;
+  margin: 4px 0 8px;
+  padding: 9px 2px;
+  border-bottom: 1px solid #2a2b31;
 }
 .combat-room-picker label {
   color: #a9a9b2;
@@ -2608,13 +2639,13 @@ dialog::backdrop {
   min-height: 36px;
   padding-block: 6px;
   border-color: transparent;
-  background: #191a21;
+  background: transparent;
   font-weight: 600;
 }
 .combat-battlefield {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
   margin-top: 14px;
 }
 .combat-side {
@@ -2627,15 +2658,12 @@ dialog::backdrop {
   align-items: center;
   gap: 9px;
   margin: 0 0 9px;
-  padding: 4px 10px 4px 5px;
+  padding: 4px 4px 9px;
   overflow: hidden;
-  border: 1px solid #4f4535;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #152640, #11141b 74%);
+  border-bottom: 1px solid #435066;
 }
 .combat-side-enemy .combat-side-heading {
-  border-color: #59343a;
-  background: linear-gradient(90deg, #431a22, #161116 74%);
+  border-color: #62343d;
 }
 .combat-side-heading img {
   width: 40px;
@@ -2659,9 +2687,20 @@ dialog::backdrop {
   color: #dbcaa8;
   text-align: center;
 }
+.combat-side-heading::after {
+  margin-left: 10px;
+  color: #a8a39a;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  content: "Juntos somos mais fortes.";
+}
+.combat-side-enemy .combat-side-heading::after {
+  content: "Eles não mostrarão piedade.";
+}
 .combat-participant-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(185px, 220px));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   align-items: start;
   gap: 9px;
 }
@@ -2681,6 +2720,42 @@ dialog::backdrop {
 }
 .combat-participant-card.is-enemy {
   border-top-color: #8c4653;
+}
+.combat-participant-card.can-adjust {
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+.combat-card-control {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.combat-card-control:disabled {
+  opacity: 0.72;
+}
+.combat-participant-card.can-adjust:hover,
+.combat-participant-card.can-adjust:has(.combat-card-control:focus-visible),
+.combat-participant-card.is-selected {
+  border-color: #d4ad4f;
+  box-shadow:
+    inset 0 0 0 1px #d4ad4f80,
+    0 0 18px #d4ad4f29;
+  outline: none;
+}
+.combat-card-control:focus-visible {
+  outline: none;
+}
+.combat-participant-card.can-adjust:active {
+  transform: translateY(1px);
 }
 .combat-card-heading {
   display: grid;
@@ -2868,17 +2943,6 @@ dialog::backdrop {
 .combat-hidden-track.is-zero span {
   width: 0;
 }
-.combat-adjust-button {
-  width: 100%;
-  min-height: 40px;
-  margin-top: 9px;
-  padding: 6px 8px;
-  border-color: #70404a;
-  background: linear-gradient(#351923, #291219);
-  color: #f2c5cd;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
 .combat-consumables {
   margin-top: 7px;
   border-top: 1px solid #2d2e35;
@@ -2916,8 +2980,7 @@ dialog::backdrop {
 }
 .combat-side-empty {
   padding: 16px 10px;
-  border: 1px dashed #30313a;
-  border-radius: 10px;
+  border-bottom: 1px solid #24252b;
   color: #8f8f99;
   font-size: 0.75rem;
   text-align: center;
@@ -2937,19 +3000,49 @@ dialog::backdrop {
   padding-top: 42px;
 }
 dialog.combat-sheet {
-  width: min(520px, calc(100vw - 24px));
-  max-width: 520px;
-  max-height: min(82dvh, 720px);
-  padding: 18px;
+  position: fixed;
+  inset: auto 0 0;
+  width: min(720px, calc(100vw - 32px));
+  max-width: 720px;
+  max-height: min(88dvh, 760px);
+  margin: 0 auto;
+  padding: 12px 22px max(22px, env(safe-area-inset-bottom));
   overflow: auto;
   border-color: #5b4c37;
-  border-radius: 18px;
+  border-radius: 22px 22px 0 0;
   background: linear-gradient(155deg, #17181e, #0f1014 72%);
   box-shadow: 0 24px 90px #000c;
+  animation: combat-sheet-enter 0.24s ease-out;
 }
 .combat-sheet::backdrop {
   background: #050609d4;
   backdrop-filter: blur(5px);
+  animation: combat-backdrop-enter 0.2s ease-out;
+}
+@keyframes combat-sheet-enter {
+  from {
+    opacity: 0.65;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes combat-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.combat-sheet-handle {
+  width: 48px;
+  height: 4px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  background: #5d606b;
 }
 .combat-sheet-heading {
   display: flex;
@@ -2970,38 +3063,165 @@ dialog.combat-sheet {
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
-.combat-amount-field {
-  margin: 18px 0 14px;
-  color: #ceced4;
-  font-weight: 600;
+.combat-resource-heading {
+  align-items: center;
 }
-.combat-amount-field input {
-  min-height: 54px;
-  border-color: #5f5360;
-  background: #090a0d;
-  font-size: 1.35rem;
+.combat-sheet-identity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.combat-sheet-identity > .identity-badge > span:not(:first-child) {
+  display: none;
+}
+.combat-sheet-identity > span {
+  min-width: 0;
+}
+.combat-sheet-identity h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combat-sheet-identity .identity-photo,
+.combat-sheet-identity .combat-creature-photo {
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+}
+.combat-access-badge {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 14px 0;
+  color: #9fa0a9;
+}
+.combat-access-badge.is-master {
+  color: #f17a8d;
+}
+.combat-access-badge img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+.combat-access-badge strong,
+.combat-access-badge small {
+  display: block;
+}
+.combat-access-badge small {
+  margin-top: 2px;
+  color: #92939d;
+  font-size: 0.7rem;
+}
+.combat-resource-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+.combat-resource-picker button {
+  min-height: 46px;
+  border-color: #353740;
+  background: #0d0e12;
+  color: #a7a8b1;
+}
+.combat-resource-picker button.selected.is-life {
+  border-color: #c9495e;
+  background: #3e1720;
+  color: #ff9eae;
+}
+.combat-resource-picker button.selected.is-mana {
+  border-color: #8062cb;
+  background: #271c46;
+  color: #c2afff;
+}
+.combat-resource-picker button.selected.is-stamina {
+  border-color: #b48738;
+  background: #392b15;
+  color: #f1ca72;
+}
+.combat-current-resource {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 2px 12px;
+  border-bottom: 1px solid #303139;
+}
+.combat-current-resource > svg {
+  align-self: center;
+}
+.combat-current-resource.is-life > svg,
+.combat-current-resource.is-life > strong {
+  color: #ef5368;
+}
+.combat-current-resource.is-mana > svg,
+.combat-current-resource.is-mana > strong {
+  color: #a58bf0;
+}
+.combat-current-resource.is-stamina > svg,
+.combat-current-resource.is-stamina > strong {
+  color: #e0b95c;
+}
+.combat-current-resource > span {
+  color: #c4c4cb;
+}
+.combat-current-resource > strong {
+  margin-left: auto;
+  font-size: 1.55rem;
+  font-variant-numeric: tabular-nums;
+}
+.combat-current-resource > small {
+  color: #93949e;
+  font-size: 0.9rem;
+}
+.combat-amount-stepper {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 58px;
+  align-items: stretch;
+  gap: 10px;
+  margin: 18px 0 0;
+}
+.combat-amount-stepper > button {
+  min-height: 58px;
+  padding: 0;
+  border-color: #444650;
+  background: #15161c;
+}
+.combat-amount-stepper label {
+  display: grid;
+  gap: 3px;
+  color: #92939d;
+  font-size: 0.67rem;
+  text-align: center;
+}
+.combat-amount-stepper input {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  font-size: 1.25rem;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
-.combat-life-actions {
+.combat-resource-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 9px;
   margin-top: 16px;
 }
-.combat-life-actions.can-gain {
+.combat-resource-actions.can-gain {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.combat-life-actions button {
-  min-height: 48px;
+.combat-resource-actions button {
+  min-height: 58px;
   font-weight: 700;
 }
-.combat-life-loss {
+.combat-resource-loss {
   border-color: #8b3e4d;
   background: #451720;
   color: #ffd0d7;
 }
-.combat-life-gain {
+.combat-resource-gain {
   border-color: #3f8166;
   background: #17382c;
   color: #c1eedb;
@@ -3127,12 +3347,17 @@ dialog.combat-sheet {
     padding-bottom: 70px;
   }
   .combat-hero {
-    min-height: 112px;
-    border-radius: 13px;
+    min-height: 124px;
+    border-radius: 0;
   }
   .combat-hero-content {
-    min-height: 112px;
+    min-height: 124px;
     padding: 14px 12px;
+  }
+  .combat-navigation-button {
+    width: 38px;
+    min-width: 38px;
+    min-height: 42px;
   }
   .combat-title {
     gap: 8px;
@@ -3175,6 +3400,9 @@ dialog.combat-sheet {
   .combat-side-heading {
     margin-bottom: 7px;
   }
+  .combat-side-heading::after {
+    display: none;
+  }
   .combat-status {
     max-width: 55px;
   }
@@ -3216,6 +3444,9 @@ dialog.combat-sheet {
     min-width: 37px;
     min-height: 40px;
   }
+  .combat-resource-actions.can-gain {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .combat-card-heading {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3229,5 +3460,11 @@ dialog.combat-sheet {
   .combat-hero *,
   .combat-sheet * {
     scroll-behavior: auto;
+  }
+  dialog.combat-sheet,
+  .combat-sheet::backdrop,
+  .combat-participant-card.can-adjust {
+    animation: none;
+    transition: none;
   }
 }

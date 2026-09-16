@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 16/09/2026, 04:15 UTC.
+Atualizado em 16/09/2026, 04:47 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -266,3 +266,21 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Validar manualmente no celular um jogador com moldura equipada no menu, Perfil, Ficha, Comunidade, Ranking, Mensagens e Combate.
 2. Confirmar um jogador sem moldura nos mesmos pontos, verificando que apenas o avatar normal aparece.
 3. Enviar prints somente dos tamanhos ou alinhamentos que precisarem de ajuste visual.
+
+## UX do Combate com ajuste de recursos, 16/09/2026, 04:47 UTC
+
+- O card inteiro do participante passou a abrir uma aba inferior animada. O botão separado `Ajustar Vida` foi removido.
+- A aba permite selecionar Vida, Mana ou Fôlego por ícone, definir a quantidade com campo numérico e controles de menos/mais, aplicar perda e, para Pink/Mestre, aplicar recuperação.
+- Pink/Mestre pode abrir a aba de qualquer aliado ou inimigo cujos dados estejam disponíveis. O jogador recebe a interação somente no próprio personagem e não recebe o botão de recuperação.
+- O frontend usa um único helper para rotear os três recursos. Pink continua chamando `combat_update`; jogador continua chamando `resource` com o próprio `character_id`.
+- A RPC existente já valida no backend o Mestre, a propriedade do personagem, os recursos aceitos e o bloqueio de delta positivo para jogador. Nenhuma migration, policy ou RLS foi alterada.
+- Ao entrar no Combate, o menu lateral fica recolhido em desktop e celular. Uma seta no cabeçalho abre o mesmo menu como sobreposição; sair para outra página restaura a navegação normal.
+- O wallpaper do cabeçalho ficou sem borda ou moldura, com transição inferior e uma linha discreta. Sala e títulos das equipes perderam superfícies de card; os cards visuais permanecem concentrados nos participantes.
+- `npm test`: 49/49 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com seis rotas geradas.
+- Não foram feitos teste visual, teste mecânico no navegador ou validação manual em celular, por orientação do usuário.
+
+### Próximo passo recomendado para Combate
+
+1. O usuário deve validar no celular o tamanho dos cards, o encaixe do wallpaper, a abertura do menu e a animação da aba inferior.
+2. Testar como Pink perda e recuperação de Vida, Mana e Fôlego em aliado e inimigo.
+3. Testar como jogador somente a perda dos três recursos no próprio personagem e enviar prints dos ajustes visuais necessários.

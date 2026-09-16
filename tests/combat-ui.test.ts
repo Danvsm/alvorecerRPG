@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { combatLifeCommand } from "../lib/combat";
+import { combatResourceCommand, type CombatResourceKey } from "../lib/combat";
 
 const ownCharacter = {
   id: "character-own",
@@ -11,46 +11,53 @@ const otherCharacter = {
   owner_id: "other",
 };
 
-test("master combat Life adjustments reuse combat_update for any participant", () => {
-  assert.deepEqual(
-    combatLifeCommand({
-      participant: { id: "enemy", character_id: null },
-      delta: 37,
-      isMaster: true,
-      userId: "master",
-      characters: [ownCharacter, otherCharacter],
-    }),
-    {
-      op: "combat_update",
-      data: { id: "enemy", key: "life", delta: 37 },
-    },
-  );
+test("master combat adjustments reuse combat_update for every resource", () => {
+  for (const resource of ["life", "mana", "stamina"] as CombatResourceKey[]) {
+    assert.deepEqual(
+      combatResourceCommand({
+        participant: { id: "enemy", character_id: null },
+        resource,
+        delta: 37,
+        isMaster: true,
+        userId: "master",
+        characters: [ownCharacter, otherCharacter],
+      }),
+      {
+        op: "combat_update",
+        data: { id: "enemy", key: resource, delta: 37 },
+      },
+    );
+  }
 });
 
-test("player can only lose Life on their own character", () => {
-  assert.deepEqual(
-    combatLifeCommand({
-      participant: { id: "own", character_id: ownCharacter.id },
-      delta: -12,
-      isMaster: false,
-      userId: "player",
-      characters: [ownCharacter],
-    }),
-    {
-      op: "resource",
-      data: {
-        character_id: ownCharacter.id,
-        key: "life",
+test("player can only lose each resource on their own character", () => {
+  for (const resource of ["life", "mana", "stamina"] as CombatResourceKey[]) {
+    assert.deepEqual(
+      combatResourceCommand({
+        participant: { id: "own", character_id: ownCharacter.id },
+        resource,
         delta: -12,
-        reason: "Combate",
+        isMaster: false,
+        userId: "player",
+        characters: [ownCharacter],
+      }),
+      {
+        op: "resource",
+        data: {
+          character_id: ownCharacter.id,
+          key: resource,
+          delta: -12,
+          reason: "Combate",
+        },
       },
-    },
-  );
+    );
+  }
 
   assert.throws(
     () =>
-      combatLifeCommand({
+      combatResourceCommand({
         participant: { id: "own", character_id: ownCharacter.id },
+        resource: "mana",
         delta: 12,
         isMaster: false,
         userId: "player",
@@ -60,8 +67,9 @@ test("player can only lose Life on their own character", () => {
   );
   assert.throws(
     () =>
-      combatLifeCommand({
+      combatResourceCommand({
         participant: { id: "other", character_id: otherCharacter.id },
+        resource: "stamina",
         delta: -12,
         isMaster: false,
         userId: "player",
@@ -71,11 +79,12 @@ test("player can only lose Life on their own character", () => {
   );
 });
 
-test("combat Life adjustments reject zero and fractional values", () => {
+test("combat resource adjustments reject zero and fractional values", () => {
   for (const delta of [0, 1.5]) {
     assert.throws(() =>
-      combatLifeCommand({
+      combatResourceCommand({
         participant: { id: "enemy" },
+        resource: "life",
         delta,
         isMaster: true,
         userId: "master",

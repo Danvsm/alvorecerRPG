@@ -5,14 +5,20 @@ export type CombatCommand = {
   data: Row;
 };
 
-export function combatLifeCommand({
+export const combatResourceKeys = ["life", "mana", "stamina"] as const;
+
+export type CombatResourceKey = (typeof combatResourceKeys)[number];
+
+export function combatResourceCommand({
   participant,
+  resource,
   delta,
   isMaster,
   userId,
   characters,
 }: {
   participant: Row;
+  resource: CombatResourceKey;
   delta: number;
   isMaster: boolean;
   userId: string;
@@ -25,7 +31,7 @@ export function combatLifeCommand({
   if (isMaster) {
     return {
       op: "combat_update",
-      data: { id: participant.id, key: "life", delta },
+      data: { id: participant.id, key: resource, delta },
     };
   }
 
@@ -38,14 +44,14 @@ export function combatLifeCommand({
     throw new Error("Você só pode ajustar o próprio personagem");
   }
   if (delta > 0) {
-    throw new Error("Somente o mestre pode recuperar Vida manualmente");
+    throw new Error("Somente o mestre pode recuperar recursos manualmente");
   }
 
   return {
     op: "resource",
     data: {
       character_id: participant.character_id,
-      key: "life",
+      key: resource,
       delta,
       reason: "Combate",
     },

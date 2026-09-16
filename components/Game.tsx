@@ -66,7 +66,7 @@ import {
   type AvatarPolicyOperation,
   type AvatarSelectionTarget,
 } from "@/lib/avatar";
-import { combatLifeCommand } from "@/lib/combat";
+import { combatResourceCommand } from "@/lib/combat";
 import { cosmeticsActionRequest } from "@/lib/cosmetics";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
 import {
@@ -1226,7 +1226,7 @@ export default function Game({ invite }: { invite?: string }) {
     );
   return (
     <div
-      className="app"
+      className={page === "Combate" ? "app combat-mode" : "app"}
       style={
         {
           "--primary": currentCampaign?.theme?.primary || "#9E1B32",
@@ -1336,7 +1336,9 @@ export default function Game({ invite }: { invite?: string }) {
             }}
           />
         </header>
-        <main className="content">
+        <main
+          className={page === "Combate" ? "content combat-content" : "content"}
+        >
           {page !== "Combate" && (
             <div className="page-heading">
               <div>
@@ -2424,6 +2426,7 @@ export default function Game({ invite }: { invite?: string }) {
               isMaster={Boolean(isMaster)}
               userId={session.user.id}
               busy={busy}
+              onOpenNavigation={() => setMenu(true)}
               onSelectRoom={setRoom}
               onHistory={() => setPage("Histórico")}
               onCreateRoom={() =>
@@ -2509,10 +2512,11 @@ export default function Game({ invite }: { invite?: string }) {
                   command("combat_update", { id: participant.id, reveal }),
                 )
               }
-              onAdjustLife={(participant, delta) =>
+              onAdjustResource={(participant, resource, delta) =>
                 perform(async () => {
-                  const request = combatLifeCommand({
+                  const request = combatResourceCommand({
                     participant,
+                    resource,
                     delta,
                     isMaster: Boolean(isMaster),
                     userId: session.user.id,

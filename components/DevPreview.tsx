@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Brand } from "./Common";
 import CombatPanel from "./CombatPanel";
+import type { Row } from "@/lib/types";
 
 type Mode = "login" | "master" | "player";
 
@@ -637,7 +638,7 @@ function CombatPage({
     { id: "darian", owner_id: "darian-player", name: "Darian" },
     { id: "lyra", owner_id: "lyra-player", name: "Lyra" },
   ];
-  const [previewParticipants, setPreviewParticipants] = useState([
+  const [previewParticipants, setPreviewParticipants] = useState<Row[]>([
     {
       id: "p-kael",
       room_id: "ruins",
@@ -803,6 +804,7 @@ function CombatPage({
       isMaster={master}
       userId="preview-player"
       busy={false}
+      onOpenNavigation={() => {}}
       onSelectRoom={() => {}}
       onHistory={history}
       onCreateRoom={() => {}}
@@ -824,21 +826,25 @@ function CombatPage({
           ),
         )
       }
-      onAdjustLife={async (target, delta) => {
+      onAdjustResource={async (target, resource, delta) => {
         setPreviewParticipants((current) =>
           current.map((participant) => {
-            if (participant.id !== target.id || participant.life === null)
+            if (participant.id !== target.id || participant[resource] === null)
               return participant;
-            const life = Math.max(
+            const maximum = Number(participant[`${resource}_max`]);
+            const value = Math.max(
               0,
-              Math.min(participant.life_max, participant.life + delta),
+              Math.min(maximum, Number(participant[resource]) + delta),
             );
-            const ratio = life / Math.max(participant.life_max, 1);
+            if (resource !== "life") {
+              return { ...participant, [resource]: value };
+            }
+            const ratio = value / Math.max(maximum, 1);
             return {
               ...participant,
-              life,
+              life: value,
               state:
-                life === 0
+                value === 0
                   ? "zero"
                   : ratio > 0.6
                     ? "green"
