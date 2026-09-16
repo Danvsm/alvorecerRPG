@@ -114,6 +114,28 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
         ])
       ).rows[0].v;
     await asUser(player);
+    await assert.rejects(
+      db.query("select game_command($1,'campaign',$2::jsonb)", [
+        campaign,
+        JSON.stringify({ theme: { avatar_shape: "square" } }),
+      ]),
+      /Somente o mestre/,
+    );
+    await asUser(master);
+    await db.query("select game_command($1,'campaign',$2::jsonb)", [
+      campaign,
+      JSON.stringify({ theme: { avatar_shape: "square" } }),
+    ]);
+    assert.equal(
+      (
+        await db.query<{ avatar_shape: string }>(
+          "select theme->>'avatar_shape' avatar_shape from campaigns where id=$1",
+          [campaign],
+        )
+      ).rows[0].avatar_shape,
+      "square",
+    );
+    await asUser(player);
     const presenceSession = crypto.randomUUID();
     await db.query("select presence_ping($1,$2,true)", [
       campaign,

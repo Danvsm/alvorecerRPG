@@ -28,6 +28,11 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
+import {
+  avatarRadius,
+  avatarShapeFromTheme,
+  type AvatarShape,
+} from "@/lib/avatar-shape";
 import { Brand, Empty } from "./Common";
 import ResourceConfiguration from "./ResourceConfiguration";
 import ConsumableActions from "./ConsumableActions";
@@ -262,6 +267,7 @@ export default function Game({ invite }: { invite?: string }) {
     setPage(isMaster ? "Visão Geral" : "Início");
   }, [campaign, isMaster]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
+  const avatarShape = avatarShapeFromTheme(currentCampaign?.theme);
   const rows = (t: string) => data[t] || [];
   const chars = rows("characters").filter((c) => !c.archived);
   const character = chars.find((c) => c.id === selected) || chars[0];
@@ -346,6 +352,7 @@ export default function Game({ invite }: { invite?: string }) {
         visuals,
         avatarCatalog,
         frameCatalog,
+        campaignResult,
       ] = await Promise.all([
         Promise.all(
           tables.map((t) => {
@@ -389,6 +396,7 @@ export default function Game({ invite }: { invite?: string }) {
         db.rpc("combat_identities", { c }),
         db.rpc("avatar_catalog", { c }),
         db.rpc("frame_catalog", { c }),
+        db.from("campaigns").select("*").eq("id", c).single(),
       ]);
       const failed = result.findIndex((r) => r.error);
       if (failed !== -1)
@@ -400,6 +408,7 @@ export default function Game({ invite }: { invite?: string }) {
       if (visuals.error) throw visuals.error;
       if (avatarCatalog.error) throw avatarCatalog.error;
       if (frameCatalog.error) throw frameCatalog.error;
+      if (campaignResult.error) throw campaignResult.error;
       if (version !== requestVersion.current) return;
       const loaded = Object.fromEntries(
         result.map((r, i) => [tables[i], r.data || []]),
@@ -421,6 +430,9 @@ export default function Game({ invite }: { invite?: string }) {
         })),
       );
       setRecipients(directory.data || []);
+      setCampaigns((current) =>
+        current.map((entry) => (entry.id === c ? campaignResult.data : entry)),
+      );
     } catch (e) {
       setError((e as Error).message);
       if (strict) throw e;
@@ -737,6 +749,23 @@ export default function Game({ invite }: { invite?: string }) {
     if (error) throw new Error(error.message);
     await load(campaign, true);
     setMessage("Alteração salva");
+  }
+  async function setAvatarShape(nextShape: AvatarShape) {
+    const theme = {
+      ...(currentCampaign?.theme || {}),
+      avatar_shape: nextShape,
+    };
+    await command("campaign", { theme });
+    setCampaigns((current) =>
+      current.map((entry) =>
+        entry.id === campaign ? { ...entry, theme } : entry,
+      ),
+    );
+    setMessage(
+      nextShape === "circle"
+        ? "Avatares alterados para o formato circular"
+        : "Avatares alterados para o formato quadrado",
+    );
   }
   async function admin(action: string, d: Row = {}) {
     const s = await browserDb().auth.getSession();
@@ -1233,6 +1262,7 @@ export default function Game({ invite }: { invite?: string }) {
           "--primary": currentCampaign?.theme?.primary || "#9E1B32",
           "--highlight": currentCampaign?.theme?.highlight || "#D02A43",
           "--background": currentCampaign?.theme?.background || "#09090B",
+          "--avatar-shape-radius": avatarRadius(avatarShape),
         } as React.CSSProperties
       }
     >
@@ -3179,6 +3209,45 @@ export default function Game({ invite }: { invite?: string }) {
               </section>
               <section className="panel">
                 <h2>Aparência</h2>
+                <div className="avatar-shape-setting">
+                  <div>
+                    <strong>Formato dos avatares</strong>
+                    <p>
+                      Escolha como as fotos aparecem em todo o site. Molduras e
+                      efeitos continuam acompanhando o avatar.
+                    </p>
+                  </div>
+                  <div
+                    className="avatar-shape-options"
+                    role="group"
+                    aria-label="Formato dos avatares"
+                  >
+                    <button
+                      type="button"
+                      className={avatarShape === "circle" ? "active" : ""}
+                      aria-pressed={avatarShape === "circle"}
+                      disabled={busy}
+                      onClick={() =>
+                        avatarShape !== "circle" &&
+                        void perform(() => setAvatarShape("circle"))
+                      }
+                    >
+                      Circular
+                    </button>
+                    <button
+                      type="button"
+                      className={avatarShape === "square" ? "active" : ""}
+                      aria-pressed={avatarShape === "square"}
+                      disabled={busy}
+                      onClick={() =>
+                        avatarShape !== "square" &&
+                        void perform(() => setAvatarShape("square"))
+                      }
+                    >
+                      Quadrado
+                    </button>
+                  </div>
+                </div>
                 <button
                   onClick={() =>
                     setForm({
@@ -3212,10 +3281,14 @@ export default function Game({ invite }: { invite?: string }) {
                       submit: async (d) => {
                         if (d.logo && !String(d.logo).startsWith("https://"))
                           throw new Error("Use uma URL HTTPS para a logo");
-                        await command("campaign", { theme: d });
+                        const theme = {
+                          ...d,
+                          avatar_shape: avatarShape,
+                        };
+                        await command("campaign", { theme });
                         setCampaigns((cs) =>
                           cs.map((c) =>
-                            c.id === campaign ? { ...c, theme: d } : c,
+                            c.id === campaign ? { ...c, theme } : c,
                           ),
                         );
                         setForm(null);

@@ -369,3 +369,21 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Abrir Pink e um jogador em sessões distintas e conferir se as bolinhas surgem logo após entrar no site.
 2. Conferir no celular o recorte do novo wallpaper e a ordem de "Todos os jogadores".
 3. Enviar prints somente se algum ajuste visual for necessário.
+
+## Formato global dos avatares, 16/09/2026, 17:40 UTC
+
+- Avatares agora usam o formato circular como padrão em campanhas que ainda não possuem uma preferência salva.
+- Pink/Mestre ganhou em `Configurações > Aparência` um controle imediato com as opções `Circular` e `Quadrado`.
+- A preferência é armazenada em `campaigns.theme.avatar_shape`, reutilizando a operação `campaign` já existente em `game_command`. Nenhuma tabela, RLS ou migration nova foi necessária.
+- A mudança controla uma variável CSS no contêiner da campanha e alcança o componente central `IdentityAvatar`, as fotos com moldura e a galeria de seleção sem duplicar lógica nas páginas.
+- O modo `Quadrado` preserva o formato arredondado anterior. Molduras e efeitos continuam proporcionais e não são removidos ao trocar o formato.
+- O carregamento da campanha passou a atualizar também o tema atual. Assim, o evento de campanha já existente propaga a escolha para as sessões de outros jogadores.
+- A proteção administrativa foi confirmada no banco real: `anon` não executa `game_command`, usuários autenticados passam pela validação interna e a operação `campaign` permanece bloqueada para quem não é Mestre.
+- `npm test` passou em 59/59. `npm run typecheck`, `npm run build` e `git diff --check` passaram.
+- Não foram feitos teste visual no navegador, teste mecânico ou validação em celular. O usuário fará essa conferência após o deploy.
+
+### Próximo passo recomendado
+
+1. Pink deve alternar entre `Circular` e `Quadrado` em `Configurações > Aparência`.
+2. Conferir no celular o avatar com e sem moldura no menu, Perfil, Comunidade e Combate.
+3. Manter `Circular` selecionado se esse for o formato definitivo desejado.

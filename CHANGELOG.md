@@ -64,6 +64,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Indicador de presença online para jogadores e Mestre baseado em heartbeat real, com consulta mínima protegida por campanha e sem expor sessões ou horários de atividade.
 - Presença online corrigida para iniciar ao abrir o site e permanecer independente de toque ou teclado, sem alterar as métricas de atividade.
 - Diretório da Comunidade ordenado por presença e riqueza real, sem filtro artificial de riqueza, e cabeçalho atualizado com o wallpaper dark fantasy fornecido.
+- Formato global dos avatares configurável por Pink/Mestre entre circular e quadrado, com padrão circular, persistência no tema da campanha e sincronização para os jogadores.
 
 ### Estado de validação
 

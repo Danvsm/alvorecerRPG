@@ -421,3 +421,26 @@ Evidências:
 - Advisors executados após as migrations. O índice adicional eliminou o novo aviso de chave estrangeira sem cobertura. Avisos restantes são preexistentes, informativos ou esperados para RPCs públicas protegidas.
 
 Não testado por solicitação do usuário: presença entre dois navegadores reais, aparência da bolinha, recorte do wallpaper, responsividade e ordem publicada em celular. Essa validação permanece manual após o deploy.
+
+## Formato global dos avatares, 16/09/2026, 17:40 UTC
+
+Validação técnica concluída:
+
+1. A ausência de configuração resulta em formato circular.
+2. `circle` produz raio de 50% e `square` restaura o raio arredondado de 28%.
+3. Valores desconhecidos não quebram a interface e retornam ao padrão circular.
+4. A variável global controla a foto do `AvatarFrame` e as miniaturas da galeria.
+5. O painel de Pink apresenta botões acessíveis com `aria-pressed` para `Circular` e `Quadrado`.
+6. A preferência é preservada ao alterar cores ou logo da campanha.
+7. Um jogador não consegue alterar o tema por chamada direta a `game_command`; Pink/Mestre consegue salvar `avatar_shape`.
+8. A consulta ao Supabase real confirmou `anon_execute=false`, `authenticated_execute=true`, validação interna de Mestre e operação de campanha existente.
+9. Nenhuma migration, tabela ou policy foi criada ou modificada.
+
+Evidências:
+
+- `npm test`: 59/59 aprovado.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, com seis rotas geradas.
+- `git diff --check`: aprovado.
+
+Não testado: aparência real dos dois formatos, encaixe visual de cada moldura e sincronização entre dois navegadores publicados. A validação visual permanece com o usuário.

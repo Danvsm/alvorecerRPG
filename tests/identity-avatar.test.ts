@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { avatarRadius, avatarShapeFromTheme } from "../lib/avatar-shape";
 import { equippedFrameForIdentity } from "../lib/identity-visual";
 
 const source = (path: string) =>
@@ -45,4 +46,24 @@ test("global identity renderers use the central framed avatar component", async 
   assert.match(central, /equippedFrameForIdentity/);
   assert.match(central, /<AvatarFrame/);
   assert.match(central, /frameUrl=/);
+});
+
+test("master avatar shape controls the central avatar and gallery", async () => {
+  assert.equal(avatarShapeFromTheme(), "circle");
+  assert.equal(avatarShapeFromTheme({ avatar_shape: "circle" }), "circle");
+  assert.equal(avatarShapeFromTheme({ avatar_shape: "square" }), "square");
+  assert.equal(avatarShapeFromTheme({ avatar_shape: "invalid" }), "circle");
+  assert.equal(avatarRadius("circle"), "50%");
+  assert.equal(avatarRadius("square"), "28%");
+
+  const [game, styles] = await Promise.all([
+    source("components/Game.tsx"),
+    source("app/globals.css"),
+  ]);
+  assert.match(game, /Formato dos avatares/);
+  assert.match(game, /setAvatarShape\("circle"\)/);
+  assert.match(game, /setAvatarShape\("square"\)/);
+  assert.match(game, /--avatar-shape-radius/);
+  assert.match(styles, /\.avatar-frame-photo[\s\S]*--avatar-shape-radius/);
+  assert.match(styles, /\.avatar-choice[\s\S]*--avatar-shape-radius/);
 });
