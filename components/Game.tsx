@@ -37,6 +37,7 @@ import AvatarGallery from "./AvatarGallery";
 import AvatarPickerDialog from "./AvatarPickerDialog";
 import CosmeticsPanel from "./CosmeticsPanel";
 import CommunityPanel from "./CommunityPanel";
+import IdentityAvatar from "./IdentityAvatar";
 import IdentityBadge from "./IdentityBadge";
 import DirectChat from "./DirectChat";
 import NotificationBell from "./NotificationBell";
@@ -976,19 +977,22 @@ export default function Game({ invite }: { invite?: string }) {
     });
   }
   function characterHeader(ch: Row) {
+    const identityId = characterAvatarIdentityId(
+      campaign,
+      ch,
+      rows("social_identities"),
+    );
     return (
       <div className="character-heading">
-        {avatarUrls[ch.avatar_id] ? (
-          <img
-            className="portrait"
-            src={avatarUrls[ch.avatar_id]}
-            alt={ch.name}
-          />
-        ) : (
-          <div className="portrait empty-portrait">
-            <Shield size={35} />
-          </div>
-        )}
+        <IdentityAvatar
+          identityId={identityId}
+          avatarId={ch.avatar_id}
+          avatarAlt={ch.name}
+          cosmetics={rows("cosmetics")}
+          equipment={rows("cosmetic_equipment")}
+          urls={avatarUrls}
+          size={70}
+        />
         <div>
           <h2>{ch.name}</h2>
           <p>
@@ -1272,13 +1276,15 @@ export default function Game({ invite }: { invite?: string }) {
             className="sidebar-account"
             onClick={() => navigate("Perfil")}
           >
-            {avatarUrls[profileAvatar] ? (
-              <img src={avatarUrls[profileAvatar]} alt="" />
-            ) : (
-              <span className="sidebar-avatar">
-                <UserRound size={16} />
-              </span>
-            )}
+            <IdentityAvatar
+              identity={ownIdentity}
+              avatarId={profileAvatar || undefined}
+              avatarAlt={displayName}
+              cosmetics={rows("cosmetics")}
+              equipment={rows("cosmetic_equipment")}
+              urls={avatarUrls}
+              size={34}
+            />
             <span>
               <strong>{displayName}</strong>
               <small>
@@ -2042,7 +2048,12 @@ export default function Game({ invite }: { invite?: string }) {
                 )}
                 <CharacterSheet
                   character={character}
-                  avatarUrl={avatarUrls[character.avatar_id]}
+                  identity={rows("social_identities").find(
+                    (identity) => identity.id === characterIdentityId,
+                  )}
+                  cosmetics={rows("cosmetics")}
+                  equipment={rows("cosmetic_equipment")}
+                  avatarUrls={avatarUrls}
                   resources={resources(character.id)}
                   attributes={rows("attributes")}
                   values={rows("character_attributes")}
@@ -2967,6 +2978,9 @@ export default function Game({ invite }: { invite?: string }) {
               recipients={recipients}
               transactions={rows("dracma_transactions")}
               charges={rows("dracma_charges")}
+              identities={rows("social_identities")}
+              cosmetics={rows("cosmetics")}
+              equipment={rows("cosmetic_equipment")}
               avatarUrls={avatarUrls}
               busy={busy}
               transfer={(values) =>
@@ -3418,6 +3432,9 @@ export default function Game({ invite }: { invite?: string }) {
           key={`${session?.user.id}:${campaign}:${socialActor}`}
           campaign={campaign}
           identities={rows("social_identities")}
+          cosmetics={rows("cosmetics")}
+          equipment={rows("cosmetic_equipment")}
+          urls={avatarUrls}
           actor={socialActor}
           master={Boolean(isMaster)}
           revision={data}

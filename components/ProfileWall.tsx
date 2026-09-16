@@ -2,12 +2,16 @@
 import { useEffect, useState } from "react";
 import { browserDb } from "@/lib/client";
 import type { Row } from "@/lib/types";
+import IdentityAvatar from "./IdentityAvatar";
 
 export default function ProfileWall({
   campaign,
   profile,
   actor,
   identities,
+  cosmetics,
+  equipment,
+  urls,
   master,
   revision,
 }: {
@@ -15,6 +19,9 @@ export default function ProfileWall({
   profile: string;
   actor: string;
   identities: Row[];
+  cosmetics: Row[];
+  equipment: Row[];
+  urls: Record<string, string>;
   master: boolean;
   revision: unknown;
 }) {
@@ -81,26 +88,44 @@ export default function ProfileWall({
         </label>
         <button disabled={busy || !actor}>Publicar</button>
       </form>
-      {comments.map((comment) => (
-        <article className="panel" key={comment.id}>
-          <strong>
-            {identities.find((i) => i.id === comment.author_id)?.name ||
-              "Perfil indisponível"}
-          </strong>
-          <small> {new Date(comment.created_at).toLocaleString("pt-BR")}</small>
-          <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
-          {master && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                action("moderate", { id: comment.id, hidden: !comment.hidden })
-              }
-            >
-              {comment.hidden ? "Reexibir" : "Ocultar"}
-            </button>
-          )}
-        </article>
-      ))}
+      {comments.map((comment) => {
+        const author = identities.find((i) => i.id === comment.author_id);
+        return (
+          <article className="panel" key={comment.id}>
+            <div className="profile-comment-author">
+              <IdentityAvatar
+                identity={author}
+                identityId={comment.author_id}
+                avatarAlt={author?.name}
+                cosmetics={cosmetics}
+                equipment={equipment}
+                urls={urls}
+                size={36}
+              />
+              <span>
+                <strong>{author?.name || "Perfil indisponível"}</strong>
+                <small>
+                  {new Date(comment.created_at).toLocaleString("pt-BR")}
+                </small>
+              </span>
+            </div>
+            <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
+            {master && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  action("moderate", {
+                    id: comment.id,
+                    hidden: !comment.hidden,
+                  })
+                }
+              >
+                {comment.hidden ? "Reexibir" : "Ocultar"}
+              </button>
+            )}
+          </article>
+        );
+      })}
       {comments.length >= limit && (
         <button onClick={() => setLimit((n) => n + 20)}>Carregar mais</button>
       )}

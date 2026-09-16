@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
+import { identityForUser } from "@/lib/identity-visual";
 import type { Row } from "@/lib/types";
+import IdentityAvatar from "./IdentityAvatar";
 
 type Draft = {
   type: "send" | "charge";
@@ -47,6 +49,9 @@ export default function WalletPanel({
   recipients,
   transactions,
   charges,
+  identities,
+  cosmetics,
+  equipment,
   avatarUrls,
   busy,
   transfer,
@@ -60,6 +65,9 @@ export default function WalletPanel({
   recipients: Row[];
   transactions: Row[];
   charges: Row[];
+  identities: Row[];
+  cosmetics: Row[];
+  equipment: Row[];
   avatarUrls: Record<string, string>;
   busy: boolean;
   transfer: (data: Row) => Promise<Row>;
@@ -132,9 +140,10 @@ export default function WalletPanel({
     resetForm();
     setMode(next);
   };
-  const selectedRecipientUrl = recipient?.avatar_id
-    ? avatarUrls[recipient.avatar_id]
-    : "";
+  const selectedRecipientIdentity = identityForUser(
+    recipient?.user_id,
+    identities,
+  );
 
   return (
     <div className="wallet-page">
@@ -287,11 +296,15 @@ export default function WalletPanel({
               </label>
               {recipient && (
                 <div className="wallet-recipient">
-                  {selectedRecipientUrl ? (
-                    <img src={selectedRecipientUrl} alt="" />
-                  ) : (
-                    <span>{recipient.display_name?.[0]}</span>
-                  )}
+                  <IdentityAvatar
+                    identity={selectedRecipientIdentity}
+                    avatarId={recipient.avatar_id}
+                    avatarAlt={recipient.display_name}
+                    cosmetics={cosmetics}
+                    equipment={equipment}
+                    urls={avatarUrls}
+                    size={42}
+                  />
                   <div>
                     <strong>{recipient.display_name}</strong>
                     <small>

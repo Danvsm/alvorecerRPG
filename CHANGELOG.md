@@ -52,6 +52,8 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Corrigida a CSP do Service Worker para permitir exclusivamente conexões ao projeto Supabase do Alvorecer; a política anterior bloqueava o download das fotos privadas no navegador depois que o worker assumia a requisição.
 - URLs privadas de fotos, avatares e molduras agora são assinadas em lote e renovadas antes da expiração, ao retornar para o aplicativo e após falhas transitórias do Storage, preservando a chave estável do Image Cache.
 - Service Worker de imagens atualizado para a revisão 2, com URL e caches versionados, para substituir também instalações antigas que preservavam a CSP defeituosa. A troca do controlador solicita imediatamente novas URLs visuais.
+- Exibição global de avatar centralizada em `IdentityAvatar`: menu, ficha, Perfil, Comunidade, Combate, ranking, mensagens, carteira, mural e listas passam a acompanhar a moldura e os efeitos realmente equipados.
+- Molduras secretas equipadas podem fornecer somente a arte e os efeitos necessários à apresentação pública, sem revelar nome, descrição, propriedade ou controles administrativos a outros jogadores.
 
 ### Estado de validação
 

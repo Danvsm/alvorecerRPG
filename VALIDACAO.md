@@ -275,3 +275,26 @@ Evidências:
 - `npm run build`: aprovado, seis rotas geradas.
 - Supabase real: buckets privados, 15 caminhos de avatar e policies de leitura preservados; nenhuma mudança de banco ou Storage foi necessária.
 - Não testado: substituição do worker antigo no aparelho Android específico do usuário e aparência final após o deploy. Essa confirmação permanece manual.
+
+## Exibição global de avatar e moldura, 16/09/2026, 04:15 UTC
+
+Validação técnica concluída:
+
+1. O componente `IdentityAvatar` resolve a moldura exclusivamente a partir de `cosmetic_equipment` para a identidade renderizada.
+2. Sem equipamento de tipo `frame`, o componente exibe somente o avatar normal.
+3. Com equipamento, `AvatarFrame` recebe a mesma arte, escala, deslocamento e efeitos usados no editor de molduras.
+4. Menu lateral, cabeçalho de personagem, Ficha, Carteira, Mensagens e mural não renderizam mais a foto da identidade por `<img>` próprio.
+5. Perfil, Comunidade, Combate e listas continuam usando `IdentityBadge`, que agora delega a foto ao componente central.
+6. O ranking passou a renderizar o badge completo da identidade, sem criar estado visual separado.
+7. Uma moldura secreta não concedida continua com nome `???`, descrição oculta e `owned=false` para outro jogador.
+8. Quando essa moldura está equipada por uma identidade ativa, outro membro recebe somente `asset_path` e efeitos para compor o avatar público.
+9. A policy do bucket `avatar-frames` permite a leitura desse arquivo apenas enquanto existe equipamento real na campanha; concessão, equipamento e administração continuam protegidos pelos fluxos existentes.
+
+Evidências:
+
+- `npm test`: 49/49 aprovado, incluindo resolução central por identidade, integração dos renderizadores, catálogo secreto equipado e leitura protegida no Storage.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, seis rotas geradas.
+- Supabase real: migration `20260916041057_expose_equipped_avatar_frames` aplicada; função, policy e vínculo equipado confirmados por consulta.
+- Advisors executados depois da migration. Nenhum alerta novo foi atribuído à função privada ou à nova policy.
+- Não testado: aparência detalhada em celular, alinhamento em todos os tamanhos reais e conferência manual de cada tela no domínio publicado. Esses pontos ficam para o usuário.

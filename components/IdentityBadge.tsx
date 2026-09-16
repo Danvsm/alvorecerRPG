@@ -1,6 +1,6 @@
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
-import AvatarFrame from "./AvatarFrame";
+import IdentityAvatar from "./IdentityAvatar";
 
 export default function IdentityBadge({
   identity,
@@ -22,16 +22,15 @@ export default function IdentityBadge({
         equipment.find((e) => e.identity_id === identity.id && e.kind === kind)
           ?.cosmetic_id,
     );
-  const frame = equipped("frame"),
-    title = equipped("title"),
+  const title = equipped("title"),
     medal = equipped("medal");
   return (
     <div className="identity-badge">
-      <AvatarFrame
-        avatarUrl={urls[identity.avatar_id]}
-        avatarAlt={identity.name}
-        frame={frame}
-        frameUrl={frame?.asset_path ? urls[frame.id] : undefined}
+      <IdentityAvatar
+        identity={identity}
+        cosmetics={cosmetics}
+        equipment={equipment}
+        urls={urls}
         size={avatarSize}
       />
       <span>

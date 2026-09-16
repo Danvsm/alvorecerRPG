@@ -41,6 +41,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260915162321_avatar_frames_audit_indexes.sql",
       "20260915171644_enforce_avatar_frame_action_boundaries.sql",
       "20260915173409_allow_force_delete_avatar_frames.sql",
+      "20260916040618_expose_equipped_avatar_frames.sql",
     ]) {
       const sql = (
         await readFile(
@@ -361,9 +362,9 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     await asUser(master);
     const granted = await frameAction("grant", {
       frame_id: frame.id,
-      identity_ids: [identity, secondIdentity],
+      identity_id: identity,
     });
-    assert.equal(granted.added, 2);
+    assert.equal(granted.added, 1);
     assert.equal(
       (
         await db.query(
@@ -371,7 +372,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
           [frame.id],
         )
       ).rows.length,
-      2,
+      1,
     );
     await assert.rejects(
       frameAction("grant", { frame_id: frame.id, identity_id: identity }),
@@ -384,7 +385,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
           frame.id,
         ])
       ).rows.length,
-      2,
+      1,
     );
     await asUser(player);
     assert.equal(
@@ -397,6 +398,23 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
         await db.query(
           "select * from cosmetic_equipment where identity_id=$1 and cosmetic_id=$2",
           [identity, frame.id],
+        )
+      ).rows.length,
+      1,
+    );
+    await asUser(secondPlayer);
+    const publiclyEquipped = (await frameCatalog()).find(
+      (entry: any) => entry.id === frame.id,
+    );
+    assert.equal(publiclyEquipped.owned, false);
+    assert.equal(publiclyEquipped.name, "???");
+    assert.equal(publiclyEquipped.asset_path, framePath);
+    assert.equal(publiclyEquipped.effects.length, 2);
+    assert.equal(
+      (
+        await db.query(
+          "select 1 from storage.objects where bucket_id='avatar-frames' and name=$1",
+          [framePath],
         )
       ).rows.length,
       1,
@@ -547,7 +565,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     await asUser(master);
     await frameAction("grant", {
       frame_id: frame.id,
-      identity_id: identity,
+      identity_ids: [identity, secondIdentity],
     });
     await frameAction("equip", {
       frame_id: frame.id,

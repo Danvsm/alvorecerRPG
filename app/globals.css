@@ -2114,6 +2114,21 @@ dialog::backdrop {
   display: block;
   color: var(--text-secondary, #a1a1aa);
 }
+.ranking-row > button {
+  flex: 1;
+  justify-content: flex-start;
+  min-width: 0;
+}
+.profile-comment-author,
+.chat-message-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.profile-comment-author > span {
+  display: grid;
+  gap: 2px;
+}
 .identity-photo {
   width: 52px;
   height: 52px;
@@ -2144,7 +2159,7 @@ dialog::backdrop {
 }
 .avatar-frame-photo {
   position: absolute;
-  inset: 10%;
+  inset: 0;
   z-index: 1;
   display: grid;
   place-items: center;
@@ -2186,8 +2201,10 @@ dialog::backdrop {
 .effect-aura {
   border-radius: 30%;
   box-shadow:
-    0 0 calc(12px * var(--effect-intensity)) var(--effect-color),
-    inset 0 0 calc(8px * var(--effect-intensity)) var(--effect-color);
+    0 0 calc(var(--avatar-frame-size) * 0.125 * var(--effect-intensity))
+      var(--effect-color),
+    inset 0 0 calc(var(--avatar-frame-size) * 0.085 * var(--effect-intensity))
+      var(--effect-color);
 }
 .effect-aura {
   animation: frame-breathe var(--effect-speed) ease-in-out infinite alternate;
@@ -2219,8 +2236,8 @@ dialog::backdrop {
   position: absolute;
   left: calc(50% + cos(var(--particle-angle)) * 43%);
   top: calc(50% + sin(var(--particle-angle)) * 43%);
-  width: calc(3px * var(--effect-size));
-  height: calc(3px * var(--effect-size));
+  width: calc(var(--avatar-frame-size) * 0.03 * var(--effect-size));
+  height: calc(var(--avatar-frame-size) * 0.03 * var(--effect-size));
   border-radius: 50%;
   background: var(--effect-color);
   box-shadow: 0 0 6px var(--effect-color);
@@ -2461,6 +2478,9 @@ dialog::backdrop {
 .chat-message small {
   font-size: 11px;
   color: #bcbcc6;
+}
+.chat-message.mine .chat-message-author {
+  flex-direction: row-reverse;
 }
 .notification-container {
   position: relative;

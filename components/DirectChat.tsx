@@ -4,11 +4,15 @@ import { MessageCircle, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import type { Row } from "@/lib/types";
 import ChatImage from "./ChatImage";
+import IdentityAvatar from "./IdentityAvatar";
 import { optimizedWebp } from "@/lib/media";
 
 export default function DirectChat({
   campaign,
   identities,
+  cosmetics,
+  equipment,
+  urls,
   actor,
   master,
   revision,
@@ -17,6 +21,9 @@ export default function DirectChat({
 }: {
   campaign: string;
   identities: Row[];
+  cosmetics: Row[];
+  equipment: Row[];
+  urls: Record<string, string>;
   actor: string;
   master: boolean;
   revision: unknown;
@@ -220,25 +227,37 @@ export default function DirectChat({
                 Carregar anteriores
               </button>
             )}
-            {messages.map((m) => (
-              <div
-                className={
-                  m.sender_id === actor ? "chat-message mine" : "chat-message"
-                }
-                key={m.id}
-              >
-                <small>
-                  {identities.find((i) => i.id === m.sender_id)?.name}
-                </small>
-                {m.media_id ? <ChatImage id={m.media_id} /> : <p>{m.body}</p>}
-                <small>
-                  {new Date(m.created_at).toLocaleTimeString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </small>
-              </div>
-            ))}
+            {messages.map((m) => {
+              const sender = identities.find((i) => i.id === m.sender_id);
+              return (
+                <div
+                  className={
+                    m.sender_id === actor ? "chat-message mine" : "chat-message"
+                  }
+                  key={m.id}
+                >
+                  <div className="chat-message-author">
+                    <IdentityAvatar
+                      identity={sender}
+                      identityId={m.sender_id}
+                      avatarAlt={sender?.name}
+                      cosmetics={cosmetics}
+                      equipment={equipment}
+                      urls={urls}
+                      size={30}
+                    />
+                    <small>{sender?.name || "Perfil indisponível"}</small>
+                  </div>
+                  {m.media_id ? <ChatImage id={m.media_id} /> : <p>{m.body}</p>}
+                  <small>
+                    {new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </small>
+                </div>
+              );
+            })}
           </div>
           {canSend && (
             <form

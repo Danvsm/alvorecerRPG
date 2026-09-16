@@ -132,18 +132,36 @@ export default function CommunityPanel({
             actor={actor}
             master={master}
             identities={identities}
+            cosmetics={cosmetics}
+            equipment={equipment}
+            urls={urls}
             revision={identities}
           />
         </section>
       )}
       <section className="panel">
         <h2>Ranking de riqueza</h2>
-        {ranking.map((r) => (
-          <div className="list-row" key={r.identity_id}>
-            <strong>{r.rank}º</strong>
-            <button onClick={() => setSelected(r.identity_id)}>{r.name}</button>
-          </div>
-        ))}
+        {ranking.map((r) => {
+          const identity = identities.find((i) => i.id === r.identity_id);
+          return (
+            <div className="list-row ranking-row" key={r.identity_id}>
+              <strong>{r.rank}º</strong>
+              <button onClick={() => setSelected(r.identity_id)}>
+                {identity ? (
+                  <IdentityBadge
+                    identity={identity}
+                    cosmetics={cosmetics}
+                    equipment={equipment}
+                    urls={urls}
+                    avatarSize={44}
+                  />
+                ) : (
+                  r.name
+                )}
+              </button>
+            </div>
+          );
+        })}
         {error && <p role="alert">{error}</p>}
       </section>
       {pendingDelete && deleteWorldCharacter && (

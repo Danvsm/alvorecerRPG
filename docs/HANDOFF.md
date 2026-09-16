@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 15/09/2026, 23:05 UTC.
+Atualizado em 16/09/2026, 04:15 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -247,3 +247,22 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Abrir o site uma vez, recarregar e conferir `alvorecer-images-v2` em DevTools > Application > Cache Storage.
 2. Trocar um avatar e confirmar que a nova imagem aparece sem limpar o cache inteiro.
 3. Repetir em aproximadamente 390×844 e desktop; alternar entre duas contas e confirmar que não há imagem incorreta herdada.
+
+## Exibição global de avatar e moldura, 16/09/2026, 04:15 UTC
+
+- `IdentityAvatar` passou a ser o componente central para identidades reais. Ele resolve o avatar, consulta `cosmetic_equipment` e entrega ao `AvatarFrame` a moldura e os efeitos efetivamente equipados.
+- `IdentityBadge` usa o componente central, e as renderizações que ainda exibiam imagem pura foram migradas: menu lateral, cabeçalho de personagem, ficha, carteira, mensagens e autores do mural.
+- Comunidade, Combate, listas de jogadores e Perfil já usavam `IdentityBadge`. O ranking agora também usa o badge completo, mantendo avatar, moldura, efeitos, título e medalha a partir dos vínculos reais.
+- A galeria de escolha continua mostrando somente a arte do avatar, pois representa o item selecionável e não uma identidade equipada. Imagens de itens, logotipo e mídia de chat também permanecem fora desta regra.
+- A migration local `20260916040618_expose_equipped_avatar_frames.sql` foi aplicada no Supabase como `20260916041057_expose_equipped_avatar_frames`.
+- O `frame_catalog` libera arte e efeitos de uma moldura secreta para outros membros somente quando ela está realmente equipada por uma identidade ativa. O nome continua `???`, a descrição continua oculta e nenhuma concessão ou permissão administrativa é ampliada.
+- A leitura do arquivo no bucket privado usa uma função auxiliar em `alvorecer_private`, fora da API exposta, e repete a exigência de campanha, moldura ativa e equipamento real.
+- O Supabase real confirmou a nova função, a policy do Storage e um vínculo de moldura equipada. Os advisors não apontaram alerta novo causado por esta migration; os avisos apresentados já existiam e permanecem fora desta entrega focada.
+- `npm test`: 49/49 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com as seis rotas esperadas.
+- Não foi feita revisão visual extensa nem validação manual em celular. O usuário continuará responsável pelo ajuste fino de aparência, encaixe e responsividade após a publicação.
+
+### Próximo passo recomendado
+
+1. Validar manualmente no celular um jogador com moldura equipada no menu, Perfil, Ficha, Comunidade, Ranking, Mensagens e Combate.
+2. Confirmar um jogador sem moldura nos mesmos pontos, verificando que apenas o avatar normal aparece.
+3. Enviar prints somente dos tamanhos ou alinhamentos que precisarem de ajuste visual.

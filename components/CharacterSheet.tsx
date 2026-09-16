@@ -1,13 +1,17 @@
 "use client";
 
-import { Coins, Shield, Sparkles } from "lucide-react";
+import { Coins, Sparkles } from "lucide-react";
 import { formatDracmas } from "@/lib/currency";
 import type { Row } from "@/lib/types";
+import IdentityAvatar from "./IdentityAvatar";
 import ProgressionPanel from "./ProgressionPanel";
 
 export default function CharacterSheet({
   character,
-  avatarUrl,
+  identity,
+  cosmetics,
+  equipment,
+  avatarUrls,
   resources,
   attributes,
   values,
@@ -18,7 +22,10 @@ export default function CharacterSheet({
   refresh,
 }: {
   character: Row;
-  avatarUrl?: string;
+  identity?: Row;
+  cosmetics: Row[];
+  equipment: Row[];
+  avatarUrls: Record<string, string>;
   resources: Row[];
   attributes: Row[];
   values: Row[];
@@ -42,13 +49,15 @@ export default function CharacterSheet({
   return (
     <div className="character-sheet">
       <section className="panel sheet-identity">
-        {avatarUrl ? (
-          <img className="sheet-avatar" src={avatarUrl} alt={character.name} />
-        ) : (
-          <div className="sheet-avatar empty-portrait">
-            <Shield size={28} />
-          </div>
-        )}
+        <IdentityAvatar
+          identity={identity}
+          avatarId={character.avatar_id}
+          avatarAlt={character.name}
+          cosmetics={cosmetics}
+          equipment={equipment}
+          urls={avatarUrls}
+          size={58}
+        />
         <div>
           <p className="eyebrow">NÍVEL {character.level || 1}</p>
           <h2>{character.name}</h2>
@@ -64,7 +73,6 @@ export default function CharacterSheet({
       </section>
 
       <div className="sheet-summary-grid">
-
         <section className="panel wallet-summary">
           <Coins size={22} />
           <div>
@@ -75,7 +83,12 @@ export default function CharacterSheet({
         </section>
       </div>
 
-      <ProgressionPanel character={character} attributes={attributes} values={values} refresh={refresh} />
+      <ProgressionPanel
+        character={character}
+        attributes={attributes}
+        values={values}
+        refresh={refresh}
+      />
 
       {(mainAdvantages.length > 0 || effects.length > 0) && (
         <div className="sheet-summary-grid">
