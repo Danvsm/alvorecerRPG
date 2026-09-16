@@ -113,6 +113,8 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.match(source, />Conversar</);
   assert.match(source, />Perfil</);
   assert.match(source, /Perfil da comunidade em breve/);
+  assert.match(source, /unreadMessages > 0/);
+  assert.match(source, /styles\.messageBadge/);
   assert.doesNotMatch(source, /Seções da Comunidade/);
   assert.doesNotMatch(source, /Em destaque/);
   assert.doesNotMatch(source, /Ver todos/);
@@ -122,4 +124,24 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.match(css, /width: min\(100%, 980px\)/);
   assert.match(css, /border-top: 1px solid/);
   assert.match(css, /background: transparent/);
+});
+
+test("community moves the real unread count from the floating chat to Conversar", async () => {
+  const [game, chat, community] = await Promise.all([
+    readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../components/CommunityPanel.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(game, /hideBubble=\{page === "Comunidade"\}/);
+  assert.match(game, /onUnreadChange=\{setUnreadMessages\}/);
+  assert.match(game, /unreadMessages=\{unreadMessages\}/);
+  assert.match(chat, /rpc\("unread_messages"/);
+  assert.match(chat, /onUnreadChange\?\.\(unread\)/);
+  assert.match(chat, /!hideBubble/);
+  assert.match(community, /mensagens não lidas/);
+  assert.match(community, /unreadMessages > 99 \? "99\+"/);
 });

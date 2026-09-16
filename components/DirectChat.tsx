@@ -18,6 +18,8 @@ export default function DirectChat({
   revision,
   requestedPeer,
   docked = false,
+  hideBubble = false,
+  onUnreadChange,
 }: {
   campaign: string;
   identities: Row[];
@@ -29,6 +31,8 @@ export default function DirectChat({
   revision: unknown;
   requestedPeer?: { id: string; nonce: number };
   docked?: boolean;
+  hideBubble?: boolean;
+  onUnreadChange?: (count: number) => void;
 }) {
   const [open, setOpen] = useState(false),
     [conversations, setConversations] = useState<Row[]>([]),
@@ -51,6 +55,12 @@ export default function DirectChat({
     if (r.error) throw new Error(r.error.message);
     return r.data;
   };
+  useEffect(() => {
+    onUnreadChange?.(unread);
+  }, [onUnreadChange, unread]);
+  useEffect(() => {
+    if (hideBubble) setOpen(false);
+  }, [hideBubble]);
   useEffect(() => {
     if (!requestedPeer?.id || !actor) return;
     let valid = true;
@@ -137,53 +147,55 @@ export default function DirectChat({
     );
   return (
     <>
-      <button
-        className={`chat-bubble${docked ? " combat-docked" : ""}`}
-        style={{
-          top: `${position.y}%`,
-          left: position.right ? "auto" : 12,
-          right: position.right ? 12 : "auto",
-          touchAction: "none",
-        }}
-        aria-label={`Mensagens, ${unread} não lidas`}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          drag.current = { x: e.clientX, y: e.clientY, moved: false };
-        }}
-        onPointerMove={(e) => {
-          if (!drag.current) return;
-          if (
-            Math.abs(e.clientX - drag.current.x) +
-              Math.abs(e.clientY - drag.current.y) >
-            8
-          )
-            drag.current.moved = true;
-          if (drag.current.moved)
-            setPosition({
-              right: e.clientX > window.innerWidth / 2,
-              y: Math.max(
-                10,
-                Math.min(85, (e.clientY / window.innerHeight) * 100),
-              ),
-            });
-        }}
-        onPointerUp={() => {
-          if (!drag.current?.moved) setOpen((v) => !v);
-          drag.current = null;
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setOpen((v) => !v);
-          }
-        }}
-      >
-        <MessageCircle />
-        {unread > 0 && <span>{unread}</span>}
-      </button>
+      {!hideBubble && (
+        <button
+          className={`chat-bubble${docked ? " combat-docked" : ""}`}
+          style={{
+            top: `${position.y}%`,
+            left: position.right ? "auto" : 12,
+            right: position.right ? 12 : "auto",
+            touchAction: "none",
+          }}
+          aria-label={`Mensagens, ${unread} não lidas`}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            drag.current = { x: e.clientX, y: e.clientY, moved: false };
+          }}
+          onPointerMove={(e) => {
+            if (!drag.current) return;
+            if (
+              Math.abs(e.clientX - drag.current.x) +
+                Math.abs(e.clientY - drag.current.y) >
+              8
+            )
+              drag.current.moved = true;
+            if (drag.current.moved)
+              setPosition({
+                right: e.clientX > window.innerWidth / 2,
+                y: Math.max(
+                  10,
+                  Math.min(85, (e.clientY / window.innerHeight) * 100),
+                ),
+              });
+          }}
+          onPointerUp={() => {
+            if (!drag.current?.moved) setOpen((v) => !v);
+            drag.current = null;
+          }}
+          onPointerCancel={() => {
+            drag.current = null;
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setOpen((v) => !v);
+            }
+          }}
+        >
+          <MessageCircle />
+          {unread > 0 && <span>{unread}</span>}
+        </button>
+      )}
       {open && (
         <aside className="chat-window" aria-label="Mensagens diretas">
           <div className="spread">

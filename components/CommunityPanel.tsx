@@ -83,6 +83,7 @@ export default function CommunityPanel({
   notifications,
   openMenu,
   saveNotification,
+  unreadMessages,
   message,
   changeActor,
   createWorldCharacter,
@@ -99,6 +100,7 @@ export default function CommunityPanel({
   notifications: Row[];
   openMenu: () => void;
   saveNotification: (op: string, details: Row) => Promise<unknown>;
+  unreadMessages: number;
   message: (id: string) => void;
   changeActor?: (id: string) => void;
   createWorldCharacter?: () => void;
@@ -717,6 +719,11 @@ export default function CommunityPanel({
         <button
           type="button"
           className={view === "messages" ? styles.activeBottomItem : ""}
+          aria-label={
+            unreadMessages > 0
+              ? `Conversar, ${unreadMessages} mensagens não lidas`
+              : "Conversar"
+          }
           onClick={() => {
             setView("messages");
             setSelected("");
@@ -726,7 +733,14 @@ export default function CommunityPanel({
             );
           }}
         >
-          <Send aria-hidden="true" />
+          <span className={styles.bottomIcon}>
+            <Send aria-hidden="true" />
+            {unreadMessages > 0 && (
+              <strong className={styles.messageBadge}>
+                {unreadMessages > 99 ? "99+" : unreadMessages}
+              </strong>
+            )}
+          </span>
           <span>Conversar</span>
         </button>
         <button

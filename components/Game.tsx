@@ -231,6 +231,7 @@ function formatHistoryValue(value: unknown): string {
 
 export default function Game({ invite }: { invite?: string }) {
   const [speakingAs, setSpeakingAs] = useState("");
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [playerSearch, setPlayerSearch] = useState("");
   const [expandedPlayer, setExpandedPlayer] = useState("");
   const [chatPeer, setChatPeer] = useState<{ id: string; nonce: number }>();
@@ -2862,6 +2863,7 @@ export default function Game({ invite }: { invite?: string }) {
               notifications={rows("notifications")}
               openMenu={() => setMenu(true)}
               saveNotification={saveNotification}
+              unreadMessages={unreadMessages}
               message={(id) => setChatPeer({ id, nonce: Date.now() })}
               changeActor={isMaster ? setSpeakingAs : undefined}
               createWorldCharacter={
@@ -3530,6 +3532,8 @@ export default function Game({ invite }: { invite?: string }) {
           revision={data}
           requestedPeer={chatPeer}
           docked={page === "Combate"}
+          hideBubble={page === "Comunidade"}
+          onUnreadChange={setUnreadMessages}
         />
       )}
       {avatarPickerTarget && (

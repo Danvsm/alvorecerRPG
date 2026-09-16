@@ -425,3 +425,20 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Validar no celular os avatares com e sem moldura no story e confirmar se o diâmetro visual ficou equivalente.
 2. Alternar entre Início, Explorar, Criar e Conversar e confirmar que somente uma área aparece por vez.
 3. Conferir o header transparente e a barra inferior integrada à borda da tela.
+
+## Mensagens não lidas na navegação da Comunidade, 16/09/2026, 22:02 UTC
+
+- O balão flutuante de mensagens foi removido somente enquanto a página Comunidade está ativa. Nas demais páginas, ele continua disponível como antes.
+- O item `Conversar` da barra inferior agora exibe uma bolinha vermelha com a quantidade real de mensagens diretas não lidas.
+- O contador reutiliza o resultado já protegido da RPC `unread_messages`, calculado pelo `DirectChat`, e é compartilhado com a Comunidade sem criar consulta duplicada nem estado visual independente.
+- O indicador fica oculto quando o total é zero e limita apenas a apresentação a `99+`; o valor real permanece preservado.
+- Ao entrar na Comunidade, uma janela flutuante que estivesse aberta é fechada. A abertura de conversa pelo diretório continua usando o fluxo existente.
+- Nenhuma migration, RLS, RPC ou dado do Supabase foi alterado.
+- `npm test`: 61/61 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com seis rotas geradas.
+- Não foram feitos teste visual, teste mecânico no navegador ou validação em celular. O usuário fará essa conferência após o deploy.
+
+### Próximo passo recomendado
+
+1. Receber uma mensagem em outra sessão e conferir no celular se o número aparece no item `Conversar`.
+2. Abrir a conversa, ler a mensagem e confirmar que o indicador desaparece.
+3. Confirmar que não existe mais balão flutuante sobre a Comunidade.

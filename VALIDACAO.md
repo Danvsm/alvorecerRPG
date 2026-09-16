@@ -488,3 +488,22 @@ Evidências:
 - `git diff --check`: aprovado.
 
 Não testado: aparência real dos ícones, equivalência visual do diâmetro com cada moldura, troca entre as áreas no navegador, barra inferior no Safari mobile e fidelidade final ao print. A validação permanece manual com o usuário.
+
+## Mensagens não lidas na navegação da Comunidade, 16/09/2026, 22:02 UTC
+
+Validação técnica concluída:
+
+1. O `DirectChat` continua sendo a única origem do total retornado pela RPC protegida `unread_messages`.
+2. O total é elevado ao `Game` e enviado à Comunidade, sem segunda consulta ao backend.
+3. O balão flutuante não é renderizado na Comunidade e permanece inalterado nas demais páginas.
+4. O item `Conversar` exibe o indicador somente quando existem mensagens não lidas e possui rótulo acessível com a quantidade.
+5. A apresentação é limitada a `99+`, sem alterar o valor real mantido pelo chat.
+6. Nenhuma migration, tabela, policy, RLS ou função do Supabase foi modificada.
+
+Evidências:
+
+- `npm test`: 61/61 aprovado, incluindo a integração entre `Game`, `DirectChat` e `CommunityPanel`.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, com seis rotas geradas.
+
+Não testado por solicitação do usuário: aparência da bolinha, atualização entre duas sessões reais, leitura manual da mensagem, responsividade e comportamento no celular. A validação visual e mecânica permanece com o usuário após o deploy.
