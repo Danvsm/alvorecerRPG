@@ -198,9 +198,13 @@
   gap: 16px;
   overflow-x: auto;
   padding: 5px 4px 24px;
-  scrollbar-color: #76502a transparent;
-  scrollbar-width: thin;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   scroll-snap-type: x proximity;
+}
+
+.featuredRail::-webkit-scrollbar {
+  display: none;
 }
 
 .featuredProfile {

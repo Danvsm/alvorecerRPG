@@ -68,4 +68,9 @@ test("community header and stories have no divider lines", async () => {
   const stories = css.match(/\.featuredRail\s*\{[\s\S]*?\}/)?.[0] || "";
   assert.doesNotMatch(header, /border-bottom/);
   assert.doesNotMatch(stories, /border-bottom/);
+  assert.match(stories, /scrollbar-width: none/);
+  assert.match(
+    css,
+    /\.featuredRail::\-webkit-scrollbar\s*\{[\s\S]*?display: none/,
+  );
 });
