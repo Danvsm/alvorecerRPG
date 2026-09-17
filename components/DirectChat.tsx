@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
+import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import ChatImage from "./ChatImage";
 import IdentityAvatar from "./IdentityAvatar";
@@ -72,7 +73,7 @@ export default function DirectChat({
           setRefresh((v) => v + 1);
         }
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(readableErrorMessage(e)));
     return () => {
       valid = false;
     };
@@ -85,12 +86,14 @@ export default function DirectChat({
         .select("*")
         .eq("campaign_id", campaign)
         .order("created_at", { ascending: false }),
-      browserDb().rpc("unread_messages", { c: campaign, actor }),
+      retryNetworkRead(() =>
+        browserDb().rpc("unread_messages", { c: campaign, actor }),
+      ),
     ]).then(([c, r]) => {
       if (!valid) return;
       const failed = [c, r].find((x) => x.error);
       if (failed?.error) {
-        setError(failed.error.message);
+        setError(readableErrorMessage(failed.error));
         return;
       }
       setConversations(c.data || []);
@@ -112,7 +115,7 @@ export default function DirectChat({
       .then(async (r) => {
         if (!valid) return;
         if (r.error) {
-          setError(r.error.message);
+          setError(readableErrorMessage(r.error));
           return;
         }
         setMessages((r.data || []).reverse());
@@ -124,14 +127,16 @@ export default function DirectChat({
         ) {
           try {
             await action("read", { conversation_id: selected });
-            const unreadResult = await browserDb().rpc("unread_messages", {
-              c: campaign,
-              actor,
-            });
+            const unreadResult = await retryNetworkRead(() =>
+              browserDb().rpc("unread_messages", {
+                c: campaign,
+                actor,
+              }),
+            );
             if (!unreadResult.error && valid)
               setUnread(Number(unreadResult.data || 0));
           } catch (e) {
-            setError((e as Error).message);
+            setError(readableErrorMessage(e));
           }
         }
       });
@@ -283,7 +288,7 @@ export default function DirectChat({
                   setBody("");
                   setRefresh((v) => v + 1);
                 } catch (e) {
-                  setError((e as Error).message);
+                  setError(readableErrorMessage(e));
                 } finally {
                   setBusy(false);
                 }
@@ -334,7 +339,7 @@ export default function DirectChat({
                       if (sent.error) throw sent.error;
                       setRefresh((v) => v + 1);
                     } catch (e) {
-                      setError((e as Error).message);
+                      setError(readableErrorMessage(e));
                     } finally {
                       setBusy(false);
                     }

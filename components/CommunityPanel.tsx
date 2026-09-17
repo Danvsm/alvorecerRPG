@@ -21,6 +21,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { orderCommunityIdentities } from "@/lib/community";
+import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
 import IdentityAvatar from "./IdentityAvatar";
@@ -125,9 +126,11 @@ export default function CommunityPanel({
   useEffect(() => {
     let active = true;
     const loadRanking = async () => {
-      const response = await browserDb().rpc("wealth_ranking", { c: campaign });
+      const response = await retryNetworkRead(() =>
+        browserDb().rpc("wealth_ranking", { c: campaign }),
+      );
       if (!active) return;
-      if (response.error) setError(response.error.message);
+      if (response.error) setError(readableErrorMessage(response.error));
       else setRanking(response.data || []);
     };
     void loadRanking();
@@ -139,12 +142,14 @@ export default function CommunityPanel({
   useEffect(() => {
     let active = true;
     const refreshPresence = async () => {
-      const response = await browserDb().rpc("community_presence", {
-        c: campaign,
-      });
+      const response = await retryNetworkRead(() =>
+        browserDb().rpc("community_presence", {
+          c: campaign,
+        }),
+      );
       if (!active) return;
       if (response.error) {
-        setError(response.error.message);
+        setError(readableErrorMessage(response.error));
         return;
       }
       setOnlineUserIds(
@@ -822,7 +827,7 @@ function DeleteWorldCharacterDialog({
             try {
               await remove();
             } catch (reason) {
-              setError((reason as Error).message);
+              setError(readableErrorMessage(reason));
               setBusy(false);
             }
           }}

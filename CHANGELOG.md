@@ -68,6 +68,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Formato global dos avatares configurável por Pink/Mestre entre circular e quadrado, com padrão circular, persistência no tema da campanha e sincronização para os jogadores.
 - Comunidade refinada no estilo social dark fantasy Orkutista, com logo próprio, cabeçalho inspirado no mockup, destaques circulares maiores, composição visual de feed e barra inferior fixa com acesso a início, exploração, criação, conversa e perfil.
 - Navegação da Comunidade separada entre Início, Explorar, Criar e Conversar, com Perfil social temporariamente desativado, header sem caixas nos ícones, barra inferior integrada à tela e correção do tamanho da foto dentro de molduras circulares.
+- Falhas transitórias de conexão deixaram de exibir `TypeError: Failed to fetch`: leituras críticas possuem recuperação limitada, a carga duplicada do Realtime foi removida e a Comunidade ficou sem divisores no cabeçalho e nos stories.
 
 ### Estado de validação
 

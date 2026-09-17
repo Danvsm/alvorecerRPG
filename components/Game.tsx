@@ -74,6 +74,7 @@ import {
 import { combatDamagePayload, combatResourceCommand } from "@/lib/combat";
 import { cosmeticsActionRequest } from "@/lib/cosmetics";
 import { formatDracmas, parseDracmas } from "@/lib/currency";
+import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import {
   collectVisualAssets,
   signVisualAssets,
@@ -392,11 +393,11 @@ export default function Game({ invite }: { invite?: string }) {
             return q;
           }),
         ),
-        db.rpc("combat_snapshot", { c }),
-        db.rpc("transfer_recipients", { c }),
-        db.rpc("combat_identities", { c }),
-        db.rpc("avatar_catalog", { c }),
-        db.rpc("frame_catalog", { c }),
+        retryNetworkRead(() => db.rpc("combat_snapshot", { c })),
+        retryNetworkRead(() => db.rpc("transfer_recipients", { c })),
+        retryNetworkRead(() => db.rpc("combat_identities", { c })),
+        retryNetworkRead(() => db.rpc("avatar_catalog", { c })),
+        retryNetworkRead(() => db.rpc("frame_catalog", { c })),
         db.from("campaigns").select("*").eq("id", c).single(),
       ]);
       const failed = result.findIndex((r) => r.error);
@@ -435,7 +436,7 @@ export default function Game({ invite }: { invite?: string }) {
         current.map((entry) => (entry.id === c ? campaignResult.data : entry)),
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableErrorMessage(e));
       if (strict) throw e;
     } finally {
       if (version === requestVersion.current) setLoading(false);
@@ -494,7 +495,6 @@ export default function Game({ invite }: { invite?: string }) {
               ? "Reconectando"
               : "Conectando",
         );
-        if (status === "SUBSCRIBED") load(campaign);
       });
     const refresh = () => load(campaign);
     window.addEventListener("online", refresh);
@@ -640,7 +640,7 @@ export default function Game({ invite }: { invite?: string }) {
     try {
       await fn();
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -652,7 +652,7 @@ export default function Game({ invite }: { invite?: string }) {
     try {
       return await fn();
     } catch (caught) {
-      setError((caught as Error).message);
+      setError(readableErrorMessage(caught));
       throw caught;
     } finally {
       setBusy(false);

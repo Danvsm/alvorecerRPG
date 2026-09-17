@@ -507,3 +507,25 @@ Evidências:
 - `npm run build`: aprovado, com seis rotas geradas.
 
 Não testado por solicitação do usuário: aparência da bolinha, atualização entre duas sessões reais, leitura manual da mensagem, responsividade e comportamento no celular. A validação visual e mecânica permanece com o usuário após o deploy.
+
+## Recuperação de falha de rede e divisores da Comunidade, 17/09/2026, 01:57 UTC
+
+Validação técnica concluída:
+
+1. O Supabase real foi consultado e retornou estado `ACTIVE_HEALTHY`.
+2. A Vercel não registrou erros de runtime do projeto nas 24 horas anteriores à investigação.
+3. O erro cru corresponde ao resultado de transporte com status zero produzido pelo cliente Supabase quando o `fetch` não recebe resposta HTTP.
+4. RPCs de leitura repetem somente falhas transitórias reconhecidas e param após duas novas tentativas com espera progressiva.
+5. Erros de aplicação, autorização e validação não são repetidos.
+6. Operações de escrita não usam a repetição automática criada nesta entrega.
+7. A segunda carga completa anteriormente disparada ao receber `SUBSCRIBED` foi removida.
+8. O cabeçalho e a área de stories não possuem mais `border-bottom`.
+9. Nenhuma migration, tabela, policy, RLS ou função do Supabase foi modificada.
+
+Evidências:
+
+- `npm test`: 66/66 aprovado, incluindo repetição transitória, preservação de erros de aplicação, ausência da carga duplicada e remoção dos divisores.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, com seis rotas geradas.
+
+Não testado: interrupção real de rede, comportamento entre Wi-Fi e rede móvel, aparência no navegador e responsividade em celular. A validação permanece manual com o usuário.

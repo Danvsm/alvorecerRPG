@@ -442,3 +442,21 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Receber uma mensagem em outra sessão e conferir no celular se o número aparece no item `Conversar`.
 2. Abrir a conversa, ler a mensagem e confirmar que o indicador desaparece.
 3. Confirmar que não existe mais balão flutuante sobre a Comunidade.
+
+## Recuperação de falha de rede e remoção dos divisores da Comunidade, 17/09/2026, 01:57 UTC
+
+- A mensagem `TypeError: Failed to fetch` foi identificada como falha de transporte no navegador: a requisição não recebeu uma resposta HTTP. Não é uma mensagem de regra do banco ou de RLS.
+- Na verificação do incidente, o projeto Supabase estava `ACTIVE_HEALTHY` e a Vercel não possuía erros de runtime registrados nas 24 horas anteriores.
+- A tela principal carregava 29 tabelas e cinco RPCs de leitura em paralelo. Ao conectar o Realtime, essa carga completa era disparada uma segunda vez sem necessidade, aumentando a exposição a oscilações de rede.
+- O carregamento duplicado após `SUBSCRIBED` foi removido. A carga inicial permanece imediata e as alterações seguintes continuam atualizadas pelos eventos Realtime.
+- RPCs comprovadamente somente de leitura agora repetem até duas vezes apenas quando ocorre falha de transporte. Operações que alteram dados não são repetidas automaticamente, evitando duplicação de ações.
+- Quando a conexão continua indisponível depois das tentativas, a interface apresenta uma mensagem compreensível em português no lugar do erro técnico cru.
+- A linha inferior do cabeçalho e a linha inferior da área de stories da Comunidade foram removidas conforme o print enviado.
+- Nenhuma migration, RLS, função ou dado do Supabase foi alterado.
+- `npm test`: 66/66 aprovado. `npm run typecheck`: aprovado. `npm run build`: aprovado, com seis rotas geradas.
+- Não foram feitos teste visual, simulação de queda real de rede no navegador ou validação em celular.
+
+### Próximo passo recomendado
+
+1. Validar no celular se o cabeçalho e os stories ficaram contínuos, sem linhas divisórias.
+2. Observar o uso normal em troca de Wi-Fi e rede móvel e informar se a mensagem amigável ainda aparece com frequência.

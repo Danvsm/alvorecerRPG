@@ -23,7 +23,6 @@
   gap: 16px;
   min-height: 96px;
   padding: 10px 28px;
-  border-bottom: 1px solid #78502b80;
   background: url("/community/community-wallpaper.webp") 70% 33% / cover
     no-repeat;
   isolation: isolate;
@@ -199,7 +198,6 @@
   gap: 16px;
   overflow-x: auto;
   padding: 5px 4px 24px;
-  border-bottom: 1px solid #5b4328;
   scrollbar-color: #76502a transparent;
   scrollbar-width: thin;
   scroll-snap-type: x proximity;
