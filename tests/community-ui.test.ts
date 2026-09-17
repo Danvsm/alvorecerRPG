@@ -62,6 +62,20 @@ test("the default directory prioritizes online profiles then real wealth", () =>
   );
 });
 
+test("stories prioritize online profiles before wealth rank", async () => {
+  const source = await readFile(
+    new URL("../components/CommunityPanel.tsx", import.meta.url),
+    "utf8",
+  );
+  const featured = source.match(
+    /const featured = useMemo\([\s\S]*?const feedIdentity/,
+  )?.[0];
+
+  assert.match(featured || "", /orderCommunityIdentities/);
+  assert.match(featured || "", /onlineUserIds/);
+  assert.match(featured || "", /"wealth"/);
+});
+
 test("the five supplied rank medals are part of the community gallery", async () => {
   await Promise.all(
     [1, 2, 3, 4, 5].map((rank) =>

@@ -207,17 +207,13 @@ export default function CommunityPanel({
 
   const featured = useMemo(
     () =>
-      activeIdentities
-        .filter((identity) => identity.user_id)
-        .sort((left, right) => {
-          const leftRank = rankByIdentity.get(left.id) ?? 999;
-          const rightRank = rankByIdentity.get(right.id) ?? 999;
-          return (
-            leftRank - rightRank || left.name.localeCompare(right.name, "pt-BR")
-          );
-        })
-        .slice(0, 6),
-    [activeIdentities, rankByIdentity],
+      orderCommunityIdentities(
+        activeIdentities.filter((identity) => identity.user_id),
+        rankByIdentity,
+        onlineUserIds,
+        "wealth",
+      ).slice(0, 6),
+    [activeIdentities, onlineUserIds, rankByIdentity],
   );
   const feedIdentity = actorIdentity || featured[0];
 
