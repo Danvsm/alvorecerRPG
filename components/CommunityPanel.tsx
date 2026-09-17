@@ -2,15 +2,12 @@
 
 import Image from "next/image";
 import {
-  Bookmark,
   ChevronRight,
   Compass,
   Crown,
-  Heart,
   Home,
   Menu,
   MessageCircle,
-  MoreVertical,
   Plus,
   Search,
   Send,
@@ -24,6 +21,7 @@ import { orderCommunityIdentities } from "@/lib/community";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
+import CommunityFeed from "./CommunityFeed";
 import IdentityAvatar from "./IdentityAvatar";
 import NotificationBell from "./NotificationBell";
 import ProfileWall from "./ProfileWall";
@@ -193,9 +191,6 @@ export default function CommunityPanel({
     [ranking],
   );
   const current = activeIdentities.find((identity) => identity.id === selected);
-  const actorIdentity = activeIdentities.find(
-    (identity) => identity.id === actor,
-  );
   const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
   const matchesSearch = (identity: Row) =>
     !normalizedSearch ||
@@ -215,8 +210,6 @@ export default function CommunityPanel({
       ).slice(0, 6),
     [activeIdentities, onlineUserIds, rankByIdentity],
   );
-  const feedIdentity = actorIdentity || featured[0];
-
   const directory = useMemo(() => {
     const byName = orderCommunityIdentities(
       activeIdentities,
@@ -278,11 +271,8 @@ export default function CommunityPanel({
 
   const revealCreate = () => {
     if (!actor) return;
-    setSelected(actor);
+    setSelected("");
     setView("create");
-    window.requestAnimationFrame(() =>
-      profileRef.current?.scrollIntoView({ behavior: "smooth" }),
-    );
   };
 
   const revealProfile = (identityId: string) => {
@@ -363,7 +353,7 @@ export default function CommunityPanel({
               <span className={styles.storyPlus}>
                 <Plus aria-hidden="true" />
               </span>
-              <strong>Seu story</strong>
+              <strong>Nova publicação</strong>
               <small>Compartilhe</small>
             </button>
             {featured.map((identity) => (
@@ -392,86 +382,23 @@ export default function CommunityPanel({
         </section>
       )}
 
-      {view === "create" && master && changeActor && createWorldCharacter && (
-        <section className={styles.masterBar} aria-label="Controles do Mestre">
-          <Crown aria-hidden="true" />
-          <label>
-            <span>Publicar como</span>
-            <select
-              value={actor}
-              onChange={(event) => changeActor(event.target.value)}
-            >
-              {activeIdentities
-                .filter((identity) => ["master", "npc"].includes(identity.kind))
-                .map((identity) => (
-                  <option key={identity.id} value={identity.id}>
-                    {identity.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <button type="button" onClick={createWorldCharacter}>
-            Criar Personagem do Mundo
-          </button>
-        </section>
+      {(view === "home" || view === "create") && actor && (
+        <CommunityFeed
+          campaign={campaign}
+          actor={actor}
+          master={master}
+          identities={identities}
+          cosmetics={cosmetics}
+          equipment={equipment}
+          urls={urls}
+          composerOpen={view === "create"}
+          closeComposer={() => setView("home")}
+          changeActor={changeActor}
+          createWorldCharacter={createWorldCharacter}
+        />
       )}
 
-      {view === "home" && feedIdentity && (
-        <section className={styles.feed} aria-label="Início da comunidade">
-          <article className={styles.feedCard}>
-            <header className={styles.feedAuthor}>
-              <span className={styles.avatarWrap}>
-                <IdentityAvatar
-                  identity={feedIdentity}
-                  cosmetics={cosmetics}
-                  equipment={equipment}
-                  urls={urls}
-                  size={56}
-                />
-                <OnlineDot online={isOnline(feedIdentity)} />
-              </span>
-              <span>
-                <strong>{feedIdentity.name}</strong>
-                <small>{profileCaption(feedIdentity)}</small>
-              </span>
-              <MoreVertical aria-hidden="true" />
-            </header>
-            <p className={styles.feedText}>
-              Grandes histórias também são vividas juntas. O mundo de Alvorecer
-              continua em cada novo encontro.
-            </p>
-            <div className={styles.feedArtwork}>
-              <Image
-                src="/community/community-wallpaper.webp"
-                width={1536}
-                height={700}
-                sizes="(max-width: 760px) 100vw, 820px"
-                alt="Castelo de Alvorecer sob um eclipse vermelho"
-              />
-              <span>UM SÓ MUNDO. MUITAS HISTÓRIAS.</span>
-            </div>
-            <div
-              className={styles.feedActions}
-              aria-label="Ações da publicação"
-            >
-              <span title="Curtir">
-                <Heart aria-hidden="true" />
-              </span>
-              <span title="Comentar">
-                <MessageCircle aria-hidden="true" />
-              </span>
-              <span title="Compartilhar">
-                <Send aria-hidden="true" />
-              </span>
-              <span title="Salvar">
-                <Bookmark aria-hidden="true" />
-              </span>
-            </div>
-          </article>
-        </section>
-      )}
-
-      {current && (view === "create" || view === "profile") && (
+      {current && view === "profile" && (
         <section className={styles.publicProfile} ref={profileRef}>
           <div className={styles.profileHeading}>
             <span className={styles.avatarWrap}>

@@ -68,7 +68,7 @@ test("stories prioritize online profiles before wealth rank", async () => {
     "utf8",
   );
   const featured = source.match(
-    /const featured = useMemo\([\s\S]*?const feedIdentity/,
+    /const featured = useMemo\([\s\S]*?const directory/,
   )?.[0];
 
   assert.match(featured || "", /orderCommunityIdentities/);

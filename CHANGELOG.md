@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes concluídas neste projeto são registradas aqui. Itens que ainda dependem de validação permanecem fora da lista de entregas concluídas.
 
+## Em desenvolvimento — 2026-09-17
+
+### Entregue
+
+- Feed inicial real do Orkutista com publicação de uma foto e legenda.
+- Seleção, prévia e otimização automática da foto para WebP de até 1 MB antes do envio ao Storage privado.
+- Cards do feed com o componente central de avatar e moldura equipada, autoria, username, foto, legenda e contadores.
+- Curtir e descurtir publicação com uma única curtida ativa por identidade.
+- Comentários em painel responsivo, curtidas em comentários e respostas limitadas a um nível abaixo do comentário principal.
+- Validação server-side da identidade autenticada; jogadores não podem publicar, comentar ou curtir como outra pessoa.
+- Mestre continua podendo representar apenas sua identidade ou Personagens do Mundo sem usuário, preservando o controle existente de criação desses personagens.
+- Migration `orkutista_feed` aplicada no Supabase real, com RLS, bucket privado e funções autenticadas.
+- `npm test`: 69/69 aprovado; `npm run typecheck` e `npm run build`: aprovados.
+- Validação visual e manual em celular permanece para o usuário após o deploy.
+
 ## 1.3.0 — 2026-09-14
 
 ### Entregue

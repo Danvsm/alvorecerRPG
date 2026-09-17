@@ -101,3 +101,64 @@ export async function uploadFrameImage(file: File, campaign: string) {
   if (error) throw error;
   return path;
 }
+
+async function postImageWebp(file: File) {
+  if (
+    file.size > 12 * 1024 * 1024 ||
+    !["image/webp", "image/jpeg", "image/png"].includes(file.type)
+  )
+    throw new Error("Use WebP, JPG ou PNG de até 12 MB");
+  const image = await createImageBitmap(file);
+  if (image.width * image.height > 24000000) {
+    image.close();
+    throw new Error("A imagem excede 24 megapixels");
+  }
+
+  let scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+  let blob: Blob | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) {
+      image.close();
+      throw new Error("Não foi possível preparar a foto");
+    }
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const quality = Math.max(0.68, 0.88 - attempt * 0.05);
+    blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (value) =>
+          value
+            ? resolve(value)
+            : reject(new Error("Não foi possível converter a foto")),
+        "image/webp",
+        quality,
+      ),
+    );
+    if (blob.size <= 1024 * 1024) break;
+    scale *= 0.82;
+  }
+  image.close();
+  if (!blob || blob.type !== "image/webp" || blob.size > 1024 * 1024)
+    throw new Error("Não foi possível reduzir a foto para menos de 1 MB");
+  return blob;
+}
+
+export async function uploadCommunityPostImage(
+  file: File,
+  campaign: string,
+  actor: string,
+) {
+  const blob = await postImageWebp(file);
+  const path = `${campaign}/${actor}/${crypto.randomUUID()}.webp`;
+  const { error } = await browserDb()
+    .storage.from("community-posts")
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
+  if (error) throw error;
+  return path;
+}

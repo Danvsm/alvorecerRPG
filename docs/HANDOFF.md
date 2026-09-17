@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 16/09/2026, 21:50 UTC.
+Atualizado em 17/09/2026, 23:10 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -59,7 +59,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ### Automatizados
 
-- `npm test`: 28/28 testes aprovados.
+- `npm test`: 69/69 testes aprovados no estado atual.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.
@@ -80,6 +80,8 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O cron de limpeza respondeu HTTP 200 após o aumento do timeout.
 
 ## Ainda falta testar
+
+- Validar manualmente no celular o novo feed do Orkutista: criação com foto e legenda, curtir/descurtir, comentários, curtidas em comentários e respostas de um nível.
 
 - A entrega e leitura do chat nos dois sentidos estão confirmadas no banco: darkvsm leu as mensagens de Pink e Pink leu a resposta de darkvsm. Ainda falta confirmar visualmente a apresentação da resposta na interface.
 - Exercitar novamente a troca de conta no site publicado e confirmar visualmente que conversa, destinatário e identidade não vazam entre sessões.
