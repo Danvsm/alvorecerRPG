@@ -138,6 +138,9 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.match(css, /width: min\(100%, 980px\)/);
   assert.match(css, /border-top: 1px solid/);
   assert.match(css, /background: transparent/);
+  assert.match(css, /\.bottomIcon\s*\{[\s\S]*?overflow: visible/);
+  assert.match(css, /button > span:not\(\.bottomIcon\)/);
+  assert.doesNotMatch(css, /\.bottomNav button span\s*\{/);
 });
 
 test("community moves the real unread count from the floating chat to Conversar", async () => {

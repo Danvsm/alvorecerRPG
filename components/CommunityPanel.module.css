@@ -786,6 +786,9 @@
 .bottomIcon {
   position: relative;
   display: grid;
+  width: 25px;
+  height: 25px;
+  overflow: visible;
   place-items: center;
 }
 
@@ -1031,7 +1034,7 @@
   .profileMeta em {
     max-width: 158px;
   }
-  .bottomNav button span {
+  .bottomNav button > span:not(.bottomIcon) {
     max-width: 62px;
     overflow: hidden;
     text-overflow: ellipsis;
