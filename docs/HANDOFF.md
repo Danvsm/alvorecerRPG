@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 17/09/2026, 23:10 UTC.
+Atualizado em 18/09/2026, 00:18 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -10,7 +10,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Vercel: projeto `alvorecer-rpg-vsm`, ID `prj_QaxFObeWPJ8w0urfdzYICRDwIlHs`, equipe `team_CnaWIE2ArNb8Rmus0NWgv4Hr`.
 - Produção: `https://alvorecer-rpg-vsm.vercel.app`.
 - Supabase: projeto `alvorecer`, Project Ref `wsihnbrnqdnmidjvjchn`, região `sa-east-1`, estado `ACTIVE_HEALTHY`.
-- Edge Function principal: `alvorecer-api`, ativa, versão 13, `verify_jwt=false`.
+- Edge Function principal: `alvorecer-api`, ativa, versão 15, `verify_jwt=false`.
 - Não criar outro projeto Vercel, Supabase ou banco para esta continuação.
 
 ## Código e deploy
@@ -27,17 +27,18 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ## Banco, migrations e função
 
-- As 29 migrations registradas estão aplicadas no Supabase real.
-- A última migration aplicada é `20260915162348_avatar_frames_audit_indexes`.
+- As 41 migrations registradas estão aplicadas no Supabase real.
+- A última migration aplicada é `20260918001929_restrict_stories_to_user_identities`.
 - A migration `delete_world_characters`, que já estava aplicada no Supabase, foi recuperada para o Git sem alterar seu SQL. O conteúdo local e o registro remoto possuem o mesmo MD5: `acffd1ca56a91483efa42a87dbee8b5d`.
-- A migration `chat_media_cleanup_timeout` mantém o cron `alvorecer-chat-media-cleanup` a cada 15 minutos e aumenta o timeout de `pg_net` para 60 segundos.
+- A migration `orkutista_stories` mantém o cron autenticado `alvorecer-chat-media-cleanup` a cada minuto e preserva o timeout de `pg_net` em 60 segundos para limpar chat e Stories.
 - A chamada de limpeza usa o endpoint `/functions/v1/alvorecer-api/media-cleanup` e autenticação guardada no Vault.
-- A Edge Function `alvorecer-api` está ativa na versão 13.
+- A Edge Function `alvorecer-api` está ativa na versão 15.
 - A migration corretiva remove a RPC antiga e divide a operação em preparação e finalização, ambas acessíveis somente por `service_role`. A remoção física ocorre entre essas etapas pela API oficial do Storage.
 
 ## Entregas concluídas
 
 - Aplicação Next.js real com Supabase Auth, RLS, Realtime, Storage privado, Vault e proxy seguro para a Edge Function.
+- Stories do Orkutista com imagem otimizada, sequência por autor, visto/não visto, visualizador em tela cheia, expiração em 24 horas e exclusão pelo autor ou Mestre.
 - Login por username, mestre inicial, criação de jogador e convite de uso único.
 - Ficha, recursos calculados, atributos dinâmicos, vantagens, inventário, consumíveis, lojas e Dracmas em centavos.
 - Galeria privada de avatares, perfis, cosméticos, notificações, comunidade, mural e chat direto com imagem temporária.
@@ -59,7 +60,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ### Automatizados
 
-- `npm test`: 69/69 testes aprovados no estado atual.
+- `npm test`: 71/71 testes aprovados no estado atual.
 - `npm run typecheck`: aprovado.
 - `npm run build`: aprovado.
 - Rotas esperadas geradas: `/`, `/api/auth`, `/api/admin`, `/convite/[token]` e `/dev`.

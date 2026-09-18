@@ -62,18 +62,22 @@ test("the default directory prioritizes online profiles then real wealth", () =>
   );
 });
 
-test("stories prioritize online profiles before wealth rank", async () => {
-  const source = await readFile(
-    new URL("../components/CommunityPanel.tsx", import.meta.url),
-    "utf8",
-  );
-  const featured = source.match(
-    /const featured = useMemo\([\s\S]*?const directory/,
-  )?.[0];
+test("the top rail is reserved for active Stories", async () => {
+  const [panel, stories] = await Promise.all([
+    readFile(
+      new URL("../components/CommunityPanel.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../components/CommunityStories.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
 
-  assert.match(featured || "", /orderCommunityIdentities/);
-  assert.match(featured || "", /onlineUserIds/);
-  assert.match(featured || "", /"wealth"/);
+  assert.match(panel, /<CommunityStories/);
+  assert.match(stories, /community_stories/);
+  assert.match(stories, /Seu story/);
+  assert.doesNotMatch(panel, /const featured =/);
 });
 
 test("the five supplied rank medals are part of the community gallery", async () => {
@@ -132,7 +136,8 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.doesNotMatch(source, /Seções da Comunidade/);
   assert.doesNotMatch(source, /Em destaque/);
   assert.doesNotMatch(source, /Ver todos/);
-  assert.match(source, /size="clamp\(104px, 23vw, 118px\)"/);
+  assert.match(source, /<CommunityStories/);
+  assert.match(css, /\.storyRing/);
   assert.match(css, /\.bottomNav/);
   assert.match(css, /position: fixed/);
   assert.match(css, /width: min\(100%, 980px\)/);

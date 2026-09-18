@@ -193,11 +193,13 @@
 
 .featuredRail {
   display: grid;
-  grid-auto-columns: minmax(124px, 1fr);
+  grid-auto-columns: 86px;
   grid-auto-flow: column;
-  gap: 16px;
+  gap: 12px;
   overflow-x: auto;
-  padding: 5px 4px 24px;
+  overscroll-behavior-inline: contain;
+  padding: 5px 4px 18px;
+  touch-action: pan-x;
   -ms-overflow-style: none;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
@@ -251,13 +253,13 @@
   filter: drop-shadow(0 0 10px #8e4c2340);
 }
 .createStory {
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto;
 }
 
 .storyPlus {
   display: grid;
-  width: clamp(104px, 23vw, 118px);
-  height: clamp(104px, 23vw, 118px);
+  width: 82px;
+  height: 82px;
   border: 2px solid #ab7842;
   border-radius: 50%;
   background: radial-gradient(circle, #311418 0%, #100c0d 68%), #100c0d;
@@ -271,6 +273,46 @@
   width: 38px;
   height: 38px;
   color: #f1d2a0;
+}
+
+.storyRing {
+  display: grid;
+  width: 84px;
+  height: 84px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  place-items: center;
+  transition:
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.storyUnseen {
+  border-color: #e3aa55;
+  background: linear-gradient(145deg, #9d142c, #dc9c43) border-box;
+  box-shadow: 0 0 15px #b83a2855;
+}
+
+.storySeen {
+  border-color: #5b5148;
+  opacity: 0.76;
+}
+
+.storyRing > * {
+  border-radius: 50%;
+}
+
+.storyLoading {
+  display: grid;
+  width: 82px;
+  height: 82px;
+  color: #bca47e;
+  place-items: center;
+}
+
+.storyLoading svg,
+.storySpinner {
+  animation: community-spin 0.9s linear infinite;
 }
 
 .avatarWrap {
@@ -516,6 +558,183 @@ dialog.composer::backdrop,
 dialog.commentsSheet::backdrop {
   background: #030203d6;
   backdrop-filter: blur(5px);
+}
+
+dialog.storyViewer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: #030303;
+}
+
+dialog.storyViewer::backdrop {
+  background: #000;
+}
+
+.storyStage {
+  position: absolute;
+  inset: 0;
+  width: min(100%, 680px);
+  margin-inline: auto;
+  background: radial-gradient(circle, #1a1013, #020202 70%);
+}
+
+.storyStage img {
+  object-fit: contain;
+}
+
+.storyProgress {
+  position: absolute;
+  z-index: 7;
+  top: max(10px, env(safe-area-inset-top));
+  right: 12px;
+  left: 12px;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+
+.storyProgress > span {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ffffff52;
+}
+
+.storyProgress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+}
+
+.storyProgress .storyProgressDone {
+  width: 100%;
+}
+
+.storyProgress .storyProgressActive {
+  animation: story-progress 6s linear forwards;
+}
+
+.storyViewerHeader {
+  position: absolute;
+  z-index: 7;
+  top: max(23px, calc(env(safe-area-inset-top) + 13px));
+  right: 10px;
+  left: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #050505b8, #05050552);
+  text-shadow: 0 1px 4px #000;
+}
+
+.storyViewerHeader > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.storyViewerHeader strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storyViewerHeader small {
+  color: #d1c8bc;
+  font-size: 0.72rem;
+}
+
+.storyViewerHeader button {
+  display: grid;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  color: #fff;
+  background: transparent;
+  place-items: center;
+}
+
+.storyViewerHeader button:hover {
+  border: 0;
+  background: #ffffff17;
+}
+
+.storyViewerHeader button svg {
+  width: 22px;
+}
+
+.storyTapZone {
+  position: absolute;
+  z-index: 4;
+  top: 88px;
+  bottom: 0;
+  width: 50%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.storyTapZone:hover {
+  border: 0;
+  background: transparent;
+}
+
+.storyTapPrevious {
+  left: 0;
+}
+
+.storyTapNext {
+  right: 0;
+}
+
+.storySpinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #e0b765;
+  transform: translate(-50%, -50%);
+}
+
+.storyError {
+  position: absolute;
+  z-index: 8;
+  right: 16px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 16px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #ffe2e2;
+  background: #7b1725e8;
+  text-align: center;
+}
+
+@keyframes story-progress {
+  to {
+    width: 100%;
+  }
 }
 
 .sheetHandle {
@@ -1410,7 +1629,8 @@ dialog.commentsSheet {
     font-size: 0.76rem;
   }
   .featuredRail {
-    grid-auto-columns: 108px;
+    grid-auto-columns: 82px;
+    gap: 10px;
   }
   .profileMeta em {
     max-width: 158px;
@@ -1431,6 +1651,14 @@ dialog.commentsSheet {
     transition: none;
   }
   .feedStatus svg {
+    animation: none;
+  }
+  .storyProgress .storyProgressActive {
+    width: 100%;
+    animation: none;
+  }
+  .storyLoading svg,
+  .storySpinner {
     animation: none;
   }
 }

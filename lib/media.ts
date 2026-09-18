@@ -162,3 +162,20 @@ export async function uploadCommunityPostImage(
   if (error) throw error;
   return path;
 }
+
+export async function uploadCommunityStoryImage(
+  file: File,
+  campaign: string,
+  actor: string,
+) {
+  const blob = await postImageWebp(file);
+  const path = `${campaign}/${actor}/${crypto.randomUUID()}.webp`;
+  const { error } = await browserDb()
+    .storage.from("community-stories")
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
+  if (error) throw error;
+  return path;
+}

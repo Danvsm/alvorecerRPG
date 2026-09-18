@@ -22,6 +22,7 @@ import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
 import CommunityFeed from "./CommunityFeed";
+import CommunityStories from "./CommunityStories";
 import IdentityAvatar from "./IdentityAvatar";
 import NotificationBell from "./NotificationBell";
 import ProfileWall from "./ProfileWall";
@@ -185,6 +186,11 @@ export default function CommunityPanel({
     () => identities.filter((identity) => identity.active),
     [identities],
   );
+  const storyActor = master
+    ? activeIdentities.find(
+        (identity) => identity.kind === "master" && identity.user_id,
+      )?.id || actor
+    : actor;
   const rankByIdentity = useMemo(
     () =>
       new Map(ranking.map((entry) => [entry.identity_id, Number(entry.rank)])),
@@ -200,16 +206,6 @@ export default function CommunityPanel({
   const isOnline = (identity: Row) =>
     Boolean(identity.user_id && onlineUserIds.has(identity.user_id));
 
-  const featured = useMemo(
-    () =>
-      orderCommunityIdentities(
-        activeIdentities.filter((identity) => identity.user_id),
-        rankByIdentity,
-        onlineUserIds,
-        "wealth",
-      ).slice(0, 6),
-    [activeIdentities, onlineUserIds, rankByIdentity],
-  );
   const directory = useMemo(() => {
     const byName = orderCommunityIdentities(
       activeIdentities,
@@ -342,44 +338,16 @@ export default function CommunityPanel({
         </label>
       </div>
 
-      {view === "home" && featured.length > 0 && (
-        <section className={styles.featured}>
-          <div className={styles.featuredRail}>
-            <button
-              type="button"
-              className={`${styles.featuredProfile} ${styles.createStory}`}
-              onClick={revealCreate}
-            >
-              <span className={styles.storyPlus}>
-                <Plus aria-hidden="true" />
-              </span>
-              <strong>Nova publicação</strong>
-              <small>Compartilhe</small>
-            </button>
-            {featured.map((identity) => (
-              <button
-                type="button"
-                className={styles.featuredProfile}
-                key={identity.id}
-                onClick={() => revealProfile(identity.id)}
-              >
-                <span className={styles.avatarWrap}>
-                  <IdentityAvatar
-                    identity={identity}
-                    cosmetics={cosmetics}
-                    equipment={equipment}
-                    urls={urls}
-                    size="clamp(104px, 23vw, 118px)"
-                    className={styles.featuredAvatar}
-                  />
-                  <OnlineDot online={isOnline(identity)} />
-                </span>
-                <strong>{identity.name}</strong>
-                <small>{profileCaption(identity)}</small>
-              </button>
-            ))}
-          </div>
-        </section>
+      {view === "home" && actor && (
+        <CommunityStories
+          campaign={campaign}
+          actor={storyActor}
+          master={master}
+          identities={identities}
+          cosmetics={cosmetics}
+          equipment={equipment}
+          urls={urls}
+        />
       )}
 
       {(view === "home" || view === "create") && actor && (

@@ -2,6 +2,22 @@
 
 Todas as mudanças relevantes concluídas neste projeto são registradas aqui. Itens que ainda dependem de validação permanecem fora da lista de entregas concluídas.
 
+## Em desenvolvimento — 2026-09-18
+
+### Entregue
+
+- Stories reais no topo do Orkutista, mantendo o botão `+` inferior exclusivo para publicações do feed.
+- Criação de Story por imagem com seleção, prévia, cancelamento e otimização automática para WebP de até 1 MB.
+- Linha horizontal mobile com rolagem por toque, somente autores com Stories ativos e aro distinto para conteúdo visto ou não visto.
+- Visualizador em tela cheia com avatar, moldura e efeitos existentes, horário relativo, progresso, avanço automático, toque para avançar/voltar e fechamento.
+- Vários Stories do mesmo autor em sequência, seguidos automaticamente pelo próximo autor ativo.
+- Visualizações idempotentes por identidade e autorização server-side contra publicação ou exclusão usando outra identidade.
+- Exclusão pelo autor ou Pink/Mestre, com remoção do objeto pelo Storage API e fila automática de recuperação em caso de falha transitória.
+- Expiração baseada no horário do banco em 24 horas; os Stories deixam a consulta imediatamente e o cron remove registros, visualizações e imagens a cada minuto.
+- Migration `orkutista_stories` e endurecimento do advisor aplicados no Supabase real; Edge Function `alvorecer-api` versão 15 ativa e limpeza confirmada com HTTP 200.
+- `npm test`: 71/71 aprovado; `npm run typecheck` e `npm run build`: aprovados.
+- Validação visual e manual em celular permanece para o usuário após o deploy.
+
 ## Em desenvolvimento — 2026-09-17
 
 ### Entregue
