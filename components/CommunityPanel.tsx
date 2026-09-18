@@ -295,15 +295,6 @@ export default function CommunityPanel({
         >
           <Menu aria-hidden="true" />
         </button>
-        <Image
-          className={styles.logo}
-          src="/community/orkutista-logo.webp"
-          width={480}
-          height={160}
-          sizes="(max-width: 480px) 190px, 260px"
-          alt="Orkutista, seu mundo"
-          priority
-        />
         <div className={styles.headerActions}>
           <button
             type="button"
