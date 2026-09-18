@@ -11,7 +11,7 @@
   --yellow: #e0b648;
   --red: #ef5368;
   color-scheme: dark;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 16px;
 }
 * {
@@ -21,6 +21,11 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--text);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 button,
 input,
@@ -42,6 +47,8 @@ button,
   color: var(--text);
   cursor: pointer;
   font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
 }
 button:hover,
 .button-label:hover {
@@ -89,33 +96,40 @@ input[type="color"] {
 }
 label {
   font-size: 0.875rem;
+  font-weight: 500;
   display: flex;
   flex-direction: column;
   gap: 9px;
 }
 p {
   line-height: 1.55;
+  font-weight: 400;
   color: var(--muted);
 }
 h1 {
-  font-size: 2rem;
+  font-size: clamp(1.7rem, 2vw + 1rem, 2rem);
+  font-weight: 700;
   line-height: 1.2;
   margin: 8px 0 16px;
   letter-spacing: -0.8px;
 }
 h2 {
-  font-size: 1.2rem;
+  font-size: clamp(1.1rem, 1vw + 0.85rem, 1.2rem);
+  font-weight: 600;
   margin: 10px 0 18px;
   line-height: 1.35;
 }
 h3 {
   font-size: 1.1rem;
+  font-weight: 600;
   margin: 6px 0;
 }
 small {
   font-size: 0.8125rem;
+  font-weight: 400;
 }
 strong {
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 code {
@@ -2607,7 +2621,7 @@ dialog::backdrop {
 .notification-heading h2 {
   margin: 0;
   color: #fff5e6;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(1.75rem, 5vw, 2.35rem);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -2615,7 +2629,7 @@ dialog::backdrop {
 .notification-heading p {
   margin: 7px 0 0;
   color: #bcaea3;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.98rem;
 }
 .notification-header-actions {
@@ -2659,7 +2673,7 @@ dialog::backdrop {
   color: #958d89;
   background: #111011d9;
   box-shadow: inset 0 1px #ffffff08;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1rem;
 }
 .notification-tab[aria-pressed="true"] {
@@ -2689,7 +2703,7 @@ dialog::backdrop {
 .notification-group h3 {
   margin: 0 0 12px 4px;
   color: #b3a79e;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.08rem;
   font-weight: 500;
 }
@@ -2763,7 +2777,7 @@ dialog::backdrop {
 .notification-copy strong {
   overflow: hidden;
   color: #fff4e7;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.05rem;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -2801,7 +2815,7 @@ dialog::backdrop {
 }
 .notification-empty strong {
   color: #f2e5d7;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.15rem;
 }
 .notification-empty p {
@@ -3088,7 +3102,7 @@ dialog::backdrop {
 }
 .combat-title h1 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(1.75rem, 5vw, 2.45rem);
   letter-spacing: 0.02em;
   text-shadow: 0 2px 12px #000;
@@ -3186,7 +3200,7 @@ dialog::backdrop {
 }
 .combat-side-heading h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.05rem;
   letter-spacing: 0.03em;
 }
@@ -3205,7 +3219,7 @@ dialog::backdrop {
   z-index: 1;
   margin-left: auto;
   color: #b9b4aa;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.78rem;
   font-style: italic;
   white-space: nowrap;
@@ -3593,7 +3607,7 @@ dialog.combat-sheet {
 }
 .combat-sheet-heading h2 {
   margin: 2px 0 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 .combat-sheet-heading small,
 .combat-master-title > span > small {

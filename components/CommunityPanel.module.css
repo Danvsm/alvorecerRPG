@@ -131,7 +131,7 @@
   border: 0;
   color: #fff1d8;
   background: transparent;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1rem;
   outline: 0;
 }
@@ -166,7 +166,7 @@
   gap: 11px;
   margin: 0;
   color: #f0d9a3;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.55rem;
   font-weight: 500;
 }
@@ -234,13 +234,13 @@
 
 .featuredProfile strong {
   color: #f8eee0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.05rem;
 }
 
 .featuredProfile small {
   color: #b49b74;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.76rem;
 }
 
@@ -433,7 +433,7 @@
 .feedAuthor strong {
   overflow: hidden;
   color: #fff0d6;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.18rem;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -547,7 +547,7 @@
 
 .postBody p strong {
   color: #fff0d6;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 .postBody time {
@@ -575,7 +575,7 @@
 
 .textFeedCard .postBody p {
   color: #f1e7da;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(1.08rem, 3vw, 1.42rem);
   line-height: 1.55;
   text-wrap: pretty;
@@ -679,7 +679,7 @@
 
 .emptyFeed strong {
   color: #ead7b7;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 .archives {
@@ -721,7 +721,7 @@
 .archivesHeading h1 {
   margin: 2px 0 4px;
   color: #fff0d6;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.65rem;
 }
 
@@ -787,7 +787,7 @@
 
 .archiveDetails > strong {
   color: #fff0d6;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.08rem;
 }
 
@@ -986,7 +986,7 @@ dialog.composer.feedComposer::backdrop {
   max-width: 470px;
   margin: 14px 0 10px;
   color: #fff1d8;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(2.1rem, 8vw, 3.5rem);
   font-weight: 500;
   line-height: 1.02;
@@ -1063,7 +1063,7 @@ dialog.composer.feedComposer::backdrop {
 
 .feedComposerChoices strong {
   color: #fff0d4;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.55rem;
   font-weight: 500;
 }
@@ -1075,7 +1075,7 @@ dialog.composer.feedComposer::backdrop {
 
 .feedComposerChoiceArrow {
   color: #e7b66e;
-  font-family: Georgia, serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 3rem;
   line-height: 1;
 }
@@ -1365,7 +1365,7 @@ dialog.composer.feedComposer::backdrop {
 .feedWriterIntro h2 {
   margin: 16px 0 11px;
   color: #fff1dc;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(2rem, 7vw, 3.2rem);
   font-weight: 500;
   line-height: 1.05;
@@ -1421,7 +1421,7 @@ dialog.composer.feedComposer::backdrop {
 .feedWriterIdentity strong {
   overflow: hidden;
   color: #fff0d8;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.35rem;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -1477,7 +1477,7 @@ dialog.composer.feedComposer::backdrop {
   color: #f4ece2;
   background: transparent;
   box-shadow: none;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(1.05rem, 3vw, 1.35rem);
   line-height: 1.55;
 }
@@ -1634,7 +1634,7 @@ dialog.composer.storyComposer::backdrop {
 .storyComposerHeader h2 {
   margin: 4px 0 2px;
   color: #f0d6aa;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: clamp(1.45rem, 5.4vw, 2rem);
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -1706,7 +1706,7 @@ dialog.composer.storyComposer::backdrop {
 }
 
 .storySourceCard strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.02rem;
 }
 
@@ -1748,7 +1748,7 @@ dialog.composer.storyComposer::backdrop {
 .storyGalleryHeader h3 {
   margin: 0;
   color: #f5ecdf;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.35rem;
   font-weight: 500;
 }
@@ -1808,7 +1808,7 @@ dialog.composer.storyComposer::backdrop {
 }
 
 .storyGalleryGateway strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.2rem;
 }
 
@@ -2225,7 +2225,7 @@ dialog.storyViewer::backdrop {
 .sheetHeader h2 {
   margin: 2px 0 0;
   color: #f6e5c8;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.35rem;
 }
 
@@ -2534,7 +2534,7 @@ dialog.commentsSheet {
 .profileHeading h2 {
   margin: 4px 0;
   color: #f8e9ce;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.75rem;
 }
 
@@ -2695,7 +2695,7 @@ dialog.commentsSheet {
 .profileMeta strong {
   overflow: hidden;
   color: #f6ead9;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.05rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2711,7 +2711,7 @@ dialog.commentsSheet {
 .profileMeta em {
   overflow: hidden;
   color: #99928a;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.76rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2735,7 +2735,7 @@ dialog.commentsSheet {
   position: absolute;
   right: -4px;
   color: #e7c47e;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.72rem;
   text-shadow: 0 1px 4px #000;
 }
@@ -2743,7 +2743,7 @@ dialog.commentsSheet {
 .rankNumber {
   min-width: 46px;
   color: #d7b878;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 1.05rem;
   text-align: center;
 }
@@ -2786,7 +2786,7 @@ dialog.commentsSheet {
   padding: 26px 0 122px;
   border-top: 1px solid #654a2a;
   color: #987643;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.58rem;
   letter-spacing: 0.34em;
   text-align: center;
@@ -2821,7 +2821,7 @@ dialog.commentsSheet {
   border: 0;
   color: #e4d8c7;
   background: transparent;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.75rem;
   place-items: center;
 }
@@ -2859,7 +2859,7 @@ dialog.commentsSheet {
   color: #fff;
   background: #ef3349;
   box-shadow: 0 0 10px #ef334977;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-size: 0.62rem;
   line-height: 1;
   place-items: center;
@@ -3449,5 +3449,128 @@ dialog.commentsSheet {
   .storyLoading svg,
   .storySpinner {
     animation: none;
+  }
+}
+
+
+/* Social typography system: Inter + restrained weights for a cleaner network UI. */
+.community {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.community :is(button, input, textarea, select) {
+  font-family: inherit;
+}
+
+.search input,
+.postBody p,
+.commentBody p,
+.archiveDetails > p {
+  font-weight: 400;
+}
+
+.sectionHeading h2,
+.archivesHeading h1,
+.profileHeading h2,
+.feedComposerIntro h2,
+.feedWriterIntro h2,
+.storyComposerHeader h2,
+.storyGalleryHeader h3 {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.featuredProfile strong,
+.feedAuthor strong,
+.postBody p strong,
+.emptyFeed strong,
+.archiveDetails > strong,
+.profileMeta strong,
+.feedComposerChoices strong,
+.feedWriterIdentity strong,
+.storySourceCard strong,
+.storyViewerHeader strong,
+.storyAudiencePanel strong {
+  font-weight: 600;
+}
+
+.featuredProfile strong {
+  font-size: clamp(0.82rem, 1.3vw + 0.55rem, 0.95rem);
+  line-height: 1.25;
+}
+
+.feedAuthor strong {
+  font-size: clamp(0.96rem, 0.7vw + 0.8rem, 1.05rem);
+  letter-spacing: -0.015em;
+}
+
+.feedAuthor small,
+.postBody time,
+.featuredProfile small,
+.profileMeta small,
+.presenceLabel,
+.commentBody > div,
+.archiveDetails > span {
+  font-weight: 400;
+}
+
+.postBody p {
+  font-size: clamp(0.95rem, 0.45vw + 0.86rem, 1rem);
+  line-height: 1.52;
+}
+
+.textFeedCard .postBody p {
+  font-size: clamp(1rem, 1vw + 0.78rem, 1.16rem);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -0.012em;
+}
+
+.feedActions button,
+.postMenuPopover button,
+.bottomNav button,
+.directoryTools > button,
+.commentBody > div button,
+.feedLoadMore button,
+.storyViewerActions button {
+  font-weight: 500;
+}
+
+.bottomNav .activeBottomItem,
+.publishButton,
+.primaryButton,
+.feedPublishOrb {
+  font-weight: 600;
+}
+
+.feedComposerIntro p,
+.feedWriterIntro p,
+.archivesHeading p,
+.profileMeta em,
+.footer {
+  font-weight: 300;
+}
+
+.bottomNav button {
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 430px) {
+  .featuredProfile strong {
+    font-size: clamp(0.78rem, 3.2vw, 0.88rem);
+  }
+
+  .feedAuthor strong {
+    font-size: 0.96rem;
+  }
+
+  .postBody p {
+    font-size: 0.95rem;
+  }
+
+  .textFeedCard .postBody p {
+    font-size: clamp(0.98rem, 4vw, 1.08rem);
   }
 }
