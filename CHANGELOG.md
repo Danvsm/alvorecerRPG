@@ -6,6 +6,11 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Stories agora podem ser curtidos e descurtidos, mantendo no banco no máximo uma curtida ativa por identidade e Story.
+- O visualizador ganhou uma área de atividade com a lista unificada de quem visualizou e quem curtiu, reutilizando avatar, moldura e efeitos existentes.
+- A atividade e seus contadores são privados para o autor do Story e Pink/Mestre; os demais jogadores veem somente o estado da própria curtida.
+- As permissões são validadas nas RPCs, sem acesso direto à tabela de curtidas. A exclusão ou expiração do Story remove curtidas e visualizações em cascata.
+- Migrations `story_likes_and_audience` e `story_likes_advisor_hardening` aplicadas no Supabase real.
 - Feed do Orkutista paginado por cursor: mostra 5 publicações inicialmente e busca o próximo lote somente quando a pessoa se aproxima do fim da rolagem.
 - Apenas as imagens do lote visível recebem URL assinada e entram no carregamento preguiçoso; o registro extra usado para detectar a próxima página não baixa imagem.
 - Índice específico para a ordem paginada e migration `paginate_orkutista_feed` aplicados no Supabase real.

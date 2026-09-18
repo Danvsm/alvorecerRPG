@@ -939,6 +939,149 @@ dialog.storyViewer::backdrop {
   right: 0;
 }
 
+.storyViewerActions {
+  position: absolute;
+  z-index: 7;
+  right: max(16px, calc((100vw - 680px) / 2 + 16px));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(16px, calc((100vw - 680px) / 2 + 16px));
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.storyViewerActions button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border: 1px solid #ffffff38;
+  border-radius: 999px;
+  color: #fff;
+  background: #090708c9;
+  box-shadow: 0 8px 28px #0009;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.storyViewerActions button:hover {
+  border-color: #d9ae64;
+  background: #211519e6;
+}
+
+.storyViewerActions button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.storyViewerActions button small {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: #f4d99f;
+  background: #ffffff17;
+  text-align: center;
+}
+
+.storyViewerActions .storyLiked {
+  border-color: #e05d72;
+  color: #ff7187;
+}
+
+.storyViewerActions .storyLiked svg {
+  fill: currentColor;
+}
+
+.storyAudiencePanel {
+  position: absolute;
+  z-index: 9;
+  right: max(0px, calc((100vw - 680px) / 2));
+  bottom: 0;
+  left: max(0px, calc((100vw - 680px) / 2));
+  max-height: min(62dvh, 620px);
+  overflow: auto;
+  padding: 16px 16px max(20px, env(safe-area-inset-bottom));
+  border: 1px solid #6d563b;
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  color: #f8f0e5;
+  background: #100d0ff5;
+  box-shadow: 0 -16px 50px #000c;
+  backdrop-filter: blur(18px);
+}
+
+.storyAudiencePanel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid #42372c;
+}
+
+.storyAudiencePanel > header > span,
+.storyAudiencePanel li > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.storyAudiencePanel > header small,
+.storyAudiencePanel li > span small {
+  color: #bcae9c;
+}
+
+.storyAudiencePanel > header button {
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  color: #f8f0e5;
+  background: transparent;
+  place-items: center;
+}
+
+.storyAudiencePanel ul {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storyAudiencePanel li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+}
+
+.storyAudiencePanel li > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.storyAudiencePanel li > div:last-child small {
+  padding: 4px 7px;
+  border: 1px solid #705c43;
+  border-radius: 999px;
+  color: #e7c981;
+  background: #2a2119;
+}
+
+.storyAudienceEmpty {
+  margin: 18px 0 4px;
+  color: #bcae9c;
+  text-align: center;
+}
+
 .storySpinner {
   position: absolute;
   top: 50%;
@@ -949,7 +1092,7 @@ dialog.storyViewer::backdrop {
 
 .storyError {
   position: absolute;
-  z-index: 8;
+  z-index: 11;
   right: 16px;
   bottom: max(18px, env(safe-area-inset-bottom));
   left: 16px;

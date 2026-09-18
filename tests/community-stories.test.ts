@@ -14,7 +14,25 @@ const migration = async () =>
     )
   ).split("-- Production scheduler:")[0];
 
-test("Stories enforce identity, views, deletion and server expiration", async () => {
+const likesMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260918042726_story_likes_and_audience.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+const likesHardeningMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260918042834_story_likes_advisor_hardening.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+test("Stories enforce identity, likes, private audience and expiration", async () => {
   const db = new PGlite();
   try {
     await db.exec(`
@@ -70,6 +88,8 @@ test("Stories enforce identity, views, deletion and server expiration", async ()
       grant select,insert,delete on storage.objects to authenticated,service_role;
     `);
     await db.exec(await migration());
+    await db.exec(await likesMigration());
+    await db.exec(await likesHardeningMigration());
 
     const campaign = crypto.randomUUID();
     const master = crypto.randomUUID();
@@ -127,6 +147,16 @@ test("Stories enforce identity, views, deletion and server expiration", async ()
           [campaign, op, JSON.stringify(details)],
         )
       ).rows[0].value;
+    const audience = async (storyId: string, actorId: string) =>
+      db.query<{
+        identity_id: string;
+        viewed_at: string | null;
+        liked_at: string | null;
+      }>("select * from community_story_audience($1,$2,$3)", [
+        campaign,
+        storyId,
+        actorId,
+      ]);
 
     await asUser(player);
     const firstPath = `${campaign}/${playerIdentity}/${crypto.randomUUID()}.webp`;
@@ -188,6 +218,55 @@ test("Stories enforce identity, views, deletion and server expiration", async ()
     );
 
     await asUser(other);
+    await action("view_story", {
+      actor_id: otherIdentity,
+      story_id: first.id,
+    });
+    assert.equal(
+      (
+        await action("like_story", {
+          actor_id: otherIdentity,
+          story_id: first.id,
+        })
+      ).active,
+      true,
+    );
+    assert.equal(
+      (
+        await action("like_story", {
+          actor_id: otherIdentity,
+          story_id: first.id,
+        })
+      ).active,
+      false,
+    );
+    assert.equal(
+      (
+        await action("like_story", {
+          actor_id: otherIdentity,
+          story_id: first.id,
+        })
+      ).active,
+      true,
+    );
+    await assert.rejects(db.query("select * from community_story_likes"));
+    await assert.rejects(
+      audience(first.id, otherIdentity),
+      /Sem permissão para ver o público/,
+    );
+    const otherListing = await db.query<{
+      id: string;
+      viewer_liked: boolean;
+      like_count: bigint;
+      view_count: bigint;
+    }>(
+      "select id,viewer_liked,like_count,view_count from community_stories($1,$2)",
+      [campaign, otherIdentity],
+    );
+    const otherFirst = otherListing.rows.find((story) => story.id === first.id);
+    assert.equal(otherFirst?.viewer_liked, true);
+    assert.equal(Number(otherFirst?.like_count), 0);
+    assert.equal(Number(otherFirst?.view_count), 0);
     await assert.rejects(
       action("delete_story", {
         actor_id: otherIdentity,
@@ -196,7 +275,29 @@ test("Stories enforce identity, views, deletion and server expiration", async ()
       /Sem permissão para excluir/,
     );
 
+    await asUser(player);
+    const authorListing = await db.query<{
+      id: string;
+      like_count: bigint;
+      view_count: bigint;
+    }>("select id,like_count,view_count from community_stories($1,$2)", [
+      campaign,
+      playerIdentity,
+    ]);
+    const authorFirst = authorListing.rows.find(
+      (story) => story.id === first.id,
+    );
+    assert.equal(Number(authorFirst?.like_count), 1);
+    assert.equal(Number(authorFirst?.view_count), 2);
+    const authorAudience = await audience(first.id, playerIdentity);
+    const otherActivity = authorAudience.rows.find(
+      (member) => member.identity_id === otherIdentity,
+    );
+    assert.ok(otherActivity?.viewed_at);
+    assert.ok(otherActivity?.liked_at);
+
     await asUser(master);
+    assert.equal((await audience(first.id, masterIdentity)).rows.length, 2);
     const deleted = await action("delete_story", {
       actor_id: masterIdentity,
       story_id: first.id,
@@ -205,6 +306,10 @@ test("Stories enforce identity, views, deletion and server expiration", async ()
     await db.exec("reset role");
     assert.equal(
       (await db.query("select * from community_story_views")).rows.length,
+      0,
+    );
+    assert.equal(
+      (await db.query("select * from community_story_likes")).rows.length,
       0,
     );
     assert.equal(
@@ -271,8 +376,16 @@ test("Stories enforce identity, views, deletion and server expiration", async ()
   }
 });
 
-test("Stories UI keeps the top plus separate from feed creation and cleanup", async () => {
-  const [stories, panel, media, migrationSource, cleanup] = await Promise.all([
+test("Stories UI keeps creation, activity privacy and cleanup together", async () => {
+  const [
+    stories,
+    panel,
+    media,
+    baseMigration,
+    activityMigration,
+    activityHardening,
+    cleanup,
+  ] = await Promise.all([
     readFile(
       new URL("../components/CommunityStories.tsx", import.meta.url),
       "utf8",
@@ -283,6 +396,8 @@ test("Stories UI keeps the top plus separate from feed creation and cleanup", as
     ),
     readFile(new URL("../lib/media.ts", import.meta.url), "utf8"),
     migration(),
+    likesMigration(),
+    likesHardeningMigration(),
     readFile(
       new URL(
         "../supabase/functions/alvorecer-api/media-cleanup.ts",
@@ -291,6 +406,7 @@ test("Stories UI keeps the top plus separate from feed creation and cleanup", as
       "utf8",
     ),
   ]);
+  const migrationSource = `${baseMigration}\n${activityMigration}\n${activityHardening}`;
 
   assert.match(panel, /<CommunityStories/);
   assert.match(panel, /onClick=\{revealCreate\}/);
@@ -300,6 +416,11 @@ test("Stories UI keeps the top plus separate from feed creation and cleanup", as
   assert.match(stories, /community_story_action/);
   assert.match(stories, /create_story/);
   assert.match(stories, /view_story/);
+  assert.match(stories, /like_story/);
+  assert.match(stories, /community_story_audience/);
+  assert.match(stories, /aria-pressed/);
+  assert.match(stories, /Visualizou/);
+  assert.match(stories, /Curtiu/);
   assert.match(stories, /delete_story/);
   assert.match(stories, /STORY_DURATION = 6000/);
   assert.match(stories, /Story anterior/);
@@ -307,6 +428,12 @@ test("Stories UI keeps the top plus separate from feed creation and cleanup", as
   assert.match(media, /uploadCommunityStoryImage/);
   assert.match(migrationSource, /interval '24 hours'/);
   assert.match(migrationSource, /primary key\(story_id,identity_id\)/);
+  assert.match(migrationSource, /community_story_likes/);
+  assert.match(migrationSource, /community_story_likes_no_direct_access/);
+  assert.match(
+    migrationSource,
+    /story\.author_id<>actor\.id and not public\.is_master\(c\)/,
+  );
   assert.match(
     cleanup,
     /storage[\s\S]*from\("community-stories"\)[\s\S]*remove/,

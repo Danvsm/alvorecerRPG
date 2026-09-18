@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Camera, LoaderCircle, Plus, Trash2, X } from "lucide-react";
+import {
+  Camera,
+  Eye,
+  Heart,
+  LoaderCircle,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { uploadCommunityStoryImage } from "@/lib/media";
@@ -17,6 +25,17 @@ type CommunityStory = Row & {
   created_at: string;
   expires_at: string;
   viewer_seen: boolean;
+  viewer_liked: boolean;
+  like_count: number;
+  view_count: number;
+};
+
+type StoryAudienceMember = Row & {
+  identity_id: string;
+  name: string;
+  username: string | null;
+  viewed_at: string | null;
+  liked_at: string | null;
 };
 
 type StoryGroup = {
@@ -94,7 +113,11 @@ export default function CommunityStories({
       setLoading(false);
       return;
     }
-    const loaded = (response.data || []) as CommunityStory[];
+    const loaded = ((response.data || []) as CommunityStory[]).map((story) => ({
+      ...story,
+      like_count: Number(story.like_count || 0),
+      view_count: Number(story.view_count || 0),
+    }));
     setStories(loaded);
     if (!loaded.length) {
       setStoryUrls({});
@@ -182,13 +205,68 @@ export default function CommunityStories({
       if (story.viewer_seen) return;
       setStories((current) =>
         current.map((entry) =>
-          entry.id === story.id ? { ...entry, viewer_seen: true } : entry,
+          entry.id === story.id
+            ? {
+                ...entry,
+                viewer_seen: true,
+                view_count:
+                  entry.author_id === actor || master
+                    ? entry.view_count + 1
+                    : entry.view_count,
+              }
+            : entry,
         ),
       );
       try {
         await act("view_story", { story_id: story.id });
       } catch (reason) {
         setError(readableErrorMessage(reason));
+      }
+    },
+    [act, actor, master],
+  );
+
+  const toggleLike = useCallback(
+    async (story: CommunityStory) => {
+      const liked = !story.viewer_liked;
+      const count = Math.max(0, story.like_count + (liked ? 1 : -1));
+      setStories((current) =>
+        current.map((entry) =>
+          entry.id === story.id
+            ? { ...entry, viewer_liked: liked, like_count: count }
+            : entry,
+        ),
+      );
+      try {
+        const result = await act("like_story", { story_id: story.id });
+        const active = Boolean(result.active);
+        setStories((current) =>
+          current.map((entry) =>
+            entry.id === story.id
+              ? {
+                  ...entry,
+                  viewer_liked: active,
+                  like_count:
+                    active === liked
+                      ? entry.like_count
+                      : Math.max(0, entry.like_count + (active ? 1 : -1)),
+                }
+              : entry,
+          ),
+        );
+      } catch (reason) {
+        setStories((current) =>
+          current.map((entry) =>
+            entry.id === story.id
+              ? {
+                  ...entry,
+                  viewer_liked: story.viewer_liked,
+                  like_count: story.like_count,
+                }
+              : entry,
+          ),
+        );
+        throw reason;
       }
     },
     [act],
@@ -292,8 +370,13 @@ export default function CommunityStories({
           equipment={equipment}
           urls={urls}
           canDelete={master || groups[viewer.group].author.id === actor}
+          canViewAudience={master || groups[viewer.group].author.id === actor}
+          campaign={campaign}
+          actor={actor}
+          identities={identities}
           close={() => setViewer(null)}
           viewed={markViewed}
+          toggleLike={toggleLike}
           remove={removeStory}
           previous={() =>
             setViewer((current) => {
@@ -450,8 +533,13 @@ function StoryViewer({
   equipment,
   urls,
   canDelete,
+  canViewAudience,
+  campaign,
+  actor,
+  identities,
   close,
   viewed,
+  toggleLike,
   remove,
   previous,
   next,
@@ -463,8 +551,13 @@ function StoryViewer({
   equipment: Row[];
   urls: Record<string, string>;
   canDelete: boolean;
+  canViewAudience: boolean;
+  campaign: string;
+  actor: string;
+  identities: Row[];
   close: () => void;
   viewed: (story: CommunityStory) => Promise<void>;
+  toggleLike: (story: CommunityStory) => Promise<void>;
   remove: (story: CommunityStory) => Promise<void>;
   previous: () => void;
   next: () => void;
@@ -472,6 +565,9 @@ function StoryViewer({
   const ref = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [audienceOpen, setAudienceOpen] = useState(false);
+  const [audienceLoading, setAudienceLoading] = useState(false);
+  const [audience, setAudience] = useState<StoryAudienceMember[]>([]);
   const story = group.stories[storyIndex];
 
   useEffect(() => {
@@ -481,9 +577,30 @@ function StoryViewer({
 
   useEffect(() => {
     void viewed(story);
+    if (audienceOpen) return;
     const timer = window.setTimeout(next, STORY_DURATION);
     return () => window.clearTimeout(timer);
-  }, [next, story, viewed]);
+  }, [audienceOpen, next, story, viewed]);
+
+  useEffect(() => {
+    setAudienceOpen(false);
+    setAudience([]);
+  }, [story.id]);
+
+  const openAudience = async () => {
+    if (!canViewAudience) return;
+    setAudienceOpen(true);
+    setAudienceLoading(true);
+    setError("");
+    const response = await browserDb().rpc("community_story_audience", {
+      c: campaign,
+      target_story: story.id,
+      requested_actor: actor,
+    });
+    if (response.error) setError(readableErrorMessage(response.error));
+    else setAudience((response.data || []) as StoryAudienceMember[]);
+    setAudienceLoading(false);
+  };
 
   return (
     <dialog
@@ -571,6 +688,98 @@ function StoryViewer({
         aria-label="Próximo Story"
         onClick={next}
       />
+
+      <div className={styles.storyViewerActions}>
+        <button
+          type="button"
+          className={story.viewer_liked ? styles.storyLiked : ""}
+          aria-label={story.viewer_liked ? "Remover curtida" : "Curtir Story"}
+          aria-pressed={story.viewer_liked}
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            setError("");
+            void toggleLike(story)
+              .catch((reason) => setError(readableErrorMessage(reason)))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <Heart aria-hidden="true" />
+          <span>{story.viewer_liked ? "Curtido" : "Curtir"}</span>
+          {canViewAudience && <small>{story.like_count}</small>}
+        </button>
+        {canViewAudience && (
+          <button
+            type="button"
+            aria-label="Ver quem visualizou e curtiu"
+            aria-expanded={audienceOpen}
+            onClick={() => void openAudience()}
+          >
+            <Eye aria-hidden="true" />
+            <span>Atividade</span>
+            <small>{story.view_count}</small>
+          </button>
+        )}
+      </div>
+
+      {audienceOpen && (
+        <section
+          className={styles.storyAudiencePanel}
+          aria-labelledby="story-audience-title"
+        >
+          <header>
+            <span>
+              <strong id="story-audience-title">Atividade do Story</strong>
+              <small>
+                {story.view_count} visualizações · {story.like_count} curtidas
+              </small>
+            </span>
+            <button
+              type="button"
+              aria-label="Fechar atividade"
+              onClick={() => setAudienceOpen(false)}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </header>
+          {audienceLoading ? (
+            <p className={styles.storyAudienceEmpty}>Carregando...</p>
+          ) : audience.length ? (
+            <ul>
+              {audience.map((member) => {
+                const identity = identities.find(
+                  (item) => item.id === member.identity_id,
+                );
+                return (
+                  <li key={member.identity_id}>
+                    {identity && (
+                      <IdentityAvatar
+                        identity={identity}
+                        cosmetics={cosmetics}
+                        equipment={equipment}
+                        urls={urls}
+                        size={44}
+                      />
+                    )}
+                    <span>
+                      <strong>{member.name}</strong>
+                      {member.username && <small>@{member.username}</small>}
+                    </span>
+                    <div>
+                      {member.viewed_at && <small>Visualizou</small>}
+                      {member.liked_at && <small>Curtiu</small>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className={styles.storyAudienceEmpty}>
+              Ninguém visualizou ou curtiu ainda.
+            </p>
+          )}
+        </section>
+      )}
 
       {error && (
         <p className={styles.storyError} role="alert">

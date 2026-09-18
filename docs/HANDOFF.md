@@ -468,3 +468,23 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 1. Validar no celular se o cabeçalho e os stories ficaram contínuos, sem linhas divisórias.
 2. Observar o uso normal em troca de Wi-Fi e rede móvel e informar se a mensagem amigável ainda aparece com frequência.
+
+## Curtidas e atividade privada dos Stories, 18/09/2026, 04:30 UTC
+
+- Qualquer identidade autenticada de jogador ou Mestre pode curtir e remover a própria curtida de um Story ativo.
+- A chave composta de `community_story_likes` impede curtidas duplicadas. A tabela não possui acesso direto para usuários autenticados; todas as operações passam pelas RPCs validadas.
+- O visualizador mostra o coração preenchido quando a identidade atual curtiu. O avanço automático pausa enquanto a área de atividade está aberta.
+- Somente o autor do Story e Pink/Mestre recebem os contadores reais e podem abrir a lista de atividade. Outros jogadores recebem contadores zerados pelo backend e não recebem o controle de acesso à lista.
+- A lista reúne quem visualizou e quem curtiu, indica as duas ações separadamente e reutiliza `IdentityAvatar`, portanto mantém avatar, moldura e efeitos equipados.
+- A exclusão e a expiração existentes removem curtidas e visualizações por cascata, sem criar dados órfãos.
+- As migrations `story_likes_and_audience` e `story_likes_advisor_hardening` estão aplicadas no Supabase real.
+- A cobertura específica valida curtir, descurtir, unicidade, privacidade para jogador comum, acesso do autor e do Mestre, acesso direto bloqueado e limpeza em cascata.
+- `npm test` passou em 71/71; `npm run typecheck`, `npm run build` e `git diff --check` também passaram.
+- O advisor não aponta acesso direto à nova tabela. Os avisos das RPCs `SECURITY DEFINER` são esperados, pois elas são APIs autenticadas com validação interna de identidade, campanha, autoria e papel de Mestre.
+- Não foi feita validação visual ou mecânica no navegador. A conferência final permanece para o usuário no celular após o deploy.
+
+### Próximo passo recomendado
+
+1. Curtir e descurtir um Story em uma conta de jogador.
+2. Abrir o mesmo Story como autor e como Pink para conferir a lista de atividade.
+3. Confirmar que outro jogador não vê o botão `Atividade` nem os contadores privados.
