@@ -60,12 +60,13 @@ test("campaign connection avoids the duplicate realtime load", async () => {
 });
 
 test("notification clearing updates the local list without a full reload", async () => {
-  const [source, notifications] = await Promise.all([
+  const [source, notifications, css] = await Promise.all([
     readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
     readFile(
       new URL("../components/NotificationBell.tsx", import.meta.url),
       "utf8",
     ),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
   assert.match(
     source,
@@ -73,6 +74,13 @@ test("notification clearing updates the local list without a full reload", async
   );
   assert.match(source, /op === "notification_clear"/);
   assert.match(notifications, /Limpar notificações/);
+  assert.match(notifications, /role="dialog"/);
+  assert.match(notifications, /\n\s+Todas\n/);
+  assert.match(notifications, /Não lidas/);
+  assert.match(notifications, /"Hoje", "Ontem", "Mais antigas"/);
+  assert.doesNotMatch(notifications, /Menções|menções/);
+  assert.match(css, /\.notification-panel\s*\{[\s\S]*?position: fixed/);
+  assert.match(css, /\.notification-panel\s*\{[\s\S]*?height: 100dvh/);
 });
 
 test("community header and stories have no divider lines", async () => {

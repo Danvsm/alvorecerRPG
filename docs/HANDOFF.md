@@ -2,6 +2,13 @@
 
 Atualizado em 18/09/2026, 04:05 UTC.
 
+## Continuação atual
+
+- A central de notificações foi refeita como uma tela completa mobile-first, inspirada no mockup do usuário e integrada ao tema dark fantasy.
+- Existem somente os filtros `Todas` e `Não lidas`; notificações são agrupadas por dia e a aba de menções permanece fora do produto.
+- Marcar uma notificação, marcar todas e limpar tudo continuam usando as operações protegidas já existentes, com atualização otimista da lista e do contador.
+- Não foi feita validação visual em navegador nesta rodada, conforme orientação expressa do usuário.
+
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
 ## Infraestrutura atual

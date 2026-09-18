@@ -6,6 +6,8 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Notificações redesenhadas como uma experiência dark fantasy em tela cheia, com cabeçalho, retorno, ações circulares, filtros `Todas` e `Não lidas` e cards responsivos inspirados no mockup fornecido.
+- A lista agora separa os avisos em `Hoje`, `Ontem` e `Mais antigas`, destaca itens não lidos e preserva as operações existentes de marcar como lida e limpar; a aba de menções não foi criada.
 - Corrigida a limpeza de notificações: `Limpar notificações` agora descarta toda a lista visível do usuário na campanha, incluindo itens recentes, em vez de atingir somente registros com mais de 30 dias.
 - A lista e o contador são atualizados localmente após a confirmação da RPC, sem recarregar todas as tabelas da campanha.
 - A operação continua restrita no backend ao usuário autenticado e à campanha da qual ele é membro; a migration `clear_all_notifications` foi aplicada no Supabase real.

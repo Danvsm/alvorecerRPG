@@ -87,13 +87,6 @@
   font-size: 0.72rem;
 }
 
-.headerActions :global(.notification-panel) {
-  top: 58px;
-  color: #f5ede1;
-  border-color: #765331;
-  background: #0d0b0d;
-}
-
 .searchDock {
   display: grid;
   max-height: 0;
