@@ -12,12 +12,22 @@ const migration = async () =>
     "utf8",
   );
 
+const deletionMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260918033758_delete_orkutista_feed_posts.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
 test("Orkutista feed enforces identity, unique likes and one-level replies", async () => {
   const db = new PGlite();
   try {
     await db.exec(`
       create role anon;
       create role authenticated;
+      create role service_role;
       create schema auth;
       create schema alvorecer_private;
       create table auth.users(id uuid primary key);
@@ -79,6 +89,7 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
       grant select,insert,delete on storage.objects to authenticated;
     `);
     await db.exec(await migration());
+    await db.exec(await deletionMigration());
 
     const campaign = crypto.randomUUID();
     const master = crypto.randomUUID();
@@ -248,19 +259,111 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
     assert.equal(comments.rows.length, 2);
     assert.equal(comments.rows[0].parent_id, null);
     assert.equal(comments.rows[1].parent_id, root.id);
+
+    await assert.rejects(
+      action("delete_post", {
+        actor_id: otherIdentity,
+        post_id: post.id,
+      }),
+      /Sem permissão para excluir esta publicação/,
+    );
+
+    await asUser(player);
+    const archived = await action("delete_post", {
+      actor_id: playerIdentity,
+      post_id: post.id,
+    });
+    assert.equal(archived.archived, true);
+    assert.equal(archived.deleted, false);
+    assert.equal(
+      (
+        await db.query("select * from community_feed($1,$2)", [
+          campaign,
+          playerIdentity,
+        ])
+      ).rows.length,
+      0,
+    );
+    await assert.rejects(
+      db.query("select * from community_archived_posts($1)", [campaign]),
+      /Sem permissão/,
+    );
+
+    await asUser(master);
+    const archivedPosts = await db.query<{ id: string; expires_at: string }>(
+      "select * from community_archived_posts($1)",
+      [campaign],
+    );
+    assert.equal(archivedPosts.rows.length, 1);
+    assert.equal(archivedPosts.rows[0].id, post.id);
+    assert.ok(
+      new Date(archivedPosts.rows[0].expires_at).getTime() > Date.now(),
+    );
+
+    const permanent = await action("delete_post", {
+      actor_id: masterIdentity,
+      post_id: post.id,
+    });
+    assert.equal(permanent.deleted, true);
+    assert.equal(permanent.archived, false);
+    assert.equal(permanent.image_path, imagePath);
+    await db.query("delete from storage.objects where name=$1", [imagePath]);
+    await action("confirm_post_cleanup", {
+      actor_id: masterIdentity,
+      image_path: imagePath,
+    });
+
+    await db.exec("reset role");
+    assert.equal(
+      (await db.query("select * from community_posts")).rows.length,
+      0,
+    );
+    assert.equal(
+      (await db.query("select * from community_post_comments")).rows.length,
+      0,
+    );
+    assert.equal(
+      (await db.query("select * from community_comment_likes")).rows.length,
+      0,
+    );
+    assert.equal(
+      (await db.query("select * from community_post_cleanup")).rows.length,
+      0,
+    );
   } finally {
     await db.close();
   }
 });
 
 test("community feed UI keeps post media optimized and interactions scoped", async () => {
-  const [feed, media, migrationSource] = await Promise.all([
+  const [
+    feed,
+    archives,
+    game,
+    media,
+    migrationSource,
+    deletionSource,
+    cleanup,
+  ] = await Promise.all([
     readFile(
       new URL("../components/CommunityFeed.tsx", import.meta.url),
       "utf8",
     ),
+    readFile(
+      new URL("../components/CommunityArchives.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/media.ts", import.meta.url), "utf8"),
     migration(),
+    deletionMigration(),
+    readFile(
+      new URL(
+        "../supabase/functions/alvorecer-api/media-cleanup.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
   ]);
 
   assert.match(feed, /<IdentityAvatar/);
@@ -268,6 +371,9 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(feed, /create_post/);
   assert.match(feed, /post_like/);
   assert.match(feed, /comment_like/);
+  assert.match(feed, /delete_post/);
+  assert.match(feed, /Excluir publicação/);
+  assert.match(feed, /master \|\| post\.author_id === actor/);
   assert.match(feed, /parent_id: replyingTo\?\.id \|\| null/);
   assert.doesNotMatch(feed, /video|reel|share/i);
   assert.match(media, /uploadCommunityPostImage/);
@@ -276,4 +382,20 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(migrationSource, /primary key\(post_id,identity_id\)/);
   assert.match(migrationSource, /primary key\(comment_id,identity_id\)/);
   assert.match(migrationSource, /Respostas aceitam somente um nível/);
+  assert.match(deletionSource, /set archived_at=now\(\)/);
+  assert.match(deletionSource, /if public\.is_master\(c\) then/);
+  assert.match(deletionSource, /community_archived_posts/);
+  assert.match(deletionSource, /post\.archived_at\+interval '24 hours'/);
+  assert.match(archives, /ÁREA EXCLUSIVA DO MESTRE/);
+  assert.match(archives, /tempo restante|Exclusão definitiva em/i);
+  assert.match(game, /\["Arquivos", Archive\]/);
+  assert.doesNotMatch(
+    game.slice(
+      game.indexOf("const playerMenu"),
+      game.indexOf("function formatHistoryValue"),
+    ),
+    /Arquivos/,
+  );
+  assert.match(cleanup, /community_post_cleanup/);
+  assert.match(cleanup, /24 \* 60 \* 60 \* 1000/);
 });

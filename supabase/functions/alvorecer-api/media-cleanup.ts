@@ -80,20 +80,84 @@ export async function cleanup(req: Request) {
     if (!saved.error) removedQueuedStories++;
   }
 
+  const archivedBefore = new Date(
+    Date.now() - 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const expiredPosts = await db
+    .from("community_posts")
+    .select("id,image_path")
+    .not("archived_at", "is", null)
+    .lte("archived_at", archivedBefore)
+    .order("archived_at")
+    .limit(100);
+  if (expiredPosts.error)
+    throw new Error("Falha ao listar publicações arquivadas expiradas");
+
+  let removedPosts = 0;
+  for (const post of expiredPosts.data || []) {
+    const deletion = await db.storage
+      .from("community-posts")
+      .remove([post.image_path]);
+    if (deletion.error) continue;
+    const saved = await db.from("community_posts").delete().eq("id", post.id);
+    if (saved.error) continue;
+    await db
+      .from("community_post_cleanup")
+      .delete()
+      .eq("image_path", post.image_path);
+    removedPosts++;
+  }
+
+  const queuedPosts = await db
+    .from("community_post_cleanup")
+    .select("image_path")
+    .order("queued_at")
+    .limit(100);
+  if (queuedPosts.error)
+    throw new Error("Falha ao listar imagens de publicações pendentes");
+
+  let removedQueuedPosts = 0;
+  for (const queued of queuedPosts.data || []) {
+    const deletion = await db.storage
+      .from("community-posts")
+      .remove([queued.image_path]);
+    if (deletion.error) continue;
+    const saved = await db
+      .from("community_post_cleanup")
+      .delete()
+      .eq("image_path", queued.image_path);
+    if (!saved.error) removedQueuedPosts++;
+  }
+
   const pendingChat = (expiredChat.data || []).length - removedChat;
   const pendingStories =
     (expiredStories.data || []).length -
     removedStories +
     (queuedStories.data || []).length -
     removedQueuedStories;
+  const pendingPosts =
+    (expiredPosts.data || []).length -
+    removedPosts +
+    (queuedPosts.data || []).length -
+    removedQueuedPosts;
   return Response.json({
-    removed: removedChat + removedStories + removedQueuedStories,
-    pending: pendingChat + pendingStories,
+    removed:
+      removedChat +
+      removedStories +
+      removedQueuedStories +
+      removedPosts +
+      removedQueuedPosts,
+    pending: pendingChat + pendingStories + pendingPosts,
     chat: { removed: removedChat, pending: pendingChat },
     stories: {
       expired: removedStories,
       queued: removedQueuedStories,
       pending: pendingStories,
+    },
+    posts: {
+      expired: removedPosts,
+      queued: removedQueuedPosts,
+      pending: pendingPosts,
     },
   });
 }

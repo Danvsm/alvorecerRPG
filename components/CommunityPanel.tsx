@@ -21,6 +21,7 @@ import { orderCommunityIdentities } from "@/lib/community";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import { CosmeticIcon } from "./CosmeticsPanel";
+import CommunityArchives from "./CommunityArchives";
 import CommunityFeed from "./CommunityFeed";
 import CommunityStories from "./CommunityStories";
 import IdentityAvatar from "./IdentityAvatar";
@@ -28,7 +29,8 @@ import NotificationBell from "./NotificationBell";
 import ProfileWall from "./ProfileWall";
 import styles from "./CommunityPanel.module.css";
 
-type CommunityView = "home" | "explore" | "create" | "messages" | "profile";
+type CommunityView =
+  "home" | "explore" | "create" | "messages" | "profile" | "archives";
 type CommunityFilter = "all" | "online" | "players" | "world";
 
 const profileCaption = (identity: Row) => {
@@ -88,6 +90,7 @@ export default function CommunityPanel({
   changeActor,
   createWorldCharacter,
   deleteWorldCharacter,
+  initialView = "home",
 }: {
   campaign: string;
   identities: Row[];
@@ -105,12 +108,13 @@ export default function CommunityPanel({
   changeActor?: (id: string) => void;
   createWorldCharacter?: () => void;
   deleteWorldCharacter?: (id: string) => Promise<void>;
+  initialView?: "home" | "archives";
 }) {
   const [selected, setSelected] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [view, setView] = useState<CommunityView>("home");
+  const [view, setView] = useState<CommunityView>(initialView);
   const [rankingMode, setRankingMode] = useState(false);
   const [filter, setFilter] = useState<CommunityFilter>("all");
   const [visibleCount, setVisibleCount] = useState(12);
@@ -364,6 +368,10 @@ export default function CommunityPanel({
           changeActor={changeActor}
           createWorldCharacter={createWorldCharacter}
         />
+      )}
+
+      {view === "archives" && master && (
+        <CommunityArchives campaign={campaign} />
       )}
 
       {current && view === "profile" && (

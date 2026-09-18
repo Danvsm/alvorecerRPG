@@ -6,6 +6,12 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Exclusão de publicação pelo menu de três pontos, sem confirmação, com autorização validada no backend.
+- Jogadores podem excluir somente as próprias publicações; elas saem do feed imediatamente e ficam por 24 horas na nova página administrativa `Arquivos`, visível apenas para Pink/Mestre.
+- A página `Arquivos` mostra foto, autor, username, data original, data da exclusão e tempo restante usando o prazo calculado pelo banco.
+- Exclusões feitas por Pink/Mestre não passam por `Arquivos`: publicação, curtidas, comentários e respostas são removidos em cascata, e a imagem é apagada pela Storage API com fila automática contra arquivos órfãos.
+- O cron por minuto agora elimina definitivamente publicações arquivadas vencidas e suas imagens; execução real confirmada com HTTP 200 e o novo bloco `posts` sem pendências.
+- Migration `delete_orkutista_feed_posts` aplicada no Supabase real; Edge Function `alvorecer-api` versão 16 ativa.
 - Stories reais no topo do Orkutista, mantendo o botão `+` inferior exclusivo para publicações do feed.
 - Criação de Story por imagem com seleção, prévia, cancelamento e otimização automática para WebP de até 1 MB.
 - Linha horizontal mobile com rolagem por toque, somente autores com Stories ativos e aro distinto para conteúdo visto ou não visto.

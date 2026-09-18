@@ -8,6 +8,7 @@ import {
   MessageCircle,
   MoreVertical,
   Send,
+  Trash2,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -77,6 +78,7 @@ export default function CommunityFeed({
   const [postUrls, setPostUrls] = useState<Record<string, string>>({});
   const [commentsPost, setCommentsPost] = useState<FeedPost | null>(null);
   const [busyPost, setBusyPost] = useState("");
+  const [menuPost, setMenuPost] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -165,6 +167,46 @@ export default function CommunityFeed({
     }
   };
 
+  const removePost = async (post: FeedPost) => {
+    if (busyPost) return;
+    setBusyPost(post.id);
+    setMenuPost("");
+    setError("");
+    try {
+      const result = await act("delete_post", { post_id: post.id });
+      setPosts((current) => current.filter((entry) => entry.id !== post.id));
+      setPostUrls((current) => {
+        const next = { ...current };
+        delete next[post.id];
+        return next;
+      });
+      if (commentsPost?.id === post.id) setCommentsPost(null);
+
+      if (result?.deleted && result?.image_path) {
+        const deletion = await browserDb()
+          .storage.from("community-posts")
+          .remove([result.image_path]);
+        if (deletion.error) {
+          setError(
+            "A publicação foi excluída. A foto será removida pela limpeza automática.",
+          );
+        } else {
+          try {
+            await act("confirm_post_cleanup", {
+              image_path: result.image_path,
+            });
+          } catch {
+            // A limpeza agendada confirma a remoção caso esta chamada falhe.
+          }
+        }
+      }
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyPost("");
+    }
+  };
+
   return (
     <section className={styles.feed} aria-label="Início da comunidade">
       {loading && !posts.length && (
@@ -184,6 +226,7 @@ export default function CommunityFeed({
           (identity) => identity.id === post.author_id,
         );
         if (!author) return null;
+        const canDelete = master || post.author_id === actor;
         return (
           <article className={styles.feedCard} key={post.id}>
             <header className={styles.feedAuthor}>
@@ -202,7 +245,38 @@ export default function CommunityFeed({
                     : author.subtitle || "Personagem do Mundo"}
                 </small>
               </span>
-              <MoreVertical aria-hidden="true" />
+              {canDelete && (
+                <div className={styles.postMenu}>
+                  <button
+                    type="button"
+                    className={styles.postMenuTrigger}
+                    aria-label="Opções da publicação"
+                    aria-expanded={menuPost === post.id}
+                    onClick={() =>
+                      setMenuPost((current) =>
+                        current === post.id ? "" : post.id,
+                      )
+                    }
+                  >
+                    <MoreVertical aria-hidden="true" />
+                  </button>
+                  {menuPost === post.id && (
+                    <div className={styles.postMenuPopover} role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={busyPost === post.id}
+                        onClick={() => void removePost(post)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        {busyPost === post.id
+                          ? "Excluindo..."
+                          : "Excluir publicação"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </header>
             {postUrls[post.id] && (
               <Image

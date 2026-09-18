@@ -394,6 +394,8 @@
 }
 
 .feedAuthor {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -423,8 +425,73 @@
   white-space: nowrap;
 }
 
-.feedAuthor > svg {
+.postMenu {
+  position: relative;
+}
+
+.postMenuTrigger {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
   color: #e6d5b6;
+  background: transparent;
+  box-shadow: none;
+  place-items: center;
+}
+
+.postMenuTrigger:hover,
+.postMenuTrigger:focus-visible {
+  border: 0;
+  color: #fff1d4;
+  background: #59341f42;
+}
+
+.postMenuTrigger svg {
+  width: 23px;
+  height: 23px;
+}
+
+.postMenuPopover {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 4px);
+  right: 0;
+  width: max-content;
+  min-width: 190px;
+  padding: 5px;
+  border: 1px solid #765331;
+  border-radius: 11px;
+  background: #100d0ff5;
+  box-shadow: 0 14px 34px #000c;
+}
+
+.postMenuPopover button {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 9px;
+  justify-content: flex-start;
+  padding: 8px 10px;
+  border: 0;
+  color: #ff9b9b;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.82rem;
+}
+
+.postMenuPopover button:hover,
+.postMenuPopover button:focus-visible {
+  border: 0;
+  color: #ffd0c8;
+  background: #711e253d;
+}
+
+.postMenuPopover svg {
+  width: 17px;
+  height: 17px;
 }
 
 .postImage {
@@ -537,6 +604,146 @@
 .emptyFeed strong {
   color: #ead7b7;
   font-family: Georgia, "Times New Roman", serif;
+}
+
+.archives {
+  display: grid;
+  width: min(100%, 900px);
+  gap: 20px;
+  margin-inline: auto;
+  padding: 30px 28px 110px;
+}
+
+.archivesHeading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #65482c;
+  border-radius: 16px;
+  background: #0d0b0de8;
+}
+
+.archivesHeading > span {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border: 1px solid #a97a3f;
+  border-radius: 50%;
+  color: #e0b765;
+  background: #2b1711;
+  place-items: center;
+}
+
+.archivesHeading small {
+  color: #c2904c;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
+.archivesHeading h1 {
+  margin: 2px 0 4px;
+  color: #fff0d6;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.65rem;
+}
+
+.archivesHeading p {
+  margin: 0;
+  color: #ad9e8d;
+  line-height: 1.4;
+}
+
+.archiveGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.archiveCard {
+  overflow: hidden;
+  border: 1px solid #5e462d;
+  border-radius: 15px;
+  background: #0d0c0e;
+  box-shadow: 0 16px 40px #0006;
+}
+
+.archiveCard > img {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border-bottom: 1px solid #4e3422;
+  background: #050405;
+  object-fit: contain;
+}
+
+.archiveDetails {
+  display: grid;
+  gap: 5px;
+  padding: 15px;
+}
+
+.archiveDetails > strong {
+  color: #fff0d6;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+}
+
+.archiveDetails > span {
+  color: #d4a95d;
+  font-size: 0.78rem;
+}
+
+.archiveDetails > p {
+  margin: 8px 0;
+  color: #ded4c7;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.archiveDetails dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.archiveDetails dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.archiveDetails dt,
+.archiveDetails dd {
+  margin: 0;
+  font-size: 0.73rem;
+}
+
+.archiveDetails dt {
+  color: #8f8376;
+}
+
+.archiveDetails dd {
+  color: #c7b8a4;
+  text-align: right;
+}
+
+.archiveDetails em {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #3d2c20;
+  color: #e2aa5c;
+  font-size: 0.78rem;
+  font-style: normal;
+}
+
+.archiveDetails em svg {
+  width: 16px;
+  height: 16px;
 }
 
 dialog.composer,
@@ -1466,6 +1673,16 @@ dialog.commentsSheet {
   .directory,
   .feed {
     padding: 22px 14px 0;
+  }
+  .archives {
+    padding: 22px 14px 110px;
+  }
+  .archiveGrid {
+    grid-template-columns: 1fr;
+  }
+  .archiveCard > img {
+    height: auto;
+    max-height: 70dvh;
   }
   .featured {
     padding-top: 14px;

@@ -26,6 +26,7 @@ import {
   WalletCards,
   UserRound,
   MoreHorizontal,
+  Archive,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -195,6 +196,7 @@ const masterMenu = [
   ["Configurações", Settings],
   ["Perfil", UserRound],
   ["Comunidade", Users],
+  ["Arquivos", Archive],
 ] as const;
 const playerMenu = [
   ["Início", LayoutDashboard],
@@ -1269,7 +1271,7 @@ export default function Game({ invite }: { invite?: string }) {
       className={
         page === "Combate"
           ? "app combat-mode"
-          : page === "Comunidade"
+          : page === "Comunidade" || page === "Arquivos"
             ? "app community-mode"
             : "app"
       }
@@ -2850,8 +2852,9 @@ export default function Game({ invite }: { invite?: string }) {
             </>
           )}
           {page === "Histórico" && history()}
-          {page === "Comunidade" && (
+          {(page === "Comunidade" || (page === "Arquivos" && isMaster)) && (
             <CommunityPanel
+              key={page}
               campaign={campaign}
               identities={rows("social_identities")}
               cosmetics={rows("cosmetics")}
@@ -2910,6 +2913,7 @@ export default function Game({ invite }: { invite?: string }) {
                     }
                   : undefined
               }
+              initialView={page === "Arquivos" ? "archives" : "home"}
             />
           )}
           {page === "Convites" && isMaster && (
