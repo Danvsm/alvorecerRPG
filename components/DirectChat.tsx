@@ -46,13 +46,15 @@ export default function DirectChat({
     [refresh, setRefresh] = useState(0),
     [limit, setLimit] = useState(50),
     [latestByConversation, setLatestByConversation] = useState<Record<string, Row>>({}),
-    [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+    [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set()),
+    [contactsInteractive, setContactsInteractive] = useState(true);
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
+  const contactUnlockTimer = useRef<number | null>(null);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -65,6 +67,15 @@ export default function DirectChat({
   useEffect(() => {
     onUnreadChange?.(unread);
   }, [onUnreadChange, unread]);
+
+  useEffect(
+    () => () => {
+      if (contactUnlockTimer.current !== null) {
+        window.clearTimeout(contactUnlockTimer.current);
+      }
+    },
+    [],
+  );
   useEffect(() => {
     if (hideBubble) {
       setOpen(false);
@@ -338,8 +349,23 @@ export default function DirectChat({
       actor,
     );
 
+  const lockContactList = () => {
+    suppressContactUntil.current = performance.now() + 520;
+    setContactsInteractive(false);
+
+    if (contactUnlockTimer.current !== null) {
+      window.clearTimeout(contactUnlockTimer.current);
+    }
+
+    contactUnlockTimer.current = window.setTimeout(() => {
+      suppressContactUntil.current = 0;
+      setContactsInteractive(true);
+      contactUnlockTimer.current = null;
+    }, 520);
+  };
+
   const openChatList = () => {
-    suppressContactUntil.current = performance.now() + 320;
+    lockContactList();
     setSelected("");
     setMessages([]);
     setLimit(50);
@@ -348,6 +374,12 @@ export default function DirectChat({
   };
 
   const closeChat = () => {
+    if (contactUnlockTimer.current !== null) {
+      window.clearTimeout(contactUnlockTimer.current);
+      contactUnlockTimer.current = null;
+    }
+    suppressContactUntil.current = 0;
+    setContactsInteractive(true);
     setSelected("");
     setMessages([]);
     setLimit(50);
@@ -367,11 +399,13 @@ export default function DirectChat({
           }}
           aria-label={`Mensagens, ${unread} não lidas`}
           onPointerDown={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
             drag.current = { x: e.clientX, y: e.clientY, moved: false };
           }}
           onPointerMove={(e) => {
+            e.stopPropagation();
             if (!drag.current) return;
             if (
               Math.abs(e.clientX - drag.current.x) +
@@ -401,7 +435,9 @@ export default function DirectChat({
             }
             drag.current = null;
           }}
-          onPointerCancel={() => {
+          onPointerCancel={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             drag.current = null;
           }}
           onClick={(e) => {
@@ -444,7 +480,9 @@ export default function DirectChat({
               className="chat-thread-back"
               onClick={() => {
                 if (selected) {
+                  lockContactList();
                   setSelected("");
+                  setMessages([]);
                   setLimit(50);
                 } else {
                   closeChat();
@@ -487,7 +525,11 @@ export default function DirectChat({
             </button>
           </header>
           {!selected && (
-            <div className="chat-contact-list" aria-label="Lista de conversas">
+            <div
+              className="chat-contact-list"
+              aria-label="Lista de conversas"
+              data-interactive={contactsInteractive ? "true" : "false"}
+            >
               {contactRows.map(
                 ({ identity, conversation, latest, activityAt, online }) => {
                   const lastMessage = latest?.media_id
@@ -505,7 +547,7 @@ export default function DirectChat({
                       type="button"
                       className="chat-contact-row"
                       key={identity.id}
-                      disabled={busy}
+                      disabled={busy || !contactsInteractive}
                       onClick={(e) => {
                         if (performance.now() < suppressContactUntil.current) {
                           e.preventDefault();
