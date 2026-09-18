@@ -46,6 +46,7 @@ import CommunityPanel from "./CommunityPanel";
 import IdentityAvatar from "./IdentityAvatar";
 import IdentityBadge from "./IdentityBadge";
 import DirectChat from "./DirectChat";
+import ConversationMonitor from "./ConversationMonitor";
 import NotificationBell from "./NotificationBell";
 import RewardsPanel from "./RewardsPanel";
 import PlayerDataDetails, { ageFromDate } from "./PlayerDataDetails";
@@ -200,6 +201,7 @@ const masterMenu = [
   ["Configurações", Settings],
   ["Perfil", UserRound],
   ["Comunidade", Users],
+  ["Monitoramento", Eye],
   ["Arquivos", Archive],
 ] as const;
 const playerMenu = [
@@ -2869,6 +2871,15 @@ export default function Game({ invite }: { invite?: string }) {
             </>
           )}
           {page === "Histórico" && history()}
+          {page === "Monitoramento" && isMaster && (
+            <ConversationMonitor
+              campaign={campaign}
+              identities={rows("social_identities")}
+              cosmetics={rows("cosmetics")}
+              equipment={rows("cosmetic_equipment")}
+              urls={avatarUrls}
+            />
+          )}
           {(page === "Comunidade" || (page === "Arquivos" && isMaster)) && (
             <CommunityPanel
               key={page}
