@@ -1165,6 +1165,15 @@ dialog.commentsSheet {
   background: transparent;
 }
 
+.commentBody > div button.commentDelete {
+  color: #d98b8b;
+}
+
+.commentBody > div button.commentDelete:hover,
+.commentBody > div button.commentDelete:focus-visible {
+  color: #ffb4aa;
+}
+
 .commentLike {
   display: grid;
   width: 34px;

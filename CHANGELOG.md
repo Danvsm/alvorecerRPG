@@ -6,6 +6,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Exclusão imediata de comentários e respostas sem confirmação: cada jogador pode remover somente o próprio conteúdo, enquanto Pink/Mestre pode remover comentários de qualquer autor.
+- Autorização de exclusão validada no backend; apagar um comentário principal remove também respostas e curtidas relacionadas pelas cascatas existentes.
+- Migration `delete_orkutista_comments` aplicada no Supabase real.
 - Exclusão de publicação pelo menu de três pontos, sem confirmação, com autorização validada no backend.
 - Jogadores podem excluir somente as próprias publicações; elas saem do feed imediatamente e ficam por 24 horas na nova página administrativa `Arquivos`, visível apenas para Pink/Mestre.
 - A página `Arquivos` mostra foto, autor, username, data original, data da exclusão e tempo restante usando o prazo calculado pelo banco.

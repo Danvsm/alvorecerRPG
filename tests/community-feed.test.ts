@@ -21,6 +21,15 @@ const deletionMigration = async () =>
     "utf8",
   );
 
+const commentDeletionMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260918035302_delete_orkutista_comments.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
 test("Orkutista feed enforces identity, unique likes and one-level replies", async () => {
   const db = new PGlite();
   try {
@@ -90,6 +99,7 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
     `);
     await db.exec(await migration());
     await db.exec(await deletionMigration());
+    await db.exec(await commentDeletionMigration());
 
     const campaign = crypto.randomUUID();
     const master = crypto.randomUUID();
@@ -141,6 +151,16 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
       (
         await db.query<{ value: any }>(
           "select community_feed_action($1,$2,$3::jsonb) value",
+          [campaign, op, JSON.stringify(details)],
+        )
+      ).rows[0].value;
+    const commentAction = async (
+      op: string,
+      details: Record<string, unknown>,
+    ) =>
+      (
+        await db.query<{ value: any }>(
+          "select community_comment_action($1,$2,$3::jsonb) value",
           [campaign, op, JSON.stringify(details)],
         )
       ).rows[0].value;
@@ -261,6 +281,58 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
     assert.equal(comments.rows[1].parent_id, root.id);
 
     await assert.rejects(
+      commentAction("delete_comment", {
+        actor_id: otherIdentity,
+        comment_id: root.id,
+      }),
+      /Sem permissão para excluir este comentário/,
+    );
+    const ownDeletion = await commentAction("delete_comment", {
+      actor_id: otherIdentity,
+      comment_id: reply.id,
+    });
+    assert.equal(ownDeletion.deleted, true);
+    assert.equal(
+      (
+        await db.query("select * from community_post_comments($1,$2,$3)", [
+          campaign,
+          post.id,
+          otherIdentity,
+        ])
+      ).rows.length,
+      1,
+    );
+
+    const replacementReply = await action("comment", {
+      actor_id: otherIdentity,
+      post_id: post.id,
+      parent_id: root.id,
+      body: "Resposta substituta.",
+    });
+    await action("comment_like", {
+      actor_id: otherIdentity,
+      comment_id: replacementReply.id,
+    });
+
+    await asUser(master);
+    const masterDeletion = await commentAction("delete_comment", {
+      actor_id: masterIdentity,
+      comment_id: root.id,
+    });
+    assert.equal(masterDeletion.deleted, true);
+    await db.exec("reset role");
+    assert.equal(
+      (await db.query("select * from community_post_comments")).rows.length,
+      0,
+    );
+    assert.equal(
+      (await db.query("select * from community_comment_likes")).rows.length,
+      0,
+    );
+
+    await asUser(other);
+
+    await assert.rejects(
       action("delete_post", {
         actor_id: otherIdentity,
         post_id: post.id,
@@ -344,6 +416,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     migrationSource,
     deletionSource,
     cleanup,
+    commentDeletionSource,
   ] = await Promise.all([
     readFile(
       new URL("../components/CommunityFeed.tsx", import.meta.url),
@@ -364,6 +437,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
       ),
       "utf8",
     ),
+    commentDeletionMigration(),
   ]);
 
   assert.match(feed, /<IdentityAvatar/);
@@ -371,6 +445,9 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(feed, /create_post/);
   assert.match(feed, /post_like/);
   assert.match(feed, /comment_like/);
+  assert.match(feed, /community_comment_action/);
+  assert.match(feed, /Excluir comentário/);
+  assert.match(feed, /master \|\| comment\.author_id === actor/);
   assert.match(feed, /delete_post/);
   assert.match(feed, /Excluir publicação/);
   assert.match(feed, /master \|\| post\.author_id === actor/);
@@ -398,4 +475,10 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   );
   assert.match(cleanup, /community_post_cleanup/);
   assert.match(cleanup, /24 \* 60 \* 60 \* 1000/);
+  assert.match(commentDeletionSource, /target\.author_id<>actor\.id/);
+  assert.match(commentDeletionSource, /not public\.is_master\(c\)/);
+  assert.match(
+    commentDeletionSource,
+    /delete from public\.community_post_comments/,
+  );
 });

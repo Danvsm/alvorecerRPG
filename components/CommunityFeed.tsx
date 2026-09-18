@@ -353,6 +353,7 @@ export default function CommunityFeed({
           post={commentsPost}
           campaign={campaign}
           actor={actor}
+          master={master}
           identities={identities}
           cosmetics={cosmetics}
           equipment={equipment}
@@ -545,6 +546,7 @@ function CommentsSheet({
   post,
   campaign,
   actor,
+  master,
   identities,
   cosmetics,
   equipment,
@@ -556,6 +558,7 @@ function CommentsSheet({
   post: FeedPost;
   campaign: string;
   actor: string;
+  master: boolean;
   identities: Row[];
   cosmetics: Row[];
   equipment: Row[];
@@ -658,6 +661,26 @@ function CommentsSheet({
     }
   };
 
+  const removeComment = async (comment: FeedComment) => {
+    if (busy) return;
+    setBusy(comment.id);
+    setError("");
+    try {
+      const response = await browserDb().rpc("community_comment_action", {
+        c: campaign,
+        op: "delete_comment",
+        d: { actor_id: actor, comment_id: comment.id },
+      });
+      if (response.error) throw response.error;
+      if (replyingTo?.id === comment.id) setReplyingTo(null);
+      await Promise.all([loadComments(), changed()]);
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy("");
+    }
+  };
+
   const renderComment = (comment: FeedComment, reply = false) => {
     const author = identities.find(
       (identity) => identity.id === comment.author_id,
@@ -684,6 +707,16 @@ function CommentsSheet({
             {!reply && (
               <button type="button" onClick={() => setReplyingTo(comment)}>
                 Responder
+              </button>
+            )}
+            {(master || comment.author_id === actor) && (
+              <button
+                type="button"
+                className={styles.commentDelete}
+                disabled={busy === comment.id}
+                onClick={() => void removeComment(comment)}
+              >
+                {busy === comment.id ? "Excluindo..." : "Excluir comentário"}
               </button>
             )}
           </div>
