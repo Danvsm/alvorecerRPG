@@ -308,7 +308,7 @@ export default function CommunityStories({
           <span className={styles.storyPlus}>
             <Plus aria-hidden="true" />
           </span>
-          <strong>Seu story</strong>
+          <strong>Story</strong>
         </button>
 
         {groups.map((group, index) => (
