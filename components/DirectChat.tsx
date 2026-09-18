@@ -51,6 +51,8 @@ export default function DirectChat({
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
+  const suppressContactUntil = useRef(0);
+  const swallowBubbleClick = useRef(false);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -337,6 +339,7 @@ export default function DirectChat({
     );
 
   const openChatList = () => {
+    suppressContactUntil.current = performance.now() + 320;
     setSelected("");
     setMessages([]);
     setLimit(50);
@@ -364,6 +367,7 @@ export default function DirectChat({
           }}
           aria-label={`Mensagens, ${unread} não lidas`}
           onPointerDown={(e) => {
+            e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
             drag.current = { x: e.clientX, y: e.clientY, moved: false };
           }}
@@ -384,22 +388,33 @@ export default function DirectChat({
                 ),
               });
           }}
-          onPointerUp={() => {
+          onPointerUp={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            swallowBubbleClick.current = true;
             if (!drag.current?.moved) {
               if (open) closeChat();
               else openChatList();
+            }
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
             }
             drag.current = null;
           }}
           onPointerCancel={() => {
             drag.current = null;
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              if (open) closeChat();
-              else openChatList();
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (swallowBubbleClick.current) {
+              swallowBubbleClick.current = false;
+              return;
             }
+
+            if (open) closeChat();
+            else openChatList();
           }}
         >
           <MessageCircle />
@@ -407,7 +422,22 @@ export default function DirectChat({
         </button>
       )}
       {open && (
-        <aside className="chat-window" aria-label="Mensagens diretas">
+        <aside
+          className="chat-window"
+          aria-label="Mensagens diretas"
+          onPointerUpCapture={(e) => {
+            if (performance.now() < suppressContactUntil.current) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+          onClickCapture={(e) => {
+            if (performance.now() < suppressContactUntil.current) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
+        >
           <header className="chat-thread-header">
             <button
               type="button"
@@ -476,7 +506,14 @@ export default function DirectChat({
                       className="chat-contact-row"
                       key={identity.id}
                       disabled={busy}
-                      onClick={() => void openContact(identity.id)}
+                      onClick={(e) => {
+                        if (performance.now() < suppressContactUntil.current) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
+                        void openContact(identity.id);
+                      }}
                     >
                       <span className="chat-contact-avatar">
                         <IdentityAvatar
