@@ -3,11 +3,13 @@
 import Image from "next/image";
 import {
   Camera,
+  Crop,
   Heart,
   LoaderCircle,
   MessageCircle,
   MoreVertical,
   Send,
+  Smile,
   Trash2,
   X,
 } from "lucide-react";
@@ -475,9 +477,13 @@ function PostComposer({
   publish: (imagePath: string, caption: string) => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [preview, setPreview] = useState("");
+  const [stage, setStage] = useState<"source" | "photo">("source");
+  const [fillPreview, setFillPreview] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -512,118 +518,290 @@ function PostComposer({
     }
   };
 
+  const selectFile = (selected?: File) => {
+    if (!selected || busy) return;
+    setError("");
+    setFile(selected);
+    setStage("photo");
+  };
+
+  const returnToSources = () => {
+    if (busy) return;
+    setFile(null);
+    setCaption("");
+    setStage("source");
+  };
+
   return (
     <dialog
       ref={ref}
-      className={styles.composer}
+      className={`${styles.composer} ${styles.feedComposer}`}
       aria-labelledby="community-composer-title"
       onCancel={(event) => {
         event.preventDefault();
         if (!busy) close();
       }}
     >
-      <div className={styles.sheetHandle} />
-      <header className={styles.sheetHeader}>
-        <div>
-          <small>NOVA PUBLICAÇÃO</small>
-          <h2 id="community-composer-title">Compartilhe uma história</h2>
-        </div>
-        <button type="button" aria-label="Cancelar publicação" onClick={close}>
-          <X aria-hidden="true" />
-        </button>
-      </header>
+      <input
+        ref={galleryRef}
+        className={styles.feedComposerFileInput}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        disabled={busy}
+        onChange={(event) => {
+          selectFile(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
+      <input
+        ref={cameraRef}
+        className={styles.feedComposerFileInput}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        capture="environment"
+        disabled={busy}
+        onChange={(event) => {
+          selectFile(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
 
-      {master && changeActor && (
-        <div className={styles.actorControls}>
-          <label className={styles.actorPicker}>
-            <span>Publicar como</span>
-            <select
-              value={actor}
-              onChange={(event) => changeActor(event.target.value)}
-            >
-              {identities
-                .filter(
-                  (identity) =>
-                    identity.active &&
-                    ["master", "npc"].includes(identity.kind),
-                )
-                .map((identity) => (
-                  <option key={identity.id} value={identity.id}>
-                    {identity.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-          {createWorldCharacter && (
+      {stage === "source" ? (
+        <div className={styles.feedComposerSource}>
+          <button
+            type="button"
+            className={styles.feedComposerClose}
+            aria-label="Cancelar publicação"
+            disabled={busy}
+            onClick={close}
+          >
+            <X aria-hidden="true" />
+          </button>
+
+          <header className={styles.feedComposerIntro}>
+            <span className={styles.feedComposerCompass} aria-hidden="true">
+              ✦
+            </span>
+            <h2 id="community-composer-title">Compartilhe uma história</h2>
+            <p>Mostre para o mundo o que aconteceu na sua aventura.</p>
+          </header>
+
+          <section
+            className={styles.feedComposerChoices}
+            aria-label="Tipo de publicação"
+          >
             <button
               type="button"
+              className={styles.feedComposerGalleryChoice}
               disabled={busy}
-              onClick={() => {
-                close();
-                window.requestAnimationFrame(createWorldCharacter);
-              }}
+              onClick={() => galleryRef.current?.click()}
             >
-              Criar Personagem do Mundo
+              <Image
+                src="/community/feed-composer-gallery.webp"
+                width={140}
+                height={136}
+                alt=""
+                aria-hidden="true"
+              />
+              <span>
+                <strong>Galeria</strong>
+                <small>Escolher uma foto</small>
+              </span>
+              <span
+                className={styles.feedComposerChoiceArrow}
+                aria-hidden="true"
+              >
+                ›
+              </span>
             </button>
+            <div className={styles.feedComposerSecondaryChoices}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => cameraRef.current?.click()}
+              >
+                <Image
+                  src="/community/feed-composer-camera.webp"
+                  width={116}
+                  height={116}
+                  alt=""
+                  aria-hidden="true"
+                />
+                <strong>Câmera</strong>
+                <small>Tirar foto</small>
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  setError(
+                    "Envie o mockup da área de escrita para concluirmos esta opção.",
+                  )
+                }
+              >
+                <Image
+                  src="/community/feed-composer-quill.webp"
+                  width={100}
+                  height={120}
+                  alt=""
+                  aria-hidden="true"
+                />
+                <strong>Escrita</strong>
+                <small>Publicar somente texto</small>
+              </button>
+            </div>
+          </section>
+
+          {master && changeActor && (
+            <div className={styles.feedComposerActorControls}>
+              <label className={styles.actorPicker}>
+                <span>Publicar como</span>
+                <select
+                  value={actor}
+                  onChange={(event) => changeActor(event.target.value)}
+                >
+                  {identities
+                    .filter(
+                      (identity) =>
+                        identity.active &&
+                        ["master", "npc"].includes(identity.kind),
+                    )
+                    .map((identity) => (
+                      <option key={identity.id} value={identity.id}>
+                        {identity.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              {createWorldCharacter && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    close();
+                    window.requestAnimationFrame(createWorldCharacter);
+                  }}
+                >
+                  Criar Personagem do Mundo
+                </button>
+              )}
+            </div>
           )}
+
+          {error && (
+            <p className={styles.feedComposerError} role="alert">
+              {error}
+            </p>
+          )}
+          <Image
+            className={styles.feedComposerDivider}
+            src="/community/feed-composer-divider.webp"
+            width={900}
+            height={300}
+            alt=""
+            aria-hidden="true"
+          />
+        </div>
+      ) : (
+        <div className={styles.feedComposerPhoto}>
+          <header className={styles.feedPhotoToolbar}>
+            <button
+              type="button"
+              aria-label="Voltar para opções"
+              disabled={busy}
+              onClick={returnToSources}
+            >
+              <X aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="Alternar enquadramento da prévia"
+              aria-pressed={fillPreview}
+              disabled={busy}
+              onClick={() => setFillPreview((current) => !current)}
+            >
+              <Crop aria-hidden="true" />
+            </button>
+          </header>
+
+          <figure
+            className={styles.feedPhotoPreview}
+            data-fill={fillPreview || undefined}
+          >
+            {preview && (
+              <Image
+                src={preview}
+                width={1200}
+                height={1200}
+                alt="Prévia da publicação"
+                unoptimized
+                priority
+              />
+            )}
+          </figure>
+
+          <div className={styles.feedCaptionDock}>
+            <div className={styles.feedCaptionField}>
+              <Image
+                src="/community/feed-composer-quill.webp"
+                width={34}
+                height={42}
+                alt=""
+                aria-hidden="true"
+              />
+              <textarea
+                value={caption}
+                maxLength={2000}
+                rows={2}
+                disabled={busy}
+                aria-label="Legenda da publicação"
+                placeholder="Escreva uma legenda..."
+                onChange={(event) => setCaption(event.target.value)}
+              />
+              <button
+                type="button"
+                aria-label="Adicionar brilho à legenda"
+                disabled={busy || caption.length > 1998}
+                onClick={() => setCaption((current) => `${current}✨`)}
+              >
+                <Smile aria-hidden="true" />
+              </button>
+            </div>
+            <button
+              type="button"
+              className={styles.feedPublishOrb}
+              aria-label="Publicar"
+              disabled={busy || !file || !caption.trim()}
+              onClick={() => void submit()}
+            >
+              {busy ? (
+                <LoaderCircle
+                  className={styles.feedPublishSpinner}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Send aria-hidden="true" />
+              )}
+            </button>
+            <small className={styles.feedCaptionCount}>
+              {caption.length}/2000
+            </small>
+            {error && (
+              <p className={styles.feedComposerError} role="alert">
+                {error}
+              </p>
+            )}
+            <Image
+              className={styles.feedComposerDivider}
+              src="/community/feed-composer-divider.webp"
+              width={900}
+              height={300}
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
         </div>
       )}
-
-      <label className={styles.photoPicker}>
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          disabled={busy}
-          onChange={(event) => setFile(event.target.files?.[0] || null)}
-        />
-        {preview ? (
-          <Image
-            src={preview}
-            width={1200}
-            height={1200}
-            alt="Prévia da publicação"
-            unoptimized
-          />
-        ) : (
-          <span>
-            <Camera aria-hidden="true" />
-            <strong>Selecionar foto</strong>
-            <small>JPG, PNG ou WebP</small>
-          </span>
-        )}
-      </label>
-
-      <label className={styles.captionField}>
-        <span>Legenda</span>
-        <textarea
-          value={caption}
-          maxLength={2000}
-          rows={4}
-          disabled={busy}
-          placeholder="Conte o que aconteceu nesta aventura..."
-          onChange={(event) => setCaption(event.target.value)}
-        />
-        <small>{caption.length}/2000</small>
-      </label>
-
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className={styles.composerActions}>
-        <button type="button" disabled={busy} onClick={close}>
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className={styles.publishButton}
-          disabled={busy || !file || !caption.trim()}
-          onClick={() => void submit()}
-        >
-          {busy ? "Publicando..." : "Publicar"}
-        </button>
-      </div>
     </dialog>
   );
 }

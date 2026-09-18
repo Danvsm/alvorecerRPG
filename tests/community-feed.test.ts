@@ -493,6 +493,13 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(feed, /loading="lazy"/);
   assert.match(feed, /visible\.map\(\(post\) => post\.image_path\)/);
   assert.match(feed, /create_post/);
+  assert.match(feed, /stage === "source"/);
+  assert.match(feed, />Galeria</);
+  assert.match(feed, />Câmera</);
+  assert.match(feed, />Escrita</);
+  assert.match(feed, /capture="environment"/);
+  assert.match(feed, /Escreva uma legenda/);
+  assert.match(feed, /Alternar enquadramento da prévia/);
   assert.match(feed, /post_like/);
   assert.match(feed, /comment_like/);
   assert.match(feed, /community_comment_action/);

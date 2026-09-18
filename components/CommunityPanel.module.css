@@ -783,6 +783,447 @@ dialog.commentsSheet::backdrop {
   backdrop-filter: blur(5px);
 }
 
+dialog.composer.feedComposer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #030303;
+}
+
+dialog.composer.feedComposer::backdrop {
+  background: #000;
+}
+
+.feedComposerFileInput {
+  display: none;
+}
+
+.feedComposerSource,
+.feedComposerPhoto {
+  position: relative;
+  width: min(100%, 720px);
+  height: 100dvh;
+  margin: 0 auto;
+  overflow-y: auto;
+  color: #f6ead7;
+  background: #050404;
+  box-shadow: 0 0 80px #000;
+}
+
+.feedComposerSource {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  align-content: start;
+  padding: max(24px, env(safe-area-inset-top)) 30px
+    max(18px, env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, #030303aa, #060403d9 56%, #050303f2),
+    url("/community/feed-composer-background.webp") center / cover no-repeat;
+}
+
+.feedComposerClose,
+.feedPhotoToolbar button {
+  display: grid;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  border: 1px solid #8f673e;
+  border-radius: 50%;
+  color: #e9bd79;
+  background: #080707d9;
+  box-shadow:
+    inset 0 0 20px #a76d2730,
+    0 8px 24px #0008;
+  place-items: center;
+}
+
+.feedComposerClose:hover,
+.feedPhotoToolbar button:hover {
+  border-color: #d7a45e;
+  color: #ffe5b6;
+  background: #17100d;
+}
+
+.feedComposerClose {
+  position: relative;
+  z-index: 2;
+  justify-self: end;
+}
+
+.feedComposerIntro {
+  display: grid;
+  justify-items: center;
+  max-width: 540px;
+  margin: -10px auto 26px;
+  text-align: center;
+}
+
+.feedComposerCompass {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 48px;
+  color: #c99350;
+  font-size: 2.4rem;
+  place-items: center;
+}
+
+.feedComposerCompass::before,
+.feedComposerCompass::after {
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b58144);
+  content: "";
+}
+
+.feedComposerCompass::before {
+  left: 0;
+}
+
+.feedComposerCompass::after {
+  right: 0;
+  transform: rotate(180deg);
+}
+
+.feedComposerIntro h2 {
+  max-width: 470px;
+  margin: 14px 0 10px;
+  color: #fff1d8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.1rem, 8vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1.02;
+  text-wrap: balance;
+  text-shadow: 0 3px 14px #000;
+}
+
+.feedComposerIntro p {
+  max-width: 380px;
+  margin: 10px 0 0;
+  color: #b7aca1;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.feedComposerChoices {
+  display: grid;
+  gap: 16px;
+}
+
+.feedComposerChoices button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid #775638;
+  border-radius: 17px;
+  color: #f7e6cc;
+  background: #090808d9;
+  box-shadow:
+    inset 0 0 45px #0008,
+    0 12px 36px #0006;
+}
+
+.feedComposerChoices button::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(105deg, #211307a8, transparent 45%),
+    url("/community/feed-composer-background.webp") center 57% / cover no-repeat;
+  content: "";
+  opacity: 0.35;
+}
+
+.feedComposerChoices button:hover {
+  border-color: #d2a05b;
+  background: #120d0bde;
+  box-shadow:
+    inset 0 0 45px #0008,
+    0 0 25px #b8752938;
+}
+
+.feedComposerGalleryChoice {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 34px;
+  align-items: center;
+  min-height: 180px;
+  gap: 20px;
+  width: 100%;
+  padding: 18px 24px;
+  text-align: left;
+}
+
+.feedComposerGalleryChoice > img {
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+}
+
+.feedComposerGalleryChoice > span:not(.feedComposerChoiceArrow) {
+  display: grid;
+  gap: 5px;
+}
+
+.feedComposerChoices strong {
+  color: #fff0d4;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+
+.feedComposerChoices small {
+  color: #afa49a;
+  font-size: 0.88rem;
+}
+
+.feedComposerChoiceArrow {
+  color: #e7b66e;
+  font-family: Georgia, serif;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.feedComposerSecondaryChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.feedComposerSecondaryChoices button {
+  display: grid;
+  min-height: 210px;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  padding: 18px 12px;
+  text-align: center;
+}
+
+.feedComposerSecondaryChoices img {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 3px;
+  object-fit: contain;
+}
+
+.feedComposerSecondaryChoices button:last-child img {
+  width: 82px;
+}
+
+.feedComposerActorControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid #594128;
+  border-radius: 14px;
+  background: #080606d9;
+}
+
+.feedComposerActorControls label {
+  margin: 0;
+}
+
+.feedComposerActorControls select,
+.feedComposerActorControls button {
+  min-height: 44px;
+  border-color: #6d5134;
+  color: #ead3ad;
+  background: #0b0908;
+}
+
+.feedComposerDivider {
+  align-self: end;
+  width: 100%;
+  height: 56px;
+  margin-top: 18px;
+  object-fit: contain;
+  opacity: 0.85;
+}
+
+.feedComposerError {
+  margin: 14px 0 0;
+  padding: 10px 13px;
+  border: 1px solid #93404b;
+  border-radius: 12px;
+  color: #ffd9dc;
+  background: #5f1520e8;
+  text-align: center;
+}
+
+.feedComposerPhoto {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.feedPhotoToolbar {
+  position: absolute;
+  z-index: 3;
+  top: max(18px, env(safe-area-inset-top));
+  right: 24px;
+  left: 24px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.feedPhotoToolbar button {
+  background: #050505df;
+  pointer-events: auto;
+}
+
+.feedPhotoPreview {
+  grid-row: 1 / 3;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.feedPhotoPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.feedPhotoPreview[data-fill="true"] img {
+  object-fit: cover;
+}
+
+.feedCaptionDock {
+  position: relative;
+  z-index: 4;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #030303d6, #020202 35%);
+}
+
+.feedCaptionField {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 42px;
+  align-items: center;
+  min-height: 74px;
+  gap: 8px;
+  padding: 9px 10px 9px 15px;
+  border: 1px solid #8a633b;
+  border-radius: 18px;
+  background: #090909e8;
+  box-shadow: inset 0 0 28px #0009;
+}
+
+.feedCaptionField > img {
+  width: 28px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.feedCaptionField textarea {
+  min-height: 48px;
+  max-height: 110px;
+  padding: 13px 2px 8px;
+  resize: none;
+  border: 0;
+  color: #f5e8d5;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.95rem;
+}
+
+.feedCaptionField textarea:focus {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.feedCaptionField > button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  color: #d8a864;
+  background: transparent;
+  box-shadow: none;
+  place-items: center;
+}
+
+.feedPublishOrb {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  border: 1px solid #ffe0a3;
+  border-radius: 50%;
+  color: #160e08;
+  background: radial-gradient(circle at 35% 30%, #ffe49c, #d78c30 58%, #6d3511);
+  box-shadow:
+    inset 0 0 18px #fff4bc,
+    0 0 22px #d9923b8c;
+  place-items: center;
+}
+
+.feedPublishOrb:hover:not(:disabled) {
+  border-color: #fff4cd;
+  color: #050403;
+  background: radial-gradient(circle at 35% 30%, #fff2bf, #e9a547 60%, #804117);
+}
+
+.feedPublishOrb:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.35);
+}
+
+.feedPublishOrb svg {
+  width: 28px;
+  height: 28px;
+}
+
+.feedPublishSpinner {
+  animation: spin 0.9s linear infinite;
+}
+
+.feedCaptionCount {
+  position: absolute;
+  right: 108px;
+  bottom: max(5px, env(safe-area-inset-bottom));
+  color: #796d61;
+  font-size: 0.58rem;
+}
+
+.feedCaptionDock > .feedComposerError,
+.feedCaptionDock > .feedComposerDivider {
+  grid-column: 1 / -1;
+}
+
+.feedCaptionDock > .feedComposerError {
+  margin-top: 0;
+}
+
+.feedCaptionDock > .feedComposerDivider {
+  height: 32px;
+  margin-top: -3px;
+}
+
 dialog.composer.storyComposer {
   position: fixed;
   inset: 0;
@@ -2325,6 +2766,139 @@ dialog.commentsSheet {
     padding: 0;
     border: 0;
     border-radius: 0;
+  }
+
+  dialog.composer.feedComposer {
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .feedComposerSource {
+    padding: max(16px, env(safe-area-inset-top)) 16px
+      max(12px, env(safe-area-inset-bottom));
+  }
+
+  .feedComposerClose,
+  .feedPhotoToolbar button {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+  }
+
+  .feedComposerIntro {
+    margin: -4px auto 20px;
+  }
+
+  .feedComposerCompass {
+    height: 38px;
+    font-size: 1.9rem;
+  }
+
+  .feedComposerIntro h2 {
+    max-width: 330px;
+    margin-top: 9px;
+    font-size: clamp(1.9rem, 10vw, 2.7rem);
+  }
+
+  .feedComposerIntro p {
+    max-width: 320px;
+    font-size: 0.86rem;
+  }
+
+  .feedComposerChoices {
+    gap: 11px;
+  }
+
+  .feedComposerGalleryChoice {
+    grid-template-columns: 88px minmax(0, 1fr) 24px;
+    min-height: 142px;
+    gap: 12px;
+    padding: 14px 15px;
+  }
+
+  .feedComposerGalleryChoice > img {
+    width: 84px;
+    height: 84px;
+  }
+
+  .feedComposerChoices strong {
+    font-size: 1.3rem;
+  }
+
+  .feedComposerChoices small {
+    font-size: 0.76rem;
+  }
+
+  .feedComposerSecondaryChoices {
+    gap: 11px;
+  }
+
+  .feedComposerSecondaryChoices button {
+    min-height: 172px;
+    padding: 13px 6px;
+  }
+
+  .feedComposerSecondaryChoices img {
+    width: 76px;
+    height: 76px;
+  }
+
+  .feedComposerSecondaryChoices button:last-child img {
+    width: 62px;
+  }
+
+  .feedComposerActorControls {
+    grid-template-columns: 1fr;
+  }
+
+  .feedComposerDivider {
+    height: 42px;
+    margin-top: 10px;
+  }
+
+  .feedPhotoToolbar {
+    top: max(14px, env(safe-area-inset-top));
+    right: 16px;
+    left: 16px;
+  }
+
+  .feedCaptionDock {
+    grid-template-columns: minmax(0, 1fr) 60px;
+    gap: 9px;
+    padding: 14px 14px max(8px, env(safe-area-inset-bottom));
+  }
+
+  .feedCaptionField {
+    grid-template-columns: 30px minmax(0, 1fr) 36px;
+    min-height: 66px;
+    gap: 5px;
+    padding: 7px 7px 7px 12px;
+    border-radius: 16px;
+  }
+
+  .feedCaptionField > img {
+    width: 24px;
+    height: 30px;
+  }
+
+  .feedCaptionField > button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .feedPublishOrb {
+    width: 58px;
+    height: 58px;
+  }
+
+  .feedCaptionCount {
+    right: 88px;
   }
 
   .storyComposerShell {

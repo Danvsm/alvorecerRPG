@@ -4,6 +4,8 @@ Atualizado em 18/09/2026, 04:05 UTC.
 
 ## Continuação atual
 
+- O criador do feed agora possui duas etapas em tela cheia: escolha entre Galeria/Câmera/Escrita e composição da legenda após selecionar uma foto. A tela exclusiva de Escrita ainda aguarda o mockup definitivo do usuário.
+- Os assets fornecidos foram otimizados para WebP e incorporados ao tema sem substituir a otimização automática aplicada à foto publicada.
 - A central de notificações foi refeita como uma tela completa mobile-first, inspirada no mockup do usuário e integrada ao tema dark fantasy.
 - Existem somente os filtros `Todas` e `Não lidas`; notificações são agrupadas por dia e a aba de menções permanece fora do produto.
 - Marcar uma notificação, marcar todas e limpar tudo continuam usando as operações protegidas já existentes, com atualização otimista da lista e do contador.
