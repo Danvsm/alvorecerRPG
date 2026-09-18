@@ -4294,3 +4294,137 @@ dialog.combat-sheet {
     transition: none;
   }
 }
+
+
+.chat-contact-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 14px 24px;
+  background: #070707;
+  scrollbar-width: none;
+}
+
+.chat-contact-list::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-contact-row {
+  display: grid;
+  width: 100%;
+  min-height: 96px;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 10px 2px;
+  border: 0;
+  border-bottom: 1px solid #ffffff09;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.chat-contact-row:hover,
+.chat-contact-row:active {
+  border-bottom-color: #ffffff12;
+  background: #ffffff04;
+}
+
+.chat-contact-avatar {
+  position: relative;
+  display: grid;
+  width: 74px;
+  height: 74px;
+  place-items: center;
+}
+
+.chat-contact-presence {
+  position: absolute;
+  right: 1px;
+  bottom: 5px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #070707;
+  border-radius: 50%;
+  background: #64605e;
+}
+
+.chat-contact-presence.online {
+  background: #31cf62;
+  box-shadow: 0 0 8px #31cf6266;
+}
+
+.chat-contact-copy {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.chat-contact-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-contact-copy small {
+  overflow: hidden;
+  color: #99928d;
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-contact-row time {
+  min-width: 46px;
+  padding-left: 6px;
+  color: #827d79;
+  font-size: 0.74rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.chat-contact-empty {
+  margin: 0;
+  padding: 64px 18px;
+  color: #8d8782;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .chat-contact-list {
+    padding-inline: 12px;
+  }
+
+  .chat-contact-row {
+    min-height: 92px;
+    grid-template-columns: 70px minmax(0, 1fr) auto;
+    gap: 12px;
+    padding-block: 8px;
+  }
+
+  .chat-contact-avatar {
+    width: 68px;
+    height: 68px;
+  }
+
+  .chat-contact-copy strong {
+    font-size: 0.98rem;
+  }
+
+  .chat-contact-copy small {
+    font-size: 0.84rem;
+  }
+
+  .chat-contact-row time {
+    min-width: 42px;
+    font-size: 0.7rem;
+  }
+}

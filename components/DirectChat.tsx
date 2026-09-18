@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ImagePlus, MessageCircle, Send, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -44,7 +44,9 @@ export default function DirectChat({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0),
-    [limit, setLimit] = useState(50);
+    [limit, setLimit] = useState(50),
+    [latestByConversation, setLatestByConversation] = useState<Record<string, Row>>({}),
+    [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -90,15 +92,55 @@ export default function DirectChat({
       retryNetworkRead(() =>
         browserDb().rpc("unread_messages", { c: campaign, actor }),
       ),
-    ]).then(([c, r]) => {
+      retryNetworkRead(() =>
+        browserDb().rpc("community_presence", { c: campaign }),
+      ),
+    ]).then(async ([c, r, presence]) => {
       if (!valid) return;
-      const failed = [c, r].find((x) => x.error);
+      const failed = [c, r, presence].find((x) => x.error);
       if (failed?.error) {
         setError(readableErrorMessage(failed.error));
         return;
       }
-      setConversations(c.data || []);
+
+      const nextConversations = c.data || [];
+      setConversations(nextConversations);
       setUnread(Number(r.data || 0));
+      setOnlineUserIds(
+        new Set(
+          (presence.data || [])
+            .filter((entry: Row) => entry.online)
+            .map((entry: Row) => entry.user_id),
+        ),
+      );
+
+      const ids = nextConversations.map((entry) => entry.id);
+      if (!ids.length) {
+        setLatestByConversation({});
+        return;
+      }
+
+      const latestResult = await retryNetworkRead(() =>
+        browserDb()
+          .from("direct_messages")
+          .select("id,conversation_id,sender_id,body,media_id,created_at")
+          .in("conversation_id", ids)
+          .order("created_at", { ascending: false }),
+      );
+
+      if (!valid) return;
+      if (latestResult.error) {
+        setError(readableErrorMessage(latestResult.error));
+        return;
+      }
+
+      const latest: Record<string, Row> = {};
+      for (const message of latestResult.data || []) {
+        if (!latest[message.conversation_id]) {
+          latest[message.conversation_id] = message;
+        }
+      }
+      setLatestByConversation(latest);
     });
     return () => {
       valid = false;
@@ -156,7 +198,110 @@ export default function DirectChat({
     );
   }, [messages, open, selected]);
 
-    const selectedConversation = conversations.find((c) => c.id === selected);
+    const actorIdentity = identities.find((identity) => identity.id === actor);
+
+  const contactRows = useMemo(() => {
+    const conversationByPeer = new Map<string, Row>();
+    for (const conversation of conversations) {
+      const peerId =
+        conversation.first_id === actor
+          ? conversation.second_id
+          : conversation.first_id;
+      if (peerId) conversationByPeer.set(peerId, conversation);
+    }
+
+    return identities
+      .filter((identity) => identity.active && identity.id !== actor)
+      .map((identity) => {
+        const conversation = conversationByPeer.get(identity.id);
+        const latest = conversation
+          ? latestByConversation[conversation.id]
+          : undefined;
+        const activityAt =
+          latest?.created_at || conversation?.created_at || "";
+        const online = Boolean(
+          identity.user_id && onlineUserIds.has(identity.user_id),
+        );
+        return { identity, conversation, latest, activityAt, online };
+      })
+      .sort((left, right) => {
+        const leftHasConversation = Boolean(left.conversation);
+        const rightHasConversation = Boolean(right.conversation);
+
+        if (leftHasConversation !== rightHasConversation) {
+          return leftHasConversation ? -1 : 1;
+        }
+
+        if (leftHasConversation && rightHasConversation) {
+          const recent =
+            new Date(right.activityAt).getTime() -
+            new Date(left.activityAt).getTime();
+          if (recent !== 0) return recent;
+        }
+
+        if (left.online !== right.online) {
+          return left.online ? -1 : 1;
+        }
+
+        return String(left.identity.name).localeCompare(
+          String(right.identity.name),
+          "pt-BR",
+        );
+      });
+  }, [
+    actor,
+    conversations,
+    identities,
+    latestByConversation,
+    onlineUserIds,
+  ]);
+
+  const openContact = async (identityId: string) => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const conversation = await action("conversation", {
+        recipient_id: identityId,
+      });
+      setSelected(conversation.id);
+      setLimit(50);
+      setRefresh((value) => value + 1);
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const contactTime = (value?: string) => {
+    if (!value) return "";
+    const date = new Date(value);
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startMessage = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    const days = Math.round(
+      (startToday.getTime() - startMessage.getTime()) / 86_400_000,
+    );
+    if (days <= 0) {
+      return date.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    if (days === 1) return "Ontem";
+    if (days < 7) return `${days} d`;
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
+
+  const selectedConversation = conversations.find((c) => c.id === selected);
   const selectedPeerIds = selectedConversation
     ? [selectedConversation.first_id, selectedConversation.second_id].filter(
         (id) => id !== actor,
@@ -239,15 +384,22 @@ export default function DirectChat({
             <button
               type="button"
               className="chat-thread-back"
-              onClick={() => setOpen(false)}
-              aria-label="Voltar às conversas"
+              onClick={() => {
+                if (selected) {
+                  setSelected("");
+                  setLimit(50);
+                } else {
+                  setOpen(false);
+                }
+              }}
+              aria-label={selected ? "Voltar às conversas" : "Fechar mensagens"}
             >
               <ChevronLeft />
             </button>
             <div className="chat-thread-peer">
-              {selectedPeer && (
+              {(selectedPeer || (!selected && actorIdentity)) && (
                 <IdentityAvatar
-                  identity={selectedPeer}
+                  identity={selectedPeer || actorIdentity}
                   cosmetics={cosmetics}
                   equipment={equipment}
                   urls={urls}
@@ -255,8 +407,16 @@ export default function DirectChat({
                 />
               )}
               <div>
-                <strong>{selected ? selectedPeerName : "Mensagens"}</strong>
-                {selected && <small>Conversa direta</small>}
+                <strong>
+                  {selected
+                    ? selectedPeerName
+                    : actorIdentity?.name || "Mensagens"}
+                </strong>
+                {selected ? (
+                  <small>Conversa direta</small>
+                ) : (
+                  <small>Mensagens</small>
+                )}
               </div>
             </div>
             <button
@@ -269,41 +429,70 @@ export default function DirectChat({
             </button>
           </header>
           {!selected && (
-            <div className="chat-conversation-picker">
-              <label>
-                Escolha uma conversa
-                <select
-                  aria-label="Conversa"
-                  value={selected}
-                  onChange={(e) => {
-                    setSelected(e.target.value);
-                    setLimit(50);
-                  }}
-                >
-                  <option value="">Selecione</option>
-                  {conversations
-                    .filter(
-                      (c) =>
-                        master ||
-                        [c.first_id, c.second_id].includes(actor),
-                    )
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {[c.first_id, c.second_id]
-                          .filter((id) => id !== actor)
-                          .map(
-                            (id) =>
-                              identities.find((i) => i.id === id)?.name ||
-                              "Perfil indisponível",
-                          )
-                          .join(" e ")}
-                      </option>
-                    ))}
-                </select>
-              </label>
+            <div className="chat-contact-list" aria-label="Lista de conversas">
+              {contactRows.map(
+                ({ identity, conversation, latest, activityAt, online }) => {
+                  const lastMessage = latest?.media_id
+                    ? latest.sender_id === actor
+                      ? "Você enviou uma imagem"
+                      : "Enviou uma imagem"
+                    : latest?.body
+                      ? latest.sender_id === actor
+                        ? `Você: ${latest.body}`
+                        : latest.body
+                      : "Iniciar conversa";
+
+                  return (
+                    <button
+                      type="button"
+                      className="chat-contact-row"
+                      key={identity.id}
+                      disabled={busy}
+                      onClick={() => void openContact(identity.id)}
+                    >
+                      <span className="chat-contact-avatar">
+                        <IdentityAvatar
+                          identity={identity}
+                          cosmetics={cosmetics}
+                          equipment={equipment}
+                          urls={urls}
+                          size={72}
+                        />
+                        {identity.user_id && (
+                          <i
+                            className={
+                              online
+                                ? "chat-contact-presence online"
+                                : "chat-contact-presence"
+                            }
+                            aria-label={online ? "Online" : "Offline"}
+                          />
+                        )}
+                      </span>
+
+                      <span className="chat-contact-copy">
+                        <strong>{identity.name}</strong>
+                        <small>{lastMessage}</small>
+                      </span>
+
+                      {conversation && (
+                        <time dateTime={activityAt}>
+                          {contactTime(activityAt)}
+                        </time>
+                      )}
+                    </button>
+                  );
+                },
+              )}
+
+              {!contactRows.length && (
+                <p className="chat-contact-empty">
+                  Nenhum perfil disponível para conversar.
+                </p>
+              )}
             </div>
           )}
-          <div className="chat-messages">
+          {selected && <div className="chat-messages">
             {messages.length >= limit && (
               <button onClick={() => setLimit((n) => n + 50)}>
                 Carregar anteriores
@@ -341,7 +530,7 @@ export default function DirectChat({
               );
             })}
             <div ref={messagesEndRef} />
-          </div>
+          </div>}
           {canSend && (
             <form
               className="chat-composer"
