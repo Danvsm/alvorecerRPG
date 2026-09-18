@@ -4,7 +4,9 @@ Atualizado em 18/09/2026, 04:05 UTC.
 
 ## Continuação atual
 
-- O criador do feed agora possui duas etapas em tela cheia: escolha entre Galeria/Câmera/Escrita e composição da legenda após selecionar uma foto. A tela exclusiva de Escrita ainda aguarda o mockup definitivo do usuário.
+- O criador do feed agora possui as três etapas em tela cheia: escolha entre Galeria/Câmera/Escrita, composição da legenda após selecionar uma foto e editor exclusivo para publicações somente de texto.
+- Posts textuais aceitam até 1.000 caracteres, preservam autoria autenticada, curtidas, comentários, Arquivos e os dois fluxos de exclusão; por não possuírem mídia, não criam objetos nem filas de limpeza no Storage.
+- A migration `20260918144719_text_only_orkutista_posts.sql` foi aplicada no Supabase real e verificada: coluna de mídia anulável, constraint textual, RPC atualizada e trigger de limpeza protegida para caminhos nulos.
 - Os assets fornecidos foram otimizados para WebP e incorporados ao tema sem substituir a otimização automática aplicada à foto publicada.
 - A central de notificações foi refeita como uma tela completa mobile-first, inspirada no mockup do usuário e integrada ao tema dark fantasy.
 - Existem somente os filtros `Todas` e `Não lidas`; notificações são agrupadas por dia e a aba de menções permanece fora do produto.

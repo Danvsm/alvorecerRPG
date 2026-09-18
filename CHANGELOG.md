@@ -6,6 +6,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Publicações somente de texto concluídas no criador do feed, com editor em tela cheia fiel ao mockup, identidade ativa, selo `Apenas texto`, limite de 1.000 caracteres e publicação pelo botão de envio.
+- Feed e Arquivos agora tratam posts com ou sem imagem sem solicitar URLs vazias ao Storage; excluir um post textual não cria fila de mídia nem arquivo órfão, mantendo as mesmas regras de autoria e Mestre.
+- Migration `text_only_orkutista_posts` aplicada no Supabase real, com `image_path` opcional, limite textual protegido no banco e limpeza de Storage condicionada à existência de mídia.
 - O criador de publicações do feed passou a abrir em tela cheia com uma primeira etapa inspirada no mockup: Galeria, Câmera e Escrita, usando os assets dourados e o cenário fornecidos.
 - Galeria e Câmera agora seguem para uma segunda etapa dedicada, com foto em destaque, alternância de enquadramento, campo de legenda, atalho de emoji e ação dourada para publicar, preservando a compressão automática já existente.
 - Notificações redesenhadas como uma experiência dark fantasy em tela cheia, com cabeçalho, retorno, ações circulares, filtros `Todas` e `Não lidas` e cards responsivos inspirados no mockup fornecido.

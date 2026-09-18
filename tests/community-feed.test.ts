@@ -39,6 +39,15 @@ const paginationMigration = async () =>
     "utf8",
   );
 
+const textPostMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260918144719_text_only_orkutista_posts.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
 test("Orkutista feed enforces identity, unique likes and one-level replies", async () => {
   const db = new PGlite();
   try {
@@ -110,6 +119,7 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
     await db.exec(await deletionMigration());
     await db.exec(await commentDeletionMigration());
     await db.exec(await paginationMigration());
+    await db.exec(await textPostMigration());
 
     const campaign = crypto.randomUUID();
     const master = crypto.randomUUID();
@@ -208,6 +218,47 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
       caption: "A sessão foi ótima.",
     });
     assert.equal(post.active, true);
+
+    const textPost = await action("create_post", {
+      actor_id: playerIdentity,
+      image_path: "",
+      caption: "Uma descoberta feita somente em palavras.",
+    });
+    assert.equal(textPost.active, true);
+    assert.equal(
+      (
+        await db.query<{ image_path: string | null }>(
+          "select image_path from community_posts where id=$1",
+          [textPost.id],
+        )
+      ).rows[0].image_path,
+      null,
+    );
+    await assert.rejects(
+      action("create_post", {
+        actor_id: playerIdentity,
+        image_path: "",
+        caption: "a".repeat(1001),
+      }),
+      /até 1000 caracteres/,
+    );
+    await action("delete_post", {
+      actor_id: playerIdentity,
+      post_id: textPost.id,
+    });
+    await asUser(master);
+    const deletedTextPost = await action("delete_post", {
+      actor_id: masterIdentity,
+      post_id: textPost.id,
+    });
+    assert.equal(deletedTextPost.deleted, true);
+    assert.equal(deletedTextPost.image_path, undefined);
+    await db.exec("reset role");
+    assert.equal(
+      (await db.query("select * from community_post_cleanup")).rows.length,
+      0,
+    );
+    await asUser(player);
 
     assert.equal(
       (
@@ -461,6 +512,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     cleanup,
     commentDeletionSource,
     paginationSource,
+    textPostSource,
   ] = await Promise.all([
     readFile(
       new URL("../components/CommunityFeed.tsx", import.meta.url),
@@ -483,6 +535,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     ),
     commentDeletionMigration(),
     paginationMigration(),
+    textPostMigration(),
   ]);
 
   assert.match(feed, /<IdentityAvatar/);
@@ -491,12 +544,16 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(feed, /FEED_PAGE_SIZE = 5/);
   assert.match(feed, /IntersectionObserver/);
   assert.match(feed, /loading="lazy"/);
-  assert.match(feed, /visible\.map\(\(post\) => post\.image_path\)/);
+  assert.match(feed, /mediaPosts\.map\(\(post\) => post\.image_path\)/);
   assert.match(feed, /create_post/);
   assert.match(feed, /stage === "source"/);
   assert.match(feed, />Galeria</);
   assert.match(feed, />Câmera</);
   assert.match(feed, />Escrita</);
+  assert.match(feed, /stage === "photo"/);
+  assert.match(feed, /Escreva sua história/);
+  assert.match(feed, /maxLength=\{1000\}/);
+  assert.match(feed, /submitWriting/);
   assert.match(feed, /capture="environment"/);
   assert.match(feed, /Escreva uma legenda/);
   assert.match(feed, /Alternar enquadramento da prévia/);
@@ -541,4 +598,10 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(paginationSource, /community_posts_feed_cursor_idx/);
   assert.match(paginationSource, /\(post\.created_at,post\.id\)</);
   assert.match(paginationSource, /limit safe_page_size/);
+  assert.match(textPostSource, /alter column image_path drop not null/);
+  assert.match(
+    textPostSource,
+    /media_path is null and char_length\(content\)>1000/,
+  );
+  assert.match(textPostSource, /if old\.image_path is not null then/);
 });

@@ -25,7 +25,7 @@ type FeedPost = Row & {
   id: string;
   author_id: string;
   author_username?: string;
-  image_path: string;
+  image_path: string | null;
   caption: string;
   created_at: string;
   like_count: number;
@@ -144,17 +144,21 @@ export default function CommunityFeed({
           ];
         });
 
-        if (!visible.length) return;
+        const mediaPosts = visible.filter(
+          (post): post is FeedPost & { image_path: string } =>
+            Boolean(post.image_path),
+        );
+        if (!mediaPosts.length) return;
         const signed = await browserDb()
           .storage.from("community-posts")
           .createSignedUrls(
-            visible.map((post) => post.image_path),
+            mediaPosts.map((post) => post.image_path),
             3600,
           );
         if (signed.error) throw signed.error;
         if (generation !== loadGenerationRef.current) return;
         const pageUrls = Object.fromEntries(
-          visible.map((post, index) => [
+          mediaPosts.map((post, index) => [
             post.id,
             signed.data?.[index]?.signedUrl || "",
           ]),
@@ -297,7 +301,10 @@ export default function CommunityFeed({
         if (!author) return null;
         const canDelete = master || post.author_id === actor;
         return (
-          <article className={styles.feedCard} key={post.id}>
+          <article
+            className={`${styles.feedCard} ${!post.image_path ? styles.textFeedCard : ""}`}
+            key={post.id}
+          >
             <header className={styles.feedAuthor}>
               <IdentityAvatar
                 identity={author}
@@ -360,9 +367,13 @@ export default function CommunityFeed({
               />
             )}
             <div className={styles.postBody}>
-              <p>
-                <strong>{author.name}</strong> {post.caption}
-              </p>
+              {post.image_path ? (
+                <p>
+                  <strong>{author.name}</strong> {post.caption}
+                </p>
+              ) : (
+                <p>{post.caption}</p>
+              )}
               <time dateTime={post.created_at}>
                 {postDate.format(new Date(post.created_at))}
               </time>
@@ -482,7 +493,7 @@ function PostComposer({
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [preview, setPreview] = useState("");
-  const [stage, setStage] = useState<"source" | "photo">("source");
+  const [stage, setStage] = useState<"source" | "photo" | "writing">("source");
   const [fillPreview, setFillPreview] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -518,6 +529,18 @@ function PostComposer({
     }
   };
 
+  const submitWriting = async () => {
+    if (!caption.trim() || caption.trim().length > 1000 || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await publish("", caption.trim());
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+      setBusy(false);
+    }
+  };
+
   const selectFile = (selected?: File) => {
     if (!selected || busy) return;
     setError("");
@@ -531,6 +554,8 @@ function PostComposer({
     setCaption("");
     setStage("source");
   };
+
+  const currentIdentity = identities.find((identity) => identity.id === actor);
 
   return (
     <dialog
@@ -565,6 +590,9 @@ function PostComposer({
           event.currentTarget.value = "";
         }}
       />
+      <h2 id="community-composer-title" className="visually-hidden">
+        Criar publicação
+      </h2>
 
       {stage === "source" ? (
         <div className={styles.feedComposerSource}>
@@ -582,7 +610,7 @@ function PostComposer({
             <span className={styles.feedComposerCompass} aria-hidden="true">
               ✦
             </span>
-            <h2 id="community-composer-title">Compartilhe uma história</h2>
+            <h2>Compartilhe uma história</h2>
             <p>Mostre para o mundo o que aconteceu na sua aventura.</p>
           </header>
 
@@ -633,11 +661,11 @@ function PostComposer({
               <button
                 type="button"
                 disabled={busy}
-                onClick={() =>
-                  setError(
-                    "Envie o mockup da área de escrita para concluirmos esta opção.",
-                  )
-                }
+                onClick={() => {
+                  setError("");
+                  setCaption("");
+                  setStage("writing");
+                }}
               >
                 <Image
                   src="/community/feed-composer-quill.webp"
@@ -702,7 +730,7 @@ function PostComposer({
             aria-hidden="true"
           />
         </div>
-      ) : (
+      ) : stage === "photo" ? (
         <div className={styles.feedComposerPhoto}>
           <header className={styles.feedPhotoToolbar}>
             <button
@@ -800,6 +828,99 @@ function PostComposer({
               aria-hidden="true"
             />
           </div>
+        </div>
+      ) : (
+        <div className={styles.feedWriter}>
+          <button
+            type="button"
+            className={styles.feedWriterClose}
+            aria-label="Voltar para opções"
+            disabled={busy}
+            onClick={returnToSources}
+          >
+            <X aria-hidden="true" />
+          </button>
+
+          <header className={styles.feedWriterIntro}>
+            <span className={styles.feedComposerCompass} aria-hidden="true">
+              ✦
+            </span>
+            <h2>Escreva sua história</h2>
+            <p>
+              Compartilhe o que aconteceu na sua aventura. Seus pensamentos,
+              descobertas, desafios ou qualquer momento que marcou sua jornada.
+            </p>
+          </header>
+
+          <div className={styles.feedWriterIdentity}>
+            <Image
+              src="/community/feed-writer-wolf.webp"
+              width={90}
+              height={90}
+              alt=""
+              aria-hidden="true"
+            />
+            <span>
+              <small>PUBLICAR COMO</small>
+              <strong>{String(currentIdentity?.name || "Orkutista")}</strong>
+            </span>
+            <i aria-hidden="true" />
+            <em>
+              <Image
+                src="/community/feed-composer-quill.webp"
+                width={30}
+                height={36}
+                alt=""
+                aria-hidden="true"
+              />
+              Apenas texto
+            </em>
+          </div>
+
+          <div className={styles.feedWriterEditor}>
+            <textarea
+              autoFocus
+              value={caption}
+              maxLength={1000}
+              rows={10}
+              disabled={busy}
+              aria-label="Texto da publicação"
+              placeholder="Comece a escrever sua história..."
+              onChange={(event) => setCaption(event.target.value)}
+            />
+            <footer>
+              <small>{caption.length} / 1.000</small>
+              <button
+                type="button"
+                aria-label="Publicar texto"
+                disabled={busy || !caption.trim()}
+                onClick={() => void submitWriting()}
+              >
+                {busy ? (
+                  <LoaderCircle
+                    className={styles.feedPublishSpinner}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Send aria-hidden="true" />
+                )}
+              </button>
+            </footer>
+          </div>
+
+          {error && (
+            <p className={styles.feedComposerError} role="alert">
+              {error}
+            </p>
+          )}
+          <Image
+            className={styles.feedWriterDivider}
+            src="/community/feed-writer-divider.webp"
+            width={900}
+            height={300}
+            alt=""
+            aria-hidden="true"
+          />
         </div>
       )}
     </dialog>

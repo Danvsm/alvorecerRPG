@@ -12,7 +12,7 @@ type ArchivedPost = Row & {
   id: string;
   author_name: string;
   author_username?: string;
-  image_path: string;
+  image_path: string | null;
   caption: string;
   created_at: string;
   archived_at: string;
@@ -63,17 +63,27 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
       return;
     }
 
+    const mediaPosts = loaded.filter(
+      (post): post is ArchivedPost & { image_path: string } =>
+        Boolean(post.image_path),
+    );
+    if (!mediaPosts.length) {
+      setUrls({});
+      setLoading(false);
+      return;
+    }
+
     const signed = await browserDb()
       .storage.from("community-posts")
       .createSignedUrls(
-        loaded.map((post) => post.image_path),
+        mediaPosts.map((post) => post.image_path),
         3600,
       );
     if (signed.error) setError(readableErrorMessage(signed.error));
     else
       setUrls(
         Object.fromEntries(
-          loaded.map((post, index) => [
+          mediaPosts.map((post, index) => [
             post.id,
             signed.data?.[index]?.signedUrl || "",
           ]),
@@ -132,6 +142,17 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
                 alt={`Publicação arquivada de ${post.author_name}`}
                 unoptimized
               />
+            )}
+            {!post.image_path && (
+              <div className={styles.archiveTextPreview}>
+                <Image
+                  src="/community/feed-writer-wolf.webp"
+                  width={150}
+                  height={150}
+                  alt="Publicação somente de texto"
+                />
+                <span>Apenas texto</span>
+              </div>
             )}
             <div className={styles.archiveDetails}>
               <strong>{post.author_name}</strong>
