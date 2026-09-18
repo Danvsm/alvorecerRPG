@@ -50,6 +50,7 @@ export default function DirectChat({
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -63,10 +64,17 @@ export default function DirectChat({
     onUnreadChange?.(unread);
   }, [onUnreadChange, unread]);
   useEffect(() => {
-    if (hideBubble) setOpen(false);
+    if (hideBubble) {
+      setOpen(false);
+      setSelected("");
+      setMessages([]);
+    }
   }, [hideBubble]);
   useEffect(() => {
     if (!requestedPeer?.id || !actor) return;
+    if (requestedPeer.nonce === handledRequestNonce.current) return;
+    handledRequestNonce.current = requestedPeer.nonce;
+
     let valid = true;
     action("conversation", { recipient_id: requestedPeer.id })
       .then((r) => {
@@ -327,6 +335,22 @@ export default function DirectChat({
     [selectedConversation.first_id, selectedConversation.second_id].includes(
       actor,
     );
+
+  const openChatList = () => {
+    setSelected("");
+    setMessages([]);
+    setLimit(50);
+    setError("");
+    setOpen(true);
+  };
+
+  const closeChat = () => {
+    setSelected("");
+    setMessages([]);
+    setLimit(50);
+    setOpen(false);
+  };
+
   return (
     <>
       {!hideBubble && (
@@ -361,7 +385,10 @@ export default function DirectChat({
               });
           }}
           onPointerUp={() => {
-            if (!drag.current?.moved) setOpen((v) => !v);
+            if (!drag.current?.moved) {
+              if (open) closeChat();
+              else openChatList();
+            }
             drag.current = null;
           }}
           onPointerCancel={() => {
@@ -370,7 +397,8 @@ export default function DirectChat({
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setOpen((v) => !v);
+              if (open) closeChat();
+              else openChatList();
             }
           }}
         >
@@ -389,7 +417,7 @@ export default function DirectChat({
                   setSelected("");
                   setLimit(50);
                 } else {
-                  setOpen(false);
+                  closeChat();
                 }
               }}
               aria-label={selected ? "Voltar às conversas" : "Fechar mensagens"}
@@ -422,7 +450,7 @@ export default function DirectChat({
             <button
               type="button"
               className="chat-thread-close"
-              onClick={() => setOpen(false)}
+              onClick={closeChat}
               aria-label="Fechar mensagens"
             >
               <X />
