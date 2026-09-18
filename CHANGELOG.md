@@ -6,6 +6,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Corrigida a limpeza de notificações: `Limpar notificações` agora descarta toda a lista visível do usuário na campanha, incluindo itens recentes, em vez de atingir somente registros com mais de 30 dias.
+- A lista e o contador são atualizados localmente após a confirmação da RPC, sem recarregar todas as tabelas da campanha.
+- A operação continua restrita no backend ao usuário autenticado e à campanha da qual ele é membro; a migration `clear_all_notifications` foi aplicada no Supabase real.
 - Criador de Story redesenhado em tela cheia a partir do mockup fornecido, com cabeçalho ornamental, cards de Câmera, Galeria e Prévia, seção de recentes e ações fixas de cancelar/publicar.
 - O botão Câmera solicita a câmera traseira quando o aparelho oferece suporte; Galeria abre o seletor nativo de fotos recentes sem tentar acessar arquivos privados sem autorização.
 - A foto escolhida aparece em uma prévia antes da publicação e pode ser trocada, preservando o fluxo existente de uma imagem, otimização automática e upload protegido.
@@ -36,7 +39,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Exclusão pelo autor ou Pink/Mestre, com remoção do objeto pelo Storage API e fila automática de recuperação em caso de falha transitória.
 - Expiração baseada no horário do banco em 24 horas; os Stories deixam a consulta imediatamente e o cron remove registros, visualizações e imagens a cada minuto.
 - Migration `orkutista_stories` e endurecimento do advisor aplicados no Supabase real; Edge Function `alvorecer-api` versão 15 ativa e limpeza confirmada com HTTP 200.
-- `npm test`: 71/71 aprovado; `npm run typecheck` e `npm run build`: aprovados.
+- `npm test`: 72/72 aprovado; `npm run typecheck` e `npm run build`: aprovados.
 - Validação visual e manual em celular permanece para o usuário após o deploy.
 
 ## Em desenvolvimento — 2026-09-17

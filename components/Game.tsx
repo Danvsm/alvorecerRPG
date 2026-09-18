@@ -777,7 +777,30 @@ export default function Game({ invite }: { invite?: string }) {
       d,
     });
     if (response.error) throw new Error(response.error.message);
-    await load(campaign, true);
+    const changedAt = new Date().toISOString();
+    setData((current) => ({
+      ...current,
+      notifications: (current.notifications || []).map((notification) => {
+        if (notification.campaign_id !== campaign) return notification;
+        if (
+          op === "notification_read" &&
+          String(notification.id) !== String(d.id)
+        )
+          return notification;
+        if (op === "notification_clear")
+          return {
+            ...notification,
+            read_at: notification.read_at || changedAt,
+            dismissed_at: changedAt,
+          };
+        if (op === "notification_read" || op === "notification_read_all")
+          return {
+            ...notification,
+            read_at: notification.read_at || changedAt,
+          };
+        return notification;
+      }),
+    }));
   }
   async function admin(action: string, d: Row = {}) {
     const s = await browserDb().auth.getSession();

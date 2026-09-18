@@ -505,3 +505,22 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Abrir `Seu story` no celular e conferir o recorte dos backgrounds e o tamanho dos três cards.
 2. Testar `Câmera`, `Galeria`, troca da foto e publicação.
 3. Enviar um print apenas se algum espaçamento ou recorte precisar de ajuste fino.
+
+## Correção da limpeza de notificações, 18/09/2026, 11:00 UTC
+
+- A causa era a condição de `notification_clear` dentro de `identity_action`: somente notificações com mais de 30 dias recebiam `dismissed_at`, então os itens recentes continuavam visíveis.
+- A condição temporal foi removida. Agora a operação descarta todas as notificações da campanha pertencentes exclusivamente a `auth.uid()`.
+- Os registros continuam no banco com `dismissed_at` e `read_at`, preservando referências; eles apenas deixam de aparecer na interface.
+- O texto do botão foi alterado de `Limpar antigas` para `Limpar notificações`.
+- Após a confirmação da RPC, o estado local de notificações é atualizado imediatamente. A ação não dispara mais a carga completa das tabelas da campanha.
+- A migration `clear_all_notifications` foi aplicada no Supabase real e a definição publicada foi conferida por consulta direta.
+- O teste de regressão usa uma notificação recém-criada e confirma que ela também é descartada. A cobertura da interface confirma o novo rótulo e a atualização local.
+- `npm test` passou em 72/72; `npm run typecheck`, `npm run build` e `git diff --check` também passaram.
+- Os advisors não apresentaram aviso novo causado pela correção. Permanecem dois avisos anteriores ligados à tabela de notificações: índice da FK de campanha e otimização da policy com `auth.uid()` em initplan; ambos ficaram fora desta correção funcional.
+- Não foi feita validação visual no navegador. A confirmação manual deve ser feita limpando uma lista que contenha notificações recentes.
+
+### Próximo passo recomendado
+
+1. Abrir o sino com notificações recentes.
+2. Tocar em `Limpar notificações` e confirmar que a lista e o contador zeram imediatamente.
+3. Fechar e reabrir o painel para confirmar que os itens continuam ocultos.

@@ -45,6 +45,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260916163449_community_presence.sql",
       "20260916170031_community_live_presence.sql",
       "20260916170404_community_presence_user_index.sql",
+      "20260918135625_clear_all_notifications.sql",
     ]) {
       const sql = (
         await readFile(
@@ -330,6 +331,13 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       (await db.query("select * from notifications")).rows.length,
       1,
     );
+    await identityAction("notification_clear", {});
+    const clearedNotification = (
+      await db.query<{ dismissed_at: string | null }>(
+        "select dismissed_at from notifications",
+      )
+    ).rows[0];
+    assert.ok(clearedNotification.dismissed_at);
     assert.equal((await db.query("select * from profiles")).rows.length, 1);
     await asUser(master);
     const secondPlayer = crypto.randomUUID();

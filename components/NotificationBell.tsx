@@ -52,7 +52,7 @@ export default function NotificationBell({
               Marcar todas como lidas
             </button>
             <button disabled={busy} onClick={() => run("notification_clear")}>
-              Limpar antigas
+              Limpar notificações
             </button>
           </div>
           {visible.slice(0, limit).map((n) => (

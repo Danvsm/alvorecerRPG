@@ -59,6 +59,22 @@ test("campaign connection avoids the duplicate realtime load", async () => {
   assert.match(source, /retryNetworkRead\(\(\) => db\.rpc\("combat_snapshot"/);
 });
 
+test("notification clearing updates the local list without a full reload", async () => {
+  const [source, notifications] = await Promise.all([
+    readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../components/NotificationBell.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
+  assert.match(
+    source,
+    /notifications: \(current\.notifications \|\| \[\]\)\.map/,
+  );
+  assert.match(source, /op === "notification_clear"/);
+  assert.match(notifications, /Limpar notificações/);
+});
+
 test("community header and stories have no divider lines", async () => {
   const css = await readFile(
     new URL("../components/CommunityPanel.module.css", import.meta.url),
