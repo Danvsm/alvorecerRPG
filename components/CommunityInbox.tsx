@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, Compass, SquarePen } from "lucide-react";
+import { ChevronDown, SquarePen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -59,7 +59,6 @@ export default function CommunityInbox({
   const [latestByConversation, setLatestByConversation] = useState<
     Record<string, Row>
   >({});
-  const [newConversation, setNewConversation] = useState(false);
   const [error, setError] = useState("");
 
   const actorIdentity = identities.find((identity) => identity.id === actor);
@@ -115,212 +114,174 @@ export default function CommunityInbox({
 
   useEffect(() => {
     void load();
+
     const refresh = (event: Event) => {
       const detail = (event as CustomEvent<{ campaign?: string }>).detail;
       if (!detail?.campaign || detail.campaign === campaign) void load();
     };
+
     window.addEventListener("alvorecer:chat-updated", refresh);
     window.addEventListener("focus", refresh);
+
     return () => {
       window.removeEventListener("alvorecer:chat-updated", refresh);
       window.removeEventListener("focus", refresh);
     };
   }, [campaign, load]);
 
-  const rows = useMemo(
-    () =>
-      conversations
-        .map((conversation) => {
-          const peerId =
-            conversation.first_id === actor
-              ? conversation.second_id
-              : conversation.first_id;
-          const peer = identities.find((identity) => identity.id === peerId);
-          return {
-            conversation,
-            peerId,
-            peer,
-            latest: latestByConversation[conversation.id],
-          };
-        })
-        .filter((entry) => entry.peer)
-        .sort((left, right) => {
-          const leftDate =
-            left.latest?.created_at || left.conversation.created_at || "";
-          const rightDate =
-            right.latest?.created_at || right.conversation.created_at || "";
-          return String(rightDate).localeCompare(String(leftDate));
-        }),
-    [actor, conversations, identities, latestByConversation],
-  );
+  const contacts = useMemo(() => {
+    const conversationByPeer = new Map<string, Row>();
 
-  const availableContacts = useMemo(
-    () =>
-      identities
-        .filter(
-          (identity) =>
-            identity.active &&
-            identity.id !== actor &&
-            !rows.some((entry) => entry.peerId === identity.id),
-        )
-        .sort((left, right) =>
-          String(left.name).localeCompare(String(right.name), "pt-BR"),
-        ),
-    [actor, identities, rows],
-  );
+    for (const conversation of conversations) {
+      const peerId =
+        conversation.first_id === actor
+          ? conversation.second_id
+          : conversation.first_id;
 
-  const open = (identityId: string) => {
-    setNewConversation(false);
-    openConversation(identityId);
-  };
+      if (peerId) conversationByPeer.set(peerId, conversation);
+    }
+
+    return identities
+      .filter((identity) => identity.active && identity.id !== actor)
+      .map((identity) => {
+        const conversation = conversationByPeer.get(identity.id);
+        const latest = conversation
+          ? latestByConversation[conversation.id]
+          : undefined;
+        const activityAt =
+          latest?.created_at || conversation?.created_at || "";
+        const online = Boolean(
+          identity.user_id && onlineUserIds.has(identity.user_id),
+        );
+
+        return {
+          identity,
+          conversation,
+          latest,
+          activityAt,
+          online,
+        };
+      })
+      .sort((left, right) => {
+        const leftHasConversation = Boolean(left.conversation);
+        const rightHasConversation = Boolean(right.conversation);
+
+        if (leftHasConversation !== rightHasConversation) {
+          return leftHasConversation ? -1 : 1;
+        }
+
+        if (leftHasConversation && rightHasConversation) {
+          const recent =
+            new Date(right.activityAt).getTime() -
+            new Date(left.activityAt).getTime();
+          if (recent !== 0) return recent;
+        }
+
+        if (left.online !== right.online) {
+          return left.online ? -1 : 1;
+        }
+
+        return String(left.identity.name).localeCompare(
+          String(right.identity.name),
+          "pt-BR",
+        );
+      });
+  }, [
+    actor,
+    conversations,
+    identities,
+    latestByConversation,
+    onlineUserIds,
+  ]);
 
   return (
     <section className={styles.inboxScreen} aria-label="Conversas">
       <header className={styles.inboxHeader}>
-        {newConversation ? (
-          <button
-            type="button"
-            className={styles.inboxHeaderIcon}
-            aria-label="Voltar às conversas"
-            onClick={() => setNewConversation(false)}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </button>
-        ) : (
-          <span className={styles.inboxEmblem} aria-hidden="true">
-            <Compass />
-          </span>
-        )}
+        <span className={styles.inboxOwnAvatar}>
+          {actorIdentity && (
+            <IdentityAvatar
+              identity={actorIdentity}
+              cosmetics={cosmetics}
+              equipment={equipment}
+              urls={urls}
+              size={48}
+            />
+          )}
+        </span>
 
-        <button
-          type="button"
-          className={styles.inboxIdentity}
-          onClick={() => setNewConversation(false)}
-          aria-label="Mostrar conversas"
-        >
-          <strong>
-            {newConversation
-              ? "Nova conversa"
-              : actorIdentity?.name || "Conversas"}
-          </strong>
-          {!newConversation && <ChevronDown aria-hidden="true" />}
-        </button>
+        <div className={styles.inboxIdentity} aria-label="Perfil atual">
+          <strong>{actorIdentity?.name || "Conversas"}</strong>
+          <ChevronDown aria-hidden="true" />
+        </div>
 
-        <button
-          type="button"
-          className={styles.inboxCompose}
-          aria-label="Nova conversa"
-          onClick={() => setNewConversation((current) => !current)}
-        >
-          <SquarePen aria-hidden="true" />
-        </button>
+        <span className={styles.inboxCompose} aria-hidden="true">
+          <SquarePen />
+        </span>
       </header>
 
       <div className={styles.inboxList}>
-        {newConversation ? (
-          <>
-            {availableContacts.map((identity) => (
-              <button
-                type="button"
-                className={styles.inboxRow}
-                key={identity.id}
-                onClick={() => open(identity.id)}
-              >
-                <span className={styles.inboxAvatar}>
-                  <IdentityAvatar
-                    identity={identity}
-                    cosmetics={cosmetics}
-                    equipment={equipment}
-                    urls={urls}
-                    size={72}
+        {contacts.map(({ identity, conversation, latest, activityAt, online }) => {
+          const lastMessage = latest?.media_id
+            ? latest.sender_id === actor
+              ? "Você enviou uma imagem"
+              : "Enviou uma imagem"
+            : latest?.body
+              ? latest.sender_id === actor
+                ? `Você: ${latest.body}`
+                : latest.body
+              : "Iniciar conversa";
+
+          return (
+            <button
+              type="button"
+              className={styles.inboxRow}
+              key={identity.id}
+              onClick={() => openConversation(identity.id)}
+            >
+              <span className={styles.inboxAvatar}>
+                <IdentityAvatar
+                  identity={identity}
+                  cosmetics={cosmetics}
+                  equipment={equipment}
+                  urls={urls}
+                  size={74}
+                />
+                {identity.user_id && (
+                  <i
+                    className={
+                      online ? styles.inboxOnline : styles.inboxOffline
+                    }
+                    aria-label={online ? "Online" : "Offline"}
                   />
-                  {identity.user_id && (
-                    <i
-                      className={
-                        onlineUserIds.has(identity.user_id)
-                          ? styles.inboxOnline
-                          : styles.inboxOffline
-                      }
-                      aria-label={
-                        onlineUserIds.has(identity.user_id)
-                          ? "Online"
-                          : "Offline"
-                      }
-                    />
-                  )}
-                </span>
-                <span className={styles.inboxRowText}>
-                  <strong>{identity.name}</strong>
-                  <small>{identity.subtitle || "Iniciar conversa"}</small>
-                </span>
-              </button>
-            ))}
-            {!availableContacts.length && (
-              <p className={styles.inboxEmpty}>
-                Você já tem uma conversa com todos os perfis disponíveis.
-              </p>
-            )}
-          </>
-        ) : (
-          <>
-            {rows.map(({ conversation, peer, peerId, latest }) => (
-              <button
-                type="button"
-                className={styles.inboxRow}
-                key={conversation.id}
-                onClick={() => open(peerId)}
-              >
-                <span className={styles.inboxAvatar}>
-                  <IdentityAvatar
-                    identity={peer}
-                    cosmetics={cosmetics}
-                    equipment={equipment}
-                    urls={urls}
-                    size={72}
-                  />
-                  {peer?.user_id && (
-                    <i
-                      className={
-                        onlineUserIds.has(peer.user_id)
-                          ? styles.inboxOnline
-                          : styles.inboxOffline
-                      }
-                      aria-label={
-                        onlineUserIds.has(peer.user_id) ? "Online" : "Offline"
-                      }
-                    />
-                  )}
-                </span>
+                )}
+              </span>
 
-                <span className={styles.inboxRowText}>
-                  <strong>{peer?.name || "Perfil indisponível"}</strong>
-                  <small>
-                    {latest?.media_id
-                      ? "Enviou uma imagem"
-                      : latest?.body || "Conversa iniciada"}
-                  </small>
-                </span>
-
-                <time dateTime={latest?.created_at || conversation.created_at}>
-                  {conversationTime(
-                    latest?.created_at || conversation.created_at,
-                  )}
-                </time>
-              </button>
-            ))}
-
-            {!rows.length && (
-              <div className={styles.inboxEmpty}>
-                <p>Nenhuma conversa ainda.</p>
-                <button
-                  type="button"
-                  onClick={() => setNewConversation(true)}
+              <span className={styles.inboxRowText}>
+                <strong>{identity.name}</strong>
+                <small
+                  className={
+                    conversation
+                      ? styles.inboxLastMessage
+                      : styles.inboxStartMessage
+                  }
                 >
-                  Iniciar uma conversa
-                </button>
-              </div>
-            )}
-          </>
+                  {lastMessage}
+                </small>
+              </span>
+
+              {conversation && (
+                <time dateTime={activityAt}>
+                  {conversationTime(activityAt)}
+                </time>
+              )}
+            </button>
+          );
+        })}
+
+        {!contacts.length && (
+          <div className={styles.inboxEmpty}>
+            <p>Nenhum perfil disponível para conversar.</p>
+          </div>
         )}
 
         {error && (
