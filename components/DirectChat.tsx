@@ -278,7 +278,13 @@ export default function DirectChat({
   ]);
 
   const openContact = async (identityId: string) => {
-    if (busy) return;
+    if (
+      busy ||
+      !contactsInteractive ||
+      performance.now() < suppressContactUntil.current
+    ) {
+      return;
+    }
     setBusy(true);
     setError("");
     try {

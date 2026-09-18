@@ -4309,6 +4309,18 @@ dialog.combat-sheet {
   display: none;
 }
 
+
+.chat-contact-list[data-interactive="false"] {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chat-contact-list[data-interactive="false"] .chat-contact-row {
+  pointer-events: none;
+}
+
+
 .chat-contact-row {
   display: grid;
   width: 100%;
