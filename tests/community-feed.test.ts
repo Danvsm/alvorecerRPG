@@ -513,6 +513,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     commentDeletionSource,
     paginationSource,
     textPostSource,
+    communityStyles,
   ] = await Promise.all([
     readFile(
       new URL("../components/CommunityFeed.tsx", import.meta.url),
@@ -536,9 +537,15 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     commentDeletionMigration(),
     paginationMigration(),
     textPostMigration(),
+    readFile(
+      new URL("../components/CommunityPanel.module.css", import.meta.url),
+      "utf8",
+    ),
   ]);
 
   assert.match(feed, /<IdentityAvatar/);
+  assert.match(feed, /<strong>\{author\.name\}<\/strong>/);
+  assert.match(feed, /`@\$\{post\.author_username\}`/);
   assert.match(feed, /community_feed_action/);
   assert.match(feed, /community_feed_page/);
   assert.match(feed, /FEED_PAGE_SIZE = 5/);
@@ -604,4 +611,15 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     /media_path is null and char_length\(content\)>1000/,
   );
   assert.match(textPostSource, /if old\.image_path is not null then/);
+  assert.match(communityStyles, /\.feedCard\s*\{[^}]*border:\s*0;/s);
+  assert.match(
+    communityStyles,
+    /\.feedCard\s*\{[^}]*background:\s*transparent;/s,
+  );
+  assert.match(communityStyles, /\.feedCard::after\s*\{/);
+  assert.match(communityStyles, /\.postImage\s*\{[^}]*border-radius:\s*14px;/s);
+  assert.match(
+    communityStyles,
+    /\.textFeedCard \.postBody\s*\{[^}]*background:\s*transparent;/s,
+  );
 });

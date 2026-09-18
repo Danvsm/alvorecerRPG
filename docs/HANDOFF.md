@@ -4,6 +4,8 @@ Atualizado em 18/09/2026, 04:05 UTC.
 
 ## Continuação atual
 
+- A tela Início do Orkutista agora usa um feed aberto e fluido: os cards pesados foram removidos, os posts são separados por respiro e linha ornamental dourada discreta, e as imagens usam cantos suaves sem moldura espessa.
+- O cabeçalho de cada publicação mantém o nome do personagem como informação principal e o login apenas como `@username` secundário; Stories, ações, menu de três pontos, paginação e navegação inferior foram preservados.
 - O criador do feed agora possui as três etapas em tela cheia: escolha entre Galeria/Câmera/Escrita, composição da legenda após selecionar uma foto e editor exclusivo para publicações somente de texto.
 - Posts textuais aceitam até 1.000 caracteres, preservam autoria autenticada, curtidas, comentários, Arquivos e os dois fluxos de exclusão; por não possuírem mídia, não criam objetos nem filas de limpeza no Storage.
 - A migration `20260918144719_text_only_orkutista_posts.sql` foi aplicada no Supabase real e verificada: coluna de mídia anulável, constraint textual, RPC atualizada e trigger de limpeza protegida para caminhos nulos.
