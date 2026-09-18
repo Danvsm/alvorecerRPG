@@ -188,12 +188,12 @@
   display: grid;
   grid-auto-columns: 86px;
   grid-auto-flow: column;
-  gap: 12px;
+  gap: 16px;
   align-items: start;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
-  padding: 5px 4px 18px;
+  padding: 7px 6px 20px;
   touch-action: pan-x;
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -209,8 +209,8 @@
   min-width: 0;
   min-height: 0;
   justify-items: center;
-  gap: 5px;
-  padding: 0;
+  gap: 8px;
+  padding: 0 2px;
   border: 0;
   color: inherit;
   background: transparent;
@@ -2964,7 +2964,7 @@ dialog.commentsSheet {
   }
   .featuredRail {
     grid-auto-columns: 94px;
-    gap: 11px;
+    gap: 14px;
     margin-right: -14px;
     padding-right: 14px;
   }
@@ -3419,7 +3419,7 @@ dialog.commentsSheet {
   }
   .featuredRail {
     grid-auto-columns: 82px;
-    gap: 10px;
+    gap: 12px;
   }
   .profileMeta em {
     max-width: 158px;
