@@ -2058,41 +2058,23 @@ export default function Game({ invite }: { invite?: string }) {
                         Arquivar personagem
                       </button>
                       <button
+                        className="danger-button"
+                        disabled={busy}
                         onClick={() =>
                           void run(async () => {
-                            const { data: preview, error: previewError } =
-                              await browserDb().rpc("lifecycle_preview", {
-                                c: campaign,
-                                entity: "character",
-                                target: character.id,
-                              });
-                            if (previewError)
-                              throw new Error(previewError.message);
-                            setForm({
-                              title: `Excluir ${preview.name}?`,
-                              fields: [
-                                {
-                                  key: "confirmation",
-                                  label: `Digite EXCLUIR para confirmar. Inventário: ${preview.inventory}. Transações preservadas: ${preview.transactions}.`,
-                                  required: true,
-                                },
-                              ],
-                              submit: async (values) => {
-                                if (values.confirmation !== "EXCLUIR")
-                                  throw new Error(
-                                    "Digite EXCLUIR para confirmar",
-                                  );
-                                await lifecycle("delete", {
-                                  entity: "character",
-                                  id: character.id,
-                                });
-                                setForm(null);
-                              },
+                            const deletedId = character.id;
+                            await lifecycle("delete", {
+                              entity: "character",
+                              id: deletedId,
                             });
+                            setSelected((current) =>
+                              current === deletedId ? "" : current,
+                            );
+                            setMessage("Personagem excluído definitivamente");
                           })
                         }
                       >
-                        Excluir definitivamente
+                        Excluir
                       </button>
                     </div>
                   </details>
