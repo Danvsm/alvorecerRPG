@@ -6,6 +6,10 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Criador de Story redesenhado em tela cheia a partir do mockup fornecido, com cabeçalho ornamental, cards de Câmera, Galeria e Prévia, seção de recentes e ações fixas de cancelar/publicar.
+- O botão Câmera solicita a câmera traseira quando o aparelho oferece suporte; Galeria abre o seletor nativo de fotos recentes sem tentar acessar arquivos privados sem autorização.
+- A foto escolhida aparece em uma prévia antes da publicação e pode ser trocada, preservando o fluxo existente de uma imagem, otimização automática e upload protegido.
+- Os três backgrounds enviados foram integrados ao criador e convertidos para WebP; juntos ocupam aproximadamente 108 KB no lugar de cerca de 6,5 MB em PNG.
 - Stories agora podem ser curtidos e descurtidos, mantendo no banco no máximo uma curtida ativa por identidade e Story.
 - O visualizador ganhou uma área de atividade com a lista unificada de quem visualizou e quem curtiu, reutilizando avatar, moldura e efeitos existentes.
 - A atividade e seus contadores são privados para o autor do Story e Pink/Mestre; os demais jogadores veem somente o estado da própria curtida.

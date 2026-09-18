@@ -407,6 +407,15 @@ test("Stories UI keeps creation, activity privacy and cleanup together", async (
     ),
   ]);
   const migrationSource = `${baseMigration}\n${activityMigration}\n${activityHardening}`;
+  const composerAssets = await Promise.all(
+    [
+      "story-composer-arch.webp",
+      "story-composer-gallery.webp",
+      "story-composer-pages.webp",
+    ].map((asset) =>
+      readFile(new URL(`../public/community/${asset}`, import.meta.url)),
+    ),
+  );
 
   assert.match(panel, /<CommunityStories/);
   assert.match(panel, /onClick=\{revealCreate\}/);
@@ -425,6 +434,14 @@ test("Stories UI keeps creation, activity privacy and cleanup together", async (
   assert.match(stories, /STORY_DURATION = 6000/);
   assert.match(stories, /Story anterior/);
   assert.match(stories, /Próximo Story/);
+  assert.match(stories, /Adicionar ao story/);
+  assert.match(stories, /capture="environment"/);
+  assert.match(stories, /Abrir galeria/);
+  assert.match(stories, /Prévia do Story/);
+  assert.equal(
+    composerAssets.every((asset) => asset.length < 128 * 1024),
+    true,
+  );
   assert.match(media, /uploadCommunityStoryImage/);
   assert.match(migrationSource, /interval '24 hours'/);
   assert.match(migrationSource, /primary key\(story_id,identity_id\)/);

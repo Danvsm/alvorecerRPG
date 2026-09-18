@@ -488,3 +488,20 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Curtir e descurtir um Story em uma conta de jogador.
 2. Abrir o mesmo Story como autor e como Pink para conferir a lista de atividade.
 3. Confirmar que outro jogador não vê o botão `Atividade` nem os contadores privados.
+
+## Criador de Story baseado no mockup, 18/09/2026, 04:55 UTC
+
+- Tocar em `Seu story` agora abre um criador em tela cheia inspirado diretamente no mockup enviado, mantendo a identidade dark fantasy do Orkutista.
+- O cabeçalho possui fechamento à esquerda, título central, assinatura Orkutista, frase temática e ornamento à direita.
+- A entrada foi dividida em `Câmera`, `Galeria` e `Prévia`. Câmera usa `capture="environment"`; Galeria abre o seletor nativo do aparelho, que é a forma permitida pelo navegador para acessar fotos recentes.
+- O site não enumera fotos privadas do aparelho. Elas só ficam disponíveis depois da escolha explícita feita pelo usuário no seletor nativo.
+- A seção `Recentes` funciona como porta de entrada para a galeria. Depois da seleção, ela é substituída pela prévia real, com opção de trocar a foto antes de publicar.
+- A publicação continua limitada a uma imagem e reutiliza a compressão para WebP, o Storage e a autorização já existentes; não houve alteração de banco ou de permissões.
+- Os três backgrounds fornecidos foram convertidos e integrados como `story-composer-arch.webp`, `story-composer-gallery.webp` e `story-composer-pages.webp`. O tamanho combinado ficou em aproximadamente 108 KB.
+- O fluxo específico, TypeScript e os assets otimizados possuem cobertura automatizada. Não foi feita validação visual no navegador; a conferência final continua reservada ao usuário no celular.
+
+### Próximo passo recomendado
+
+1. Abrir `Seu story` no celular e conferir o recorte dos backgrounds e o tamanho dos três cards.
+2. Testar `Câmera`, `Galeria`, troca da foto e publicação.
+3. Enviar um print apenas se algum espaçamento ou recorte precisar de ajuste fino.

@@ -5,8 +5,10 @@ import {
   Camera,
   Eye,
   Heart,
+  Images as GalleryIcon,
   LoaderCircle,
   Plus,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -422,6 +424,9 @@ function StoryComposer({
   publish: (imagePath: string) => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<HTMLElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
@@ -458,68 +463,181 @@ function StoryComposer({
     }
   };
 
+  const selectFile = (selected?: File) => {
+    if (!selected || busy) return;
+    setError("");
+    setFile(selected);
+  };
+
   return (
     <dialog
       ref={ref}
-      className={styles.composer}
+      className={`${styles.composer} ${styles.storyComposer}`}
       aria-labelledby="story-composer-title"
       onCancel={(event) => {
         event.preventDefault();
         if (!busy) close();
       }}
     >
-      <div className={styles.sheetHandle} />
-      <header className={styles.sheetHeader}>
-        <div>
-          <small>ADICIONAR STORY</small>
-          <h2 id="story-composer-title">Compartilhe uma imagem</h2>
-        </div>
-        <button type="button" aria-label="Cancelar Story" onClick={close}>
-          <X aria-hidden="true" />
-        </button>
-      </header>
-
-      <label className={styles.photoPicker}>
+      <div className={styles.storyComposerShell}>
         <input
+          ref={cameraRef}
+          className={styles.storyFileInput}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          capture="environment"
+          disabled={busy}
+          onChange={(event) => {
+            selectFile(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+        <input
+          ref={galleryRef}
+          className={styles.storyFileInput}
           type="file"
           accept="image/png,image/jpeg,image/webp"
           disabled={busy}
-          onChange={(event) => setFile(event.target.files?.[0] || null)}
+          onChange={(event) => {
+            selectFile(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
         />
-        {preview ? (
-          <Image
-            src={preview}
-            width={1080}
-            height={1920}
-            alt="Prévia do Story"
-            unoptimized
-          />
-        ) : (
-          <span>
-            <Camera aria-hidden="true" />
-            <strong>Selecionar imagem</strong>
-            <small>JPG, PNG ou WebP</small>
-          </span>
-        )}
-      </label>
 
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className={styles.composerActions}>
-        <button type="button" disabled={busy} onClick={close}>
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className={styles.publishButton}
-          disabled={busy || !file}
-          onClick={() => void submit()}
+        <header className={styles.storyComposerHeader}>
+          <button
+            type="button"
+            aria-label="Cancelar Story"
+            disabled={busy}
+            onClick={close}
+          >
+            <X aria-hidden="true" />
+          </button>
+          <div>
+            <span aria-hidden="true">✦</span>
+            <h2 id="story-composer-title">Adicionar ao story</h2>
+            <strong>ORKUTISTA</strong>
+            <small>HISTÓRIAS TAMBÉM FAZEM PARTE DO REINO</small>
+          </div>
+          <Sparkles aria-hidden="true" />
+        </header>
+
+        <section
+          className={styles.storySourceSection}
+          aria-label="Origem da imagem"
         >
-          {busy ? "Publicando..." : "Publicar Story"}
-        </button>
+          <button
+            type="button"
+            className={`${styles.storySourceCard} ${styles.storySourceCamera}`}
+            disabled={busy}
+            onClick={() => cameraRef.current?.click()}
+          >
+            <Camera aria-hidden="true" />
+            <strong>Câmera</strong>
+            <small>Tirar uma foto</small>
+          </button>
+          <button
+            type="button"
+            className={`${styles.storySourceCard} ${styles.storySourceGallery}`}
+            disabled={busy}
+            onClick={() => galleryRef.current?.click()}
+          >
+            <GalleryIcon aria-hidden="true" />
+            <strong>Galeria</strong>
+            <small>Abrir recentes</small>
+          </button>
+          <button
+            type="button"
+            className={`${styles.storySourceCard} ${styles.storySourcePreview}`}
+            disabled={!preview || busy}
+            onClick={() =>
+              previewRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+          >
+            <Eye aria-hidden="true" />
+            <strong>Prévia</strong>
+            <small>{preview ? "Foto selecionada" : "Selecione antes"}</small>
+          </button>
+        </section>
+
+        {preview ? (
+          <section
+            ref={previewRef}
+            className={styles.storyComposerPreview}
+            aria-labelledby="story-preview-title"
+          >
+            <header className={styles.storyGalleryHeader}>
+              <div>
+                <h3 id="story-preview-title">Prévia do Story</h3>
+                <small>Confira a imagem antes de publicar</small>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => galleryRef.current?.click()}
+              >
+                Trocar foto
+              </button>
+            </header>
+            <figure>
+              <Image
+                src={preview}
+                width={1080}
+                height={1920}
+                alt="Prévia do Story"
+                unoptimized
+              />
+              <figcaption>Pronto para compartilhar</figcaption>
+            </figure>
+          </section>
+        ) : (
+          <section
+            className={styles.storyGallerySection}
+            aria-labelledby="story-gallery-title"
+          >
+            <header className={styles.storyGalleryHeader}>
+              <div>
+                <h3 id="story-gallery-title">Recentes</h3>
+                <small>A galeria abre no seu aparelho</small>
+              </div>
+              <span>1 foto</span>
+            </header>
+            <button
+              type="button"
+              className={styles.storyGalleryGateway}
+              disabled={busy}
+              onClick={() => galleryRef.current?.click()}
+            >
+              <GalleryIcon aria-hidden="true" />
+              <span>
+                <strong>Abrir galeria</strong>
+                <small>Escolha uma foto dos seus arquivos recentes</small>
+              </span>
+            </button>
+          </section>
+        )}
+
+        {error && (
+          <p className={styles.storyComposerError} role="alert">
+            {error}
+          </p>
+        )}
+        <footer className={styles.storyComposerActions}>
+          <button type="button" disabled={busy} onClick={close}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className={styles.publishButton}
+            disabled={busy || !file}
+            onClick={() => void submit()}
+          >
+            {busy ? "Publicando..." : "Publicar Story"}
+          </button>
+        </footer>
       </div>
     </dialog>
   );
