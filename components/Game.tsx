@@ -84,6 +84,10 @@ import {
   VISUAL_ASSET_URL_TTL_SECONDS,
 } from "@/lib/visual-assets";
 import FormDialog from "./FormDialog";
+import {
+  CharacterDeleteDialog,
+  CharacterDeleteSuccessDialog,
+} from "./CharacterDeleteDialog";
 import type { Row, Field, Form } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
 const tables = [
@@ -262,7 +266,12 @@ export default function Game({ invite }: { invite?: string }) {
     [avatarPickerTarget, setAvatarPickerTarget] =
       useState<AvatarSelectionTarget | null>(null),
     [historyLimit, setHistoryLimit] = useState(20),
-    [catalogFilter, setCatalogFilter] = useState("active");
+    [catalogFilter, setCatalogFilter] = useState("active"),
+    [deleteCharacterPreview, setDeleteCharacterPreview] = useState<{
+      character: Row;
+      preview: Row;
+    } | null>(null),
+    [deletedCharacterName, setDeletedCharacterName] = useState("");
   const requestVersion = useRef(0);
   const onboardingPrompted = useRef(false);
   const isMaster =
@@ -2062,15 +2071,18 @@ export default function Game({ invite }: { invite?: string }) {
                         disabled={busy}
                         onClick={() =>
                           void run(async () => {
-                            const deletedId = character.id;
-                            await lifecycle("delete", {
-                              entity: "character",
-                              id: deletedId,
+                            const { data: preview, error: previewError } =
+                              await browserDb().rpc("lifecycle_preview", {
+                                c: campaign,
+                                entity: "character",
+                                target: character.id,
+                              });
+                            if (previewError)
+                              throw new Error(previewError.message);
+                            setDeleteCharacterPreview({
+                              character: { ...character },
+                              preview: (preview || {}) as Row,
                             });
-                            setSelected((current) =>
-                              current === deletedId ? "" : current,
-                            );
-                            setMessage("Personagem excluído definitivamente");
                           })
                         }
                       >
@@ -3526,6 +3538,35 @@ export default function Game({ invite }: { invite?: string }) {
           busy={busy}
           run={run}
           generate={() => admin("generate")}
+        />
+      )}
+      {deleteCharacterPreview && (
+        <CharacterDeleteDialog
+          characterName={deleteCharacterPreview.character.name}
+          preview={deleteCharacterPreview.preview}
+          busy={busy}
+          close={() => {
+            if (!busy) setDeleteCharacterPreview(null);
+          }}
+          remove={() =>
+            perform(async () => {
+              const deletedId = deleteCharacterPreview.character.id;
+              const deletedName = deleteCharacterPreview.character.name;
+              await lifecycle("delete", {
+                entity: "character",
+                id: deletedId,
+              });
+              setSelected((current) => (current === deletedId ? "" : current));
+              setDeleteCharacterPreview(null);
+              setDeletedCharacterName(deletedName);
+            })
+          }
+        />
+      )}
+      {deletedCharacterName && (
+        <CharacterDeleteSuccessDialog
+          characterName={deletedCharacterName}
+          close={() => setDeletedCharacterName("")}
         />
       )}
       {ownIdentity && (
