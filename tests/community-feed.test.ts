@@ -30,6 +30,15 @@ const commentDeletionMigration = async () =>
     "utf8",
   );
 
+const paginationMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260918040444_paginate_orkutista_feed.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
 test("Orkutista feed enforces identity, unique likes and one-level replies", async () => {
   const db = new PGlite();
   try {
@@ -100,6 +109,7 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
     await db.exec(await migration());
     await db.exec(await deletionMigration());
     await db.exec(await commentDeletionMigration());
+    await db.exec(await paginationMigration());
 
     const campaign = crypto.randomUUID();
     const master = crypto.randomUUID();
@@ -402,6 +412,39 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
       (await db.query("select * from community_post_cleanup")).rows.length,
       0,
     );
+
+    for (let index = 0; index < 12; index++) {
+      await db.query(
+        `insert into community_posts(
+          campaign_id,author_id,image_path,caption,created_at
+        ) values($1,$2,$3,$4,$5)`,
+        [
+          campaign,
+          playerIdentity,
+          `${campaign}/${playerIdentity}/page-${index}.webp`,
+          `Página ${index}`,
+          new Date(Date.UTC(2026, 8, 18, 12, index)).toISOString(),
+        ],
+      );
+    }
+    await asUser(player);
+    const firstPage = await db.query<{ id: string; created_at: string }>(
+      "select * from community_feed_page($1,$2,null,null,6)",
+      [campaign, playerIdentity],
+    );
+    assert.equal(firstPage.rows.length, 6);
+    const pageCursor = firstPage.rows.at(-1)!;
+    const secondPage = await db.query<{ id: string }>(
+      "select * from community_feed_page($1,$2,$3,$4,6)",
+      [campaign, playerIdentity, pageCursor.created_at, pageCursor.id],
+    );
+    assert.equal(secondPage.rows.length, 6);
+    assert.equal(
+      secondPage.rows.some((entry) =>
+        firstPage.rows.some((first) => first.id === entry.id),
+      ),
+      false,
+    );
   } finally {
     await db.close();
   }
@@ -417,6 +460,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     deletionSource,
     cleanup,
     commentDeletionSource,
+    paginationSource,
   ] = await Promise.all([
     readFile(
       new URL("../components/CommunityFeed.tsx", import.meta.url),
@@ -438,10 +482,16 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
       "utf8",
     ),
     commentDeletionMigration(),
+    paginationMigration(),
   ]);
 
   assert.match(feed, /<IdentityAvatar/);
   assert.match(feed, /community_feed_action/);
+  assert.match(feed, /community_feed_page/);
+  assert.match(feed, /FEED_PAGE_SIZE = 5/);
+  assert.match(feed, /IntersectionObserver/);
+  assert.match(feed, /loading="lazy"/);
+  assert.match(feed, /visible\.map\(\(post\) => post\.image_path\)/);
   assert.match(feed, /create_post/);
   assert.match(feed, /post_like/);
   assert.match(feed, /comment_like/);
@@ -481,4 +531,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     commentDeletionSource,
     /delete from public\.community_post_comments/,
   );
+  assert.match(paginationSource, /community_posts_feed_cursor_idx/);
+  assert.match(paginationSource, /\(post\.created_at,post\.id\)</);
+  assert.match(paginationSource, /limit safe_page_size/);
 });

@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 18/09/2026, 03:54 UTC.
+Atualizado em 18/09/2026, 04:05 UTC.
 
 Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md` e as verificações de infraestrutura feitas antes desta continuação. Ele não declara a validação final concluída.
 
@@ -27,8 +27,8 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 ## Banco, migrations e função
 
-- As 43 migrations registradas estão aplicadas no Supabase real.
-- A última migration aplicada é `20260918035302_delete_orkutista_comments`.
+- As 44 migrations registradas estão aplicadas no Supabase real.
+- A última migration aplicada é `20260918040444_paginate_orkutista_feed`.
 - A migration `delete_world_characters`, que já estava aplicada no Supabase, foi recuperada para o Git sem alterar seu SQL. O conteúdo local e o registro remoto possuem o mesmo MD5: `acffd1ca56a91483efa42a87dbee8b5d`.
 - A migration `orkutista_stories` mantém o cron autenticado `alvorecer-chat-media-cleanup` a cada minuto e preserva o timeout de `pg_net` em 60 segundos para limpar chat e Stories.
 - A chamada de limpeza usa o endpoint `/functions/v1/alvorecer-api/media-cleanup` e autenticação guardada no Vault.
@@ -41,6 +41,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Stories do Orkutista com imagem otimizada, sequência por autor, visto/não visto, visualizador em tela cheia, expiração em 24 horas e exclusão pelo autor ou Mestre.
 - Publicações do feed podem ser excluídas pelo menu de três pontos sem confirmação. Jogadores só arquivam as próprias publicações por 24 horas; Pink/Mestre remove qualquer publicação definitivamente.
 - Comentários e respostas podem ser excluídos imediatamente pelos próprios autores; Pink/Mestre pode excluir os de qualquer autor. A regra é revalidada no banco e comentários principais removem respostas e curtidas vinculadas em cascata.
+- O feed do Orkutista usa paginação por cursor e rolagem incremental em lotes de 5 posts. Somente as imagens do lote exibido recebem URLs assinadas e usam carregamento preguiçoso.
 - A página `Arquivos` existe somente no menu do Mestre e lista as exclusões feitas pelos jogadores com foto, autoria, datas e tempo restante. O cron elimina banco, relacionamentos e Storage após o prazo.
 - Login por username, mestre inicial, criação de jogador e convite de uso único.
 - Ficha, recursos calculados, atributos dinâmicos, vantagens, inventário, consumíveis, lojas e Dracmas em centavos.

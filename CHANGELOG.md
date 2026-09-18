@@ -6,6 +6,9 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ### Entregue
 
+- Feed do Orkutista paginado por cursor: mostra 5 publicações inicialmente e busca o próximo lote somente quando a pessoa se aproxima do fim da rolagem.
+- Apenas as imagens do lote visível recebem URL assinada e entram no carregamento preguiçoso; o registro extra usado para detectar a próxima página não baixa imagem.
+- Índice específico para a ordem paginada e migration `paginate_orkutista_feed` aplicados no Supabase real.
 - Exclusão imediata de comentários e respostas sem confirmação: cada jogador pode remover somente o próprio conteúdo, enquanto Pink/Mestre pode remover comentários de qualquer autor.
 - Autorização de exclusão validada no backend; apagar um comentário principal remove também respostas e curtidas relacionadas pelas cascatas existentes.
 - Migration `delete_orkutista_comments` aplicada no Supabase real.

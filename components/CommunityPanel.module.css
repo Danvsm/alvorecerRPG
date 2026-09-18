@@ -595,6 +595,29 @@
   animation: community-spin 0.9s linear infinite;
 }
 
+.feedLoadMore {
+  display: grid;
+  min-height: 64px;
+  place-items: center;
+}
+
+.feedLoadMore button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-color: #60482f;
+  color: #d9bd8e;
+  background: #0c0a0c;
+}
+
+.feedLoadMore svg {
+  width: 18px;
+  height: 18px;
+  animation: community-spin 0.9s linear infinite;
+}
+
 .emptyFeed svg {
   width: 34px;
   height: 34px;

@@ -25,6 +25,7 @@ type FeedPost = Row & {
   author_username?: string;
   image_path: string;
   caption: string;
+  created_at: string;
   like_count: number;
   comment_count: number;
   viewer_liked: boolean;
@@ -61,6 +62,8 @@ const postDate = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
+const FEED_PAGE_SIZE = 5;
+
 export default function CommunityFeed({
   campaign,
   actor,
@@ -80,55 +83,119 @@ export default function CommunityFeed({
   const [busyPost, setBusyPost] = useState("");
   const [menuPost, setMenuPost] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadingPostsRef = useRef(false);
+  const loadGenerationRef = useRef(0);
+  const cursorRef = useRef<{ createdAt: string; id: string } | null>(null);
 
-  const loadPosts = useCallback(async () => {
-    if (!campaign || !actor) return;
-    setLoading(true);
-    const response = await retryNetworkRead(() =>
-      browserDb().rpc("community_feed", {
-        c: campaign,
-        requested_actor: actor,
-      }),
-    );
-    if (response.error) {
-      setError(readableErrorMessage(response.error));
-      setLoading(false);
-      return;
-    }
-    const loaded = (response.data || []).map((post: Row) => ({
-      ...post,
-      like_count: Number(post.like_count || 0),
-      comment_count: Number(post.comment_count || 0),
-    })) as FeedPost[];
-    setPosts(loaded);
-    if (!loaded.length) {
-      setPostUrls({});
-      setLoading(false);
-      return;
-    }
-    const signed = await browserDb()
-      .storage.from("community-posts")
-      .createSignedUrls(
-        loaded.map((post) => post.image_path),
-        3600,
-      );
-    if (signed.error) setError(readableErrorMessage(signed.error));
-    else
-      setPostUrls(
-        Object.fromEntries(
-          loaded.map((post, index) => [
+  const loadPosts = useCallback(
+    async (reset = false) => {
+      if (!campaign || !actor || (!reset && loadingPostsRef.current)) return;
+      if (reset) loadGenerationRef.current += 1;
+      const generation = loadGenerationRef.current;
+      loadingPostsRef.current = true;
+      const cursor = reset ? null : cursorRef.current;
+      if (reset) {
+        setLoading(true);
+        setPosts([]);
+        setPostUrls({});
+        setHasMore(false);
+        cursorRef.current = null;
+      } else {
+        setLoadingMore(true);
+      }
+      setError("");
+
+      try {
+        const response = await retryNetworkRead(() =>
+          browserDb().rpc("community_feed_page", {
+            c: campaign,
+            requested_actor: actor,
+            cursor_created_at: cursor?.createdAt || null,
+            cursor_id: cursor?.id || null,
+            page_size: FEED_PAGE_SIZE + 1,
+          }),
+        );
+        if (response.error) throw response.error;
+        if (generation !== loadGenerationRef.current) return;
+
+        const loaded = (response.data || []).map((post: Row) => ({
+          ...post,
+          like_count: Number(post.like_count || 0),
+          comment_count: Number(post.comment_count || 0),
+        })) as FeedPost[];
+        const visible = loaded.slice(0, FEED_PAGE_SIZE);
+        const last = visible.at(-1);
+        setHasMore(loaded.length > FEED_PAGE_SIZE);
+        cursorRef.current = last
+          ? { createdAt: last.created_at, id: last.id }
+          : cursor;
+        setPosts((current) => {
+          if (reset) return visible;
+          const currentIds = new Set(current.map((post) => post.id));
+          return [
+            ...current,
+            ...visible.filter((post) => !currentIds.has(post.id)),
+          ];
+        });
+
+        if (!visible.length) return;
+        const signed = await browserDb()
+          .storage.from("community-posts")
+          .createSignedUrls(
+            visible.map((post) => post.image_path),
+            3600,
+          );
+        if (signed.error) throw signed.error;
+        if (generation !== loadGenerationRef.current) return;
+        const pageUrls = Object.fromEntries(
+          visible.map((post, index) => [
             post.id,
             signed.data?.[index]?.signedUrl || "",
           ]),
-        ),
-      );
-    setLoading(false);
-  }, [actor, campaign]);
+        );
+        setPostUrls((current) =>
+          reset ? pageUrls : { ...current, ...pageUrls },
+        );
+      } catch (reason) {
+        if (generation === loadGenerationRef.current)
+          setError(readableErrorMessage(reason));
+      } finally {
+        if (generation === loadGenerationRef.current) {
+          loadingPostsRef.current = false;
+          setLoading(false);
+          setLoadingMore(false);
+        }
+      }
+    },
+    [actor, campaign],
+  );
 
   useEffect(() => {
-    void loadPosts();
+    void loadPosts(true);
   }, [loadPosts, identities]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (
+      !target ||
+      !hasMore ||
+      loadingMore ||
+      !("IntersectionObserver" in window)
+    )
+      return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void loadPosts(false);
+      },
+      { rootMargin: "600px 0px" },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loadPosts, loadingMore]);
 
   const act = async (op: string, details: Row) => {
     const response = await browserDb().rpc("community_feed_action", {
@@ -286,6 +353,7 @@ export default function CommunityFeed({
                 height={1600}
                 sizes="(max-width: 760px) 100vw, 844px"
                 alt={`Publicação de ${author.name}`}
+                loading="lazy"
                 unoptimized
               />
             )}
@@ -322,6 +390,24 @@ export default function CommunityFeed({
         );
       })}
 
+      {posts.length > 0 && hasMore && (
+        <div className={styles.feedLoadMore} ref={loadMoreRef}>
+          <button
+            type="button"
+            disabled={loadingMore}
+            onClick={() => void loadPosts(false)}
+          >
+            {loadingMore ? (
+              <>
+                <LoaderCircle aria-hidden="true" /> Carregando...
+              </>
+            ) : (
+              "Carregar mais publicações"
+            )}
+          </button>
+        </div>
+      )}
+
       {error && (
         <p className="error" role="alert">
           {error}
@@ -343,7 +429,7 @@ export default function CommunityFeed({
               caption,
             });
             closeComposer();
-            await loadPosts();
+            await loadPosts(true);
           }}
         />
       )}
@@ -361,7 +447,7 @@ export default function CommunityFeed({
           close={() => setCommentsPost(null)}
           act={act}
           changed={async () => {
-            await loadPosts();
+            await loadPosts(true);
           }}
         />
       )}
