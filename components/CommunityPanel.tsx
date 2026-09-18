@@ -24,6 +24,7 @@ import { CosmeticIcon } from "./CosmeticsPanel";
 import CommunityArchives from "./CommunityArchives";
 import CommunityFeed from "./CommunityFeed";
 import CommunityStories from "./CommunityStories";
+import CommunityInbox from "./CommunityInbox";
 import IdentityAvatar from "./IdentityAvatar";
 import NotificationBell from "./NotificationBell";
 import ProfileWall from "./ProfileWall";
@@ -285,7 +286,7 @@ export default function CommunityPanel({
 
   return (
     <div className={styles.community} ref={communityRef}>
-      <header className={styles.socialHeader}>
+      {view !== "messages" && <header className={styles.socialHeader}>
         <div className={styles.headerShade} />
         <button
           type="button"
@@ -310,9 +311,9 @@ export default function CommunityPanel({
             save={saveNotification}
           />
         </div>
-      </header>
+      </header>}
 
-      <div
+      {view !== "messages" && <div
         className={`${styles.searchDock} ${
           view === "explore" && (searchOpen || search) ? styles.searchOpen : ""
         }`}
@@ -331,7 +332,7 @@ export default function CommunityPanel({
             placeholder="Buscar jogador"
           />
         </label>
-      </div>
+      </div>}
 
       {view === "home" && actor && (
         <CommunityStories
@@ -449,25 +450,32 @@ export default function CommunityPanel({
         </section>
       )}
 
-      {(view === "explore" || view === "messages") && (
+      {view === "messages" && (
+        <CommunityInbox
+          campaign={campaign}
+          actor={actor}
+          identities={identities}
+          cosmetics={cosmetics}
+          equipment={equipment}
+          urls={urls}
+          onlineUserIds={onlineUserIds}
+          openConversation={message}
+        />
+      )}
+
+      {view === "explore" && (
         <section className={styles.directory} ref={directoryRef}>
           <div className={styles.sectionHeading}>
             <h2>
-              {view === "messages" ? (
-                <MessageCircle aria-hidden="true" />
-              ) : rankingMode ? (
+              {rankingMode ? (
                 <Trophy aria-hidden="true" />
               ) : (
                 <Compass aria-hidden="true" />
               )}
-              {view === "messages"
-                ? "Escolha com quem conversar"
-                : rankingMode
-                  ? "Ranking de riqueza"
-                  : "Explorar jogadores"}
+              {rankingMode ? "Ranking de riqueza" : "Explorar jogadores"}
             </h2>
             <div className={styles.directoryTools}>
-              {view === "explore" && (
+              {(
                 <button
                   type="button"
                   className={rankingMode ? styles.activeRanking : ""}
@@ -522,16 +530,7 @@ export default function CommunityPanel({
                       <em>“{profileLine(identity)}”</em>
                     </span>
                   </button>
-                  {view === "messages" && identity.id !== actor ? (
-                    <button
-                      type="button"
-                      className={styles.messageAction}
-                      aria-label={`Conversar com ${identity.name}`}
-                      onClick={() => message(identity.id)}
-                    >
-                      <MessageCircle aria-hidden="true" />
-                    </button>
-                  ) : rank ? (
+                  {rank ? (
                     <RankMedal rank={rank} />
                   ) : identity.kind === "master" ? (
                     <span className={styles.masterMark} title="Mestre">
@@ -568,9 +567,11 @@ export default function CommunityPanel({
         </p>
       )}
 
-      <footer className={styles.footer}>
-        MAIS QUE UM JOGO, UM NOVO AMANHECER.
-      </footer>
+      {view !== "messages" && (
+        <footer className={styles.footer}>
+          MAIS QUE UM JOGO, UM NOVO AMANHECER.
+        </footer>
+      )}
 
       <nav className={styles.bottomNav} aria-label="Navegação da comunidade">
         <button

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, Send, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
@@ -47,6 +47,7 @@ export default function DirectChat({
     [limit, setLimit] = useState(50);
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -144,7 +145,38 @@ export default function DirectChat({
       valid = false;
     };
   }, [selected, open, actor, revision, refresh, limit, conversations]);
-  const selectedConversation = conversations.find((c) => c.id === selected);
+  useEffect(() => {
+    setMessages([]);
+  }, [selected]);
+
+  useEffect(() => {
+    if (!open || !selected) return;
+    window.requestAnimationFrame(() =>
+      messagesEndRef.current?.scrollIntoView({ block: "end" }),
+    );
+  }, [messages, open, selected]);
+
+    const selectedConversation = conversations.find((c) => c.id === selected);
+  const selectedPeerIds = selectedConversation
+    ? [selectedConversation.first_id, selectedConversation.second_id].filter(
+        (id) => id !== actor,
+      )
+    : [];
+  const selectedPeer =
+    selectedPeerIds.length === 1
+      ? identities.find((identity) => identity.id === selectedPeerIds[0])
+      : undefined;
+  const selectedPeerName =
+    selectedPeer?.name ||
+    selectedPeerIds
+      .map(
+        (id) =>
+          identities.find((identity) => identity.id === id)?.name ||
+          "Perfil indisponível",
+      )
+      .join(" e ") ||
+    "Conversa";
+
   const canSend =
     selectedConversation &&
     [selectedConversation.first_id, selectedConversation.second_id].includes(
@@ -203,41 +235,74 @@ export default function DirectChat({
       )}
       {open && (
         <aside className="chat-window" aria-label="Mensagens diretas">
-          <div className="spread">
-            <h2>Mensagens</h2>
+          <header className="chat-thread-header">
             <button
+              type="button"
+              className="chat-thread-back"
+              onClick={() => setOpen(false)}
+              aria-label="Voltar às conversas"
+            >
+              <ChevronLeft />
+            </button>
+            <div className="chat-thread-peer">
+              {selectedPeer && (
+                <IdentityAvatar
+                  identity={selectedPeer}
+                  cosmetics={cosmetics}
+                  equipment={equipment}
+                  urls={urls}
+                  size={46}
+                />
+              )}
+              <div>
+                <strong>{selected ? selectedPeerName : "Mensagens"}</strong>
+                {selected && <small>Conversa direta</small>}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="chat-thread-close"
               onClick={() => setOpen(false)}
               aria-label="Fechar mensagens"
             >
               <X />
             </button>
-          </div>
-          <select
-            aria-label="Conversa"
-            value={selected}
-            onChange={(e) => {
-              setSelected(e.target.value);
-              setLimit(50);
-            }}
-          >
-            <option value="">Escolha uma conversa</option>
-            {conversations
-              .filter(
-                (c) => master || [c.first_id, c.second_id].includes(actor),
-              )
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {[c.first_id, c.second_id]
-                    .filter((id) => id !== actor)
-                    .map(
-                      (id) =>
-                        identities.find((i) => i.id === id)?.name ||
-                        "Perfil indisponível",
+          </header>
+          {!selected && (
+            <div className="chat-conversation-picker">
+              <label>
+                Escolha uma conversa
+                <select
+                  aria-label="Conversa"
+                  value={selected}
+                  onChange={(e) => {
+                    setSelected(e.target.value);
+                    setLimit(50);
+                  }}
+                >
+                  <option value="">Selecione</option>
+                  {conversations
+                    .filter(
+                      (c) =>
+                        master ||
+                        [c.first_id, c.second_id].includes(actor),
                     )
-                    .join(" e ")}
-                </option>
-              ))}
-          </select>
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {[c.first_id, c.second_id]
+                          .filter((id) => id !== actor)
+                          .map(
+                            (id) =>
+                              identities.find((i) => i.id === id)?.name ||
+                              "Perfil indisponível",
+                          )
+                          .join(" e ")}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+          )}
           <div className="chat-messages">
             {messages.length >= limit && (
               <button onClick={() => setLimit((n) => n + 50)}>
@@ -275,18 +340,28 @@ export default function DirectChat({
                 </div>
               );
             })}
+            <div ref={messagesEndRef} />
           </div>
           {canSend && (
             <form
+              className="chat-composer"
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (busy) return;
+                if (busy || !body.trim()) return;
                 setBusy(true);
                 setError("");
                 try {
-                  await action("message", { conversation_id: selected, body });
+                  await action("message", {
+                    conversation_id: selected,
+                    body: body.trim(),
+                  });
                   setBody("");
                   setRefresh((v) => v + 1);
+                  window.dispatchEvent(
+                    new CustomEvent("alvorecer:chat-updated", {
+                      detail: { campaign },
+                    }),
+                  );
                 } catch (e) {
                   setError(readableErrorMessage(e));
                 } finally {
@@ -294,18 +369,8 @@ export default function DirectChat({
                 }
               }}
             >
-              <label>
-                Mensagem
-                <textarea
-                  required
-                  maxLength={4000}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                />
-              </label>
-              <button disabled={busy}>Enviar</button>
-              <label>
-                Enviar imagem
+              <label className="chat-image-button" aria-label="Enviar imagem">
+                <ImagePlus aria-hidden="true" />
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
@@ -338,6 +403,11 @@ export default function DirectChat({
                       });
                       if (sent.error) throw sent.error;
                       setRefresh((v) => v + 1);
+                      window.dispatchEvent(
+                        new CustomEvent("alvorecer:chat-updated", {
+                          detail: { campaign },
+                        }),
+                      );
                     } catch (e) {
                       setError(readableErrorMessage(e));
                     } finally {
@@ -346,6 +416,25 @@ export default function DirectChat({
                   }}
                 />
               </label>
+              <label className="chat-text-field">
+                <span className="visually-hidden">Mensagem</span>
+                <textarea
+                  required
+                  maxLength={4000}
+                  rows={1}
+                  placeholder="Mensagem..."
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                />
+              </label>
+              <button
+                type="submit"
+                className="chat-send-button"
+                disabled={busy || !body.trim()}
+                aria-label="Enviar mensagem"
+              >
+                <Send aria-hidden="true" />
+              </button>
             </form>
           )}
           {error && (
