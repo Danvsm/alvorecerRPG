@@ -1,7 +1,7 @@
-export const IMAGE_CACHE_WORKER_REVISION = "2";
+export const IMAGE_CACHE_WORKER_REVISION = "3";
 export const IMAGE_CACHE_NAME = "alvorecer-images-v2";
 export const IMAGE_CACHE_LIMIT = 300;
-export const IMAGE_CACHE_WORKER_PATH = "/image-cache-sw.js";
+export const IMAGE_CACHE_WORKER_PATH = "/alvorecer-sw.js";
 
 let registrationPromise: Promise<ServiceWorkerRegistration> | undefined;
 

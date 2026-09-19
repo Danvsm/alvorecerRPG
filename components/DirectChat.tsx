@@ -64,6 +64,31 @@ export default function DirectChat({
     if (r.error) throw new Error(r.error.message);
     return r.data;
   };
+
+  const pushReceivedMessage = async (conversationId: string) => {
+    try {
+      const sessionResult = await browserDb().auth.getSession();
+      const token = sessionResult.data.session?.access_token;
+      if (!token) return;
+
+      await fetch("/api/push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "chat_message",
+          campaign,
+          conversationId,
+          actorId: actor,
+        }),
+        keepalive: true,
+      });
+    } catch {
+      // A mensagem continua enviada mesmo se o aviso push falhar.
+    }
+  };
   useEffect(() => {
     onUnreadChange?.(unread);
   }, [onUnreadChange, unread]);
@@ -657,6 +682,7 @@ export default function DirectChat({
                     conversation_id: selected,
                     body: body.trim(),
                   });
+                  void pushReceivedMessage(selected);
                   setBody("");
                   setRefresh((v) => v + 1);
                   window.dispatchEvent(
@@ -704,6 +730,7 @@ export default function DirectChat({
                         d: { actor_id: actor, media_id: r.data.id },
                       });
                       if (sent.error) throw sent.error;
+                      void pushReceivedMessage(selected);
                       setRefresh((v) => v + 1);
                       window.dispatchEvent(
                         new CustomEvent("alvorecer:chat-updated", {

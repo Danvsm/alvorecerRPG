@@ -23,8 +23,8 @@ export async function ensureAlvorecerNotificationWorker() {
 
   try {
     const registration = await navigator.serviceWorker.register(
-      "/alvorecer-sw.js",
-      { scope: "/" },
+      "/alvorecer-sw.js?v=3",
+      { scope: "/", updateViaCache: "none" },
     );
     await navigator.serviceWorker.ready;
     return registration;

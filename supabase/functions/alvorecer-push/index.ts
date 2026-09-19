@@ -21,7 +21,9 @@ function serviceClient() {
   });
 }
 
-async function currentUser(req: Request, db: ReturnType<typeof serviceClient>) {
+type ServiceDb = ReturnType<typeof serviceClient>;
+
+async function currentUser(req: Request, db: ServiceDb) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("Entre novamente.");
   const { data, error } = await db.auth.getUser(token);
@@ -29,11 +31,7 @@ async function currentUser(req: Request, db: ReturnType<typeof serviceClient>) {
   return data.user;
 }
 
-async function membership(
-  db: ReturnType<typeof serviceClient>,
-  campaign: string,
-  userId: string,
-) {
+async function membership(db: ServiceDb, campaign: string, userId: string) {
   const { data } = await db
     .from("campaign_members")
     .select("role,access_active,archived_at")
@@ -49,6 +47,118 @@ async function membership(
 
 function cleanText(value: unknown, max: number) {
   return String(value || "").trim().slice(0, max);
+}
+
+async function pushToUsers(
+  db: ServiceDb,
+  campaign: string,
+  userIds: string[],
+  payload: {
+    title: string;
+    body: string;
+    tag: string;
+    url?: string;
+    kind?: string;
+  },
+) {
+  const uniqueIds = [...new Set(userIds)].filter(Boolean);
+  if (!uniqueIds.length) {
+    return { pushDelivered: 0, pushFailed: 0, subscribedDevices: 0 };
+  }
+
+  const { data: subscriptions, error: subscriptionError } = await db
+    .from("push_subscriptions")
+    .select("id,user_id,endpoint,p256dh,auth_secret,failure_count")
+    .eq("campaign_id", campaign)
+    .in("user_id", uniqueIds);
+
+  if (subscriptionError) {
+    throw new Error("Não foi possível consultar os aparelhos registrados.");
+  }
+
+  if (!subscriptions?.length) {
+    return { pushDelivered: 0, pushFailed: 0, subscribedDevices: 0 };
+  }
+
+  const { data: privateKey, error: keyError } = await db.rpc(
+    "server_push_vapid_private",
+  );
+
+  if (keyError || !privateKey) {
+    throw new Error("O servidor de push está sem chave.");
+  }
+
+  webpush.setVapidDetails(
+    VAPID_SUBJECT,
+    VAPID_PUBLIC_KEY,
+    String(privateKey),
+  );
+
+  let pushDelivered = 0;
+  let pushFailed = 0;
+
+  await Promise.all(
+    subscriptions.map(async (subscription) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: String(subscription.endpoint),
+            keys: {
+              p256dh: String(subscription.p256dh),
+              auth: String(subscription.auth_secret),
+            },
+          },
+          JSON.stringify({
+            title: payload.title,
+            body: payload.body,
+            tag: payload.tag,
+            url: payload.url || "/",
+            kind: payload.kind || "announcement",
+          }),
+          {
+            TTL: 259200,
+            urgency: payload.kind === "message" ? "normal" : "high",
+          },
+        );
+
+        pushDelivered += 1;
+        await db
+          .from("push_subscriptions")
+          .update({
+            last_success_at: new Date().toISOString(),
+            failure_count: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", subscription.id);
+      } catch (caught) {
+        pushFailed += 1;
+        const statusCode = Number(
+          (caught as { statusCode?: number })?.statusCode || 0,
+        );
+
+        if (statusCode === 404 || statusCode === 410) {
+          await db
+            .from("push_subscriptions")
+            .delete()
+            .eq("id", subscription.id);
+        } else {
+          await db
+            .from("push_subscriptions")
+            .update({
+              failure_count: Number(subscription.failure_count || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", subscription.id);
+        }
+      }
+    }),
+  );
+
+  return {
+    pushDelivered,
+    pushFailed,
+    subscribedDevices: subscriptions.length,
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -115,8 +225,106 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (action !== "send") throw new Error("Ação de push inválida.");
-    if (member.role !== "master") throw new Error("Somente o mestre.");
+    if (action === "chat_message") {
+      const conversationId = cleanText(body?.conversationId, 80);
+      const actorId = cleanText(body?.actorId, 80);
+
+      if (!conversationId || !actorId) {
+        throw new Error("Conversa inválida.");
+      }
+
+      const { data: conversation, error: conversationError } = await db
+        .from("direct_conversations")
+        .select("id,campaign_id,first_id,second_id")
+        .eq("id", conversationId)
+        .eq("campaign_id", campaign)
+        .maybeSingle();
+
+      if (conversationError || !conversation) {
+        throw new Error("Conversa não encontrada.");
+      }
+
+      if (
+        actorId !== String(conversation.first_id) &&
+        actorId !== String(conversation.second_id)
+      ) {
+        throw new Error("Conversa não autorizada.");
+      }
+
+      const { data: actor, error: actorError } = await db
+        .from("social_identities")
+        .select("id,user_id,kind,active")
+        .eq("id", actorId)
+        .eq("campaign_id", campaign)
+        .maybeSingle();
+
+      if (actorError || !actor || !actor.active) {
+        throw new Error("Identidade não autorizada.");
+      }
+
+      const actorOwnedByUser = String(actor.user_id || "") === user.id;
+      const masterNpc =
+        member.role === "master" && String(actor.kind || "") === "npc";
+
+      if (!actorOwnedByUser && !masterNpc) {
+        throw new Error("Identidade não autorizada.");
+      }
+
+      const recipientIdentityId =
+        actorId === String(conversation.first_id)
+          ? String(conversation.second_id)
+          : String(conversation.first_id);
+
+      const { data: recipient, error: recipientError } = await db
+        .from("social_identities")
+        .select("user_id,active")
+        .eq("id", recipientIdentityId)
+        .eq("campaign_id", campaign)
+        .maybeSingle();
+
+      if (
+        recipientError ||
+        !recipient ||
+        !recipient.active ||
+        !recipient.user_id
+      ) {
+        return Response.json(
+          {
+            ok: true,
+            pushDelivered: 0,
+            pushFailed: 0,
+            subscribedDevices: 0,
+          },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
+
+      const delivery = await pushToUsers(
+        db,
+        campaign,
+        [String(recipient.user_id)],
+        {
+          title: "Olha quem te mandou mensagem 👀",
+          body: "Você recebeu uma nova mensagem. Entre no Alvorecer para ver quem foi.",
+          tag: `alvorecer-chat-${conversation.id}`,
+          url: "/",
+          kind: "message",
+        },
+      );
+
+      return Response.json(
+        { ok: true, ...delivery },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    if (action !== "send") {
+      throw new Error("Ação de push inválida.");
+    }
+
+    if (member.role !== "master") {
+      throw new Error("Somente o mestre.");
+    }
 
     const recipientIds = Array.isArray(body?.recipientIds)
       ? [...new Set(body.recipientIds.map(String))].slice(0, 50)
@@ -127,9 +335,15 @@ Deno.serve(async (req: Request) => {
       ? String(body.kind)
       : "announcement";
 
-    if (!recipientIds.length) throw new Error("Selecione pelo menos um jogador.");
-    if (!title) throw new Error("Informe o título da notificação.");
-    if (!message) throw new Error("Escreva a mensagem da notificação.");
+    if (!recipientIds.length) {
+      throw new Error("Selecione pelo menos um jogador.");
+    }
+    if (!title) {
+      throw new Error("Informe o título da notificação.");
+    }
+    if (!message) {
+      throw new Error("Escreva a mensagem da notificação.");
+    }
 
     const { data: players, error: playerError } = await db
       .from("campaign_members")
@@ -140,8 +354,12 @@ Deno.serve(async (req: Request) => {
       .is("archived_at", null)
       .in("user_id", recipientIds);
 
-    if (playerError) throw new Error("Não foi possível validar os jogadores.");
-    if (!players?.length) throw new Error("Nenhum jogador válido foi selecionado.");
+    if (playerError) {
+      throw new Error("Não foi possível validar os jogadores.");
+    }
+    if (!players?.length) {
+      throw new Error("Nenhum jogador válido foi selecionado.");
+    }
 
     const activeIds = players.map((player) => String(player.user_id));
     const rows = activeIds.map((userId) => ({
@@ -157,121 +375,35 @@ Deno.serve(async (req: Request) => {
       .insert(rows)
       .select("id,user_id");
 
-    if (insertError) throw new Error("Não foi possível criar as notificações.");
-
-    const notificationByUser = new Map(
-      (inserted || []).map((entry) => [
-        String(entry.user_id),
-        String(entry.id),
-      ]),
-    );
-
-    const { data: subscriptions, error: subscriptionError } = await db
-      .from("push_subscriptions")
-      .select("id,user_id,endpoint,p256dh,auth_secret,failure_count")
-      .eq("campaign_id", campaign)
-      .in("user_id", activeIds);
-
-    if (subscriptionError) {
-      throw new Error(
-        "Notificação criada, mas os aparelhos não puderam ser consultados.",
-      );
+    if (insertError) {
+      throw new Error("Não foi possível criar as notificações.");
     }
 
-    let pushDelivered = 0;
-    let pushFailed = 0;
-
-    if (subscriptions?.length) {
-      const { data: privateKey, error: keyError } = await db.rpc(
-        "server_push_vapid_private",
-      );
-
-      if (keyError || !privateKey) {
-        throw new Error(
-          "Notificação criada, mas o servidor de push está sem chave.",
-        );
-      }
-
-      webpush.setVapidDetails(
-        VAPID_SUBJECT,
-        VAPID_PUBLIC_KEY,
-        String(privateKey),
-      );
-
-      await Promise.all(
-        subscriptions.map(async (subscription) => {
-          const notificationId =
-            notificationByUser.get(String(subscription.user_id)) ||
-            crypto.randomUUID();
-
-          try {
-            await webpush.sendNotification(
-              {
-                endpoint: String(subscription.endpoint),
-                keys: {
-                  p256dh: String(subscription.p256dh),
-                  auth: String(subscription.auth_secret),
-                },
-              },
-              JSON.stringify({
-                title,
-                body: message,
-                tag: `alvorecer-${notificationId}`,
-                url: "/",
-              }),
-              {
-                TTL: 259200,
-                urgency: "high",
-              },
-            );
-
-            pushDelivered += 1;
-            await db
-              .from("push_subscriptions")
-              .update({
-                last_success_at: new Date().toISOString(),
-                failure_count: 0,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", subscription.id);
-          } catch (caught) {
-            pushFailed += 1;
-            const statusCode = Number(
-              (caught as { statusCode?: number })?.statusCode || 0,
-            );
-
-            if (statusCode === 404 || statusCode === 410) {
-              await db
-                .from("push_subscriptions")
-                .delete()
-                .eq("id", subscription.id);
-            } else {
-              await db
-                .from("push_subscriptions")
-                .update({
-                  failure_count: Number(subscription.failure_count || 0) + 1,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", subscription.id);
-            }
-          }
-        }),
-      );
-    }
+    const delivery = await pushToUsers(db, campaign, activeIds, {
+      title,
+      body: message,
+      tag:
+        inserted?.length === 1
+          ? `alvorecer-${String(inserted[0].id)}`
+          : `alvorecer-${crypto.randomUUID()}`,
+      url: "/",
+      kind,
+    });
 
     return Response.json(
       {
         sent: activeIds.length,
-        pushDelivered,
-        pushFailed,
-        subscribedDevices: subscriptions?.length || 0,
+        ...delivery,
       },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (caught) {
     return Response.json(
       { error: (caught as Error).message || "Falha no servidor de push." },
-      { status: 400, headers: { "Cache-Control": "no-store" } },
+      {
+        status: 400,
+        headers: { "Cache-Control": "no-store" },
+      },
     );
   }
 });
