@@ -22,14 +22,20 @@ self.addEventListener("push", (event) => {
     }
   }
 
+  const rawTitle = String(payload.title || "Notificação");
+  const brandedTitle = rawTitle.toLocaleLowerCase().startsWith("alvorecer")
+    ? rawTitle
+    : `Alvorecer • ${rawTitle}`;
+
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Alvorecer", {
+    self.registration.showNotification(brandedTitle, {
       body: payload.body || "Você recebeu uma nova notificação.",
-      icon: "/favicon.ico",
+      icon: "/alvorecer-mark.svg",
       tag: payload.tag,
       renotify: Boolean(payload.tag),
       data: { url: payload.url || "/" },
       vibrate: [180, 90, 180],
+      lang: "pt-BR",
     }),
   );
 });

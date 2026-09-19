@@ -105,11 +105,15 @@ export async function showAlvorecerNotification({
 
   if (registration) {
     try {
-      await registration.showNotification(title, {
+      const brandedTitle = title.toLocaleLowerCase().startsWith("alvorecer")
+        ? title
+        : `Alvorecer • ${title}`;
+      await registration.showNotification(brandedTitle, {
         body,
-        icon: "/favicon.ico",
+        icon: "/alvorecer-mark.svg",
         tag,
         data: { url: "/" },
+        lang: "pt-BR",
       });
       return true;
     } catch (error) {
@@ -118,10 +122,14 @@ export async function showAlvorecerNotification({
   }
 
   try {
-    new Notification(title, {
+    const brandedTitle = title.toLocaleLowerCase().startsWith("alvorecer")
+      ? title
+      : `Alvorecer • ${title}`;
+    new Notification(brandedTitle, {
       body,
-      icon: "/favicon.ico",
+      icon: "/alvorecer-mark.svg",
       tag,
+      lang: "pt-BR",
     });
     return true;
   } catch {
