@@ -2995,7 +2995,8 @@ export default function Game({ invite }: { invite?: string }) {
               urls={avatarUrls}
             />
           )}
-          {(page === "Comunidade" || (page === "Arquivos" && isMaster)) && (
+          {campaign &&
+            (page === "Comunidade" || (page === "Arquivos" && isMaster)) && (
             <CommunityPanel
               key={page}
               campaign={campaign}

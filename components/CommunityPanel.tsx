@@ -150,14 +150,20 @@ export default function CommunityPanel({
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!campaign) return;
+
     let active = true;
+    setError("");
     const loadRanking = async () => {
       const response = await retryNetworkRead(() =>
         browserDb().rpc("wealth_ranking", { c: campaign }),
       );
       if (!active) return;
       if (response.error) setError(readableErrorMessage(response.error));
-      else setRanking(response.data || []);
+      else {
+        setRanking(response.data || []);
+        setError("");
+      }
     };
     void loadRanking();
     return () => {
@@ -166,6 +172,8 @@ export default function CommunityPanel({
   }, [campaign, identities]);
 
   useEffect(() => {
+    if (!campaign) return;
+
     let active = true;
     const refreshPresence = async () => {
       const response = await retryNetworkRead(() =>
@@ -185,6 +193,7 @@ export default function CommunityPanel({
             .map((entry: Row) => entry.user_id),
         ),
       );
+      setError("");
     };
     const resume = () => {
       if (document.visibilityState === "visible") void refreshPresence();
