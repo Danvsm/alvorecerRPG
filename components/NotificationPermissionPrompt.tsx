@@ -4,7 +4,7 @@ import { BellRing, Check, MessageCircle, ShieldAlert, Sparkles, Swords, X } from
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+const REMINDER_MS = 24 * 60 * 60 * 1000;
 
 export default function NotificationPermissionPrompt({
   userId,
@@ -16,15 +16,26 @@ export default function NotificationPermissionPrompt({
   const [result, setResult] = useState<"granted" | "denied" | "">("");
 
   useEffect(() => {
-    if (!userId || typeof window === "undefined" || !("Notification" in window)) {
+    if (
+      !userId ||
+      typeof window === "undefined" ||
+      !("Notification" in window)
+    ) {
       return;
     }
 
-    if (Notification.permission !== "default") return;
+    if (Notification.permission === "granted") return;
 
     const key = `alvorecer:notification-prompt:${userId}`;
     const lastDismissed = Number(window.localStorage.getItem(key) || 0);
-    if (lastDismissed && Date.now() - lastDismissed < SNOOZE_MS) return;
+    if (
+      lastDismissed &&
+      Date.now() - lastDismissed < REMINDER_MS
+    ) {
+      return;
+    }
+
+    setResult(Notification.permission === "denied" ? "denied" : "");
 
     const timer = window.setTimeout(() => setOpen(true), 900);
     return () => window.clearTimeout(timer);
@@ -105,18 +116,19 @@ export default function NotificationPermissionPrompt({
           <>
             <p className="notification-permission-eyebrow">NOTIFICAÇÕES</p>
             <h2 id="notification-permission-title">
-              O navegador bloqueou as notificações
+              Você ainda está sem as notificações do Alvorecer
             </h2>
             <p className="notification-permission-lead">
-              Você pode continuar normalmente. Se mudar de ideia, será preciso
-              liberar as notificações nas configurações do navegador.
+              Se você mudou de ideia, ainda dá para ativar. Como o navegador já
+              bloqueou a permissão, libere as notificações nas configurações do
+              navegador para receber mensagens e avisos importantes.
             </p>
             <button
               className="notification-permission-secondary full"
               onClick={dismiss}
               type="button"
             >
-              Continuar
+              Entendi
             </button>
           </>
         ) : (
