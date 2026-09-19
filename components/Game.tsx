@@ -581,7 +581,6 @@ export default function Game({ invite }: { invite?: string }) {
     )
       return;
     onboardingPrompted.current = true;
-    setPage("Perfil");
     setAvatarPickerTarget({
       kind: "profile",
       identityId: ownIdentity.id,
