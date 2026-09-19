@@ -3,6 +3,10 @@
 import { BellRing, Check, MessageCircle, ShieldAlert, Sparkles, Swords, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  ensureAlvorecerNotificationWorker,
+  showAlvorecerNotification,
+} from "@/lib/browser-notifications";
 
 const REMINDER_MS = 24 * 60 * 60 * 1000;
 
@@ -24,7 +28,10 @@ export default function NotificationPermissionPrompt({
       return;
     }
 
-    if (Notification.permission === "granted") return;
+    if (Notification.permission === "granted") {
+      void ensureAlvorecerNotificationWorker();
+      return;
+    }
 
     const key = `alvorecer:notification-prompt:${userId}`;
     const lastDismissed = Number(window.localStorage.getItem(key) || 0);
@@ -64,14 +71,11 @@ export default function NotificationPermissionPrompt({
           `alvorecer:notification-prompt:${userId}`,
         );
 
-        try {
-          new Notification("Notificações ativadas", {
-            body: "Pronto. O Alvorecer pode avisar você sobre novidades importantes.",
-            icon: "/favicon.ico",
-          });
-        } catch {
-          // Some browsers accept the permission but restrict direct notifications.
-        }
+        await showAlvorecerNotification({
+          title: "Notificações ativadas",
+          body: "Pronto. O Alvorecer pode avisar você sobre novidades importantes.",
+          tag: "alvorecer-permission-test",
+        });
 
         window.setTimeout(() => setOpen(false), 1200);
       }

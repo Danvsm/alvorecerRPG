@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { Row } from "@/lib/types";
+import { showAlvorecerNotification } from "@/lib/browser-notifications";
 
 type NotificationFilter = "all" | "unread";
 type NotificationGroup = "Hoje" | "Ontem" | "Mais antigas";
@@ -120,7 +121,7 @@ export default function NotificationBell({
       return;
     }
 
-    if (Notification.permission === "granted" && document.hidden) {
+    if (Notification.permission === "granted") {
       const fresh = visible.find(
         (notification) =>
           !seenNotificationIds.current.has(String(notification.id)),
@@ -133,15 +134,11 @@ export default function NotificationBell({
           notificationKinds[kind]?.subtitle ||
           "Uma nova atualização aconteceu no seu mundo.";
 
-        try {
-          new Notification(String(fresh.title || "Alvorecer"), {
-            body: subtitle,
-            icon: "/favicon.ico",
-            tag: `alvorecer-${String(fresh.id)}`,
-          });
-        } catch {
-          // Browser accepted permission but does not support direct display here.
-        }
+        void showAlvorecerNotification({
+          title: String(fresh.title || "Alvorecer"),
+          body: subtitle,
+          tag: `alvorecer-${String(fresh.id)}`,
+        });
       }
     }
 
