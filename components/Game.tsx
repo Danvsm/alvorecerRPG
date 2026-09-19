@@ -292,7 +292,7 @@ export default function Game({ invite }: { invite?: string }) {
   }, []);
 
   useEffect(() => {
-    setPage(isMaster ? "Visão Geral" : "Início");
+    setPage("Comunidade");
   }, [campaign, isMaster]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
   const avatarShape = avatarShapeFromTheme(currentCampaign?.theme);
