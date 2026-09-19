@@ -394,6 +394,40 @@ export default function Game({ invite }: { invite?: string }) {
       };
     })
     .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
+  const medalPlayers = rows("campaign_members")
+    .filter(
+      (member) =>
+        member.campaign_id === campaign &&
+        member.role === "player" &&
+        member.access_active &&
+        !member.archived_at,
+    )
+    .flatMap((member) => {
+      const profile = rows("profiles").find(
+        (entry) => entry.id === member.user_id,
+      );
+      const identity = rows("social_identities").find(
+        (entry) =>
+          entry.user_id === member.user_id &&
+          entry.campaign_id === campaign &&
+          entry.kind === "player" &&
+          entry.active,
+      );
+      if (!identity) return [];
+      return [
+        {
+          id: identity.id,
+          user_id: member.user_id,
+          name:
+            identity.name ||
+            profile?.display_name ||
+            profile?.username ||
+            "Jogador sem nome",
+          username: profile?.username ? `@${profile.username}` : "",
+        },
+      ];
+    })
+    .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
   useEffect(() => {
     if (!configured) {
       setReady(true);
@@ -3303,6 +3337,7 @@ export default function Game({ invite }: { invite?: string }) {
                   medals={rows("cosmetics").filter(
                     (cosmetic) => cosmetic.kind === "medal",
                   )}
+                  players={medalPlayers}
                   urls={avatarUrls}
                   busy={busy}
                   create={({ file, name, description }) =>
@@ -3326,6 +3361,61 @@ export default function Game({ invite }: { invite?: string }) {
                           .remove([path]);
                         throw caught;
                       }
+                    })
+                  }
+                  send={({ medalId, identityId }) =>
+                    perform(async () => {
+                      const response = await browserDb().rpc("medal_action", {
+                        c: campaign,
+                        d: {
+                          action: "grant",
+                          medal_id: medalId,
+                          identity_id: identityId,
+                        },
+                      });
+                      if (response.error)
+                        throw new Error(response.error.message);
+                      await load(campaign, true);
+                      setMessage("Medalha enviada");
+                    })
+                  }
+                  remove={(medalId) =>
+                    perform(async () => {
+                      const response = await browserDb().rpc("medal_action", {
+                        c: campaign,
+                        d: {
+                          action: "delete",
+                          medal_id: medalId,
+                        },
+                      });
+                      if (response.error)
+                        throw new Error(response.error.message);
+
+                      const assetPath = String(
+                        (response.data as Row | null)?.asset_path || "",
+                      );
+                      let storageCleanupPending = false;
+
+                      if (assetPath) {
+                        storageCleanupPending = true;
+                        for (let attempt = 0; attempt < 3; attempt += 1) {
+                          const removal = await browserDb()
+                            .storage.from("avatar-frames")
+                            .remove([assetPath]);
+                          if (!removal.error) {
+                            await invalidateCachedImage(assetPath);
+                            storageCleanupPending = false;
+                            break;
+                          }
+                        }
+                      }
+
+                      await load(campaign, true);
+                      setMessage(
+                        storageCleanupPending
+                          ? "Medalha excluída do banco. A limpeza do PNG ficou pendente."
+                          : "Medalha excluída definitivamente",
+                      );
                     })
                   }
                 />
