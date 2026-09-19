@@ -472,7 +472,7 @@
 
 .medalSlotButton {
   display: grid;
-  width: 72px;
+  width: 75px;
   height: auto;
   min-width: 0;
   min-height: 0;
@@ -1149,7 +1149,7 @@
   }
 
   .medalSlotButton {
-    width: clamp(62px, 19vw, 74px);
+    width: clamp(65px, 19vw, 77px);
     height: auto;
     min-height: 0;
     aspect-ratio: 1 / 1;
@@ -1230,7 +1230,7 @@
   }
 
   .medalSlotButton {
-    width: 58px;
+    width: 61px;
     height: auto;
     min-height: 0;
     aspect-ratio: 1 / 1;
