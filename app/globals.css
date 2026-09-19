@@ -10,8 +10,11 @@
   --green: #45bd87;
   --yellow: #e0b648;
   --red: #ef5368;
+  /* Two roles shared by navigation, social screens and the RPG panels. */
+  --font-ui: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-lora), Georgia, serif;
   color-scheme: dark;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 16px;
 }
 * {
@@ -21,9 +24,11 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--text);
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-weight: 400;
-  letter-spacing: -0.01em;
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-optical-sizing: auto;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -47,8 +52,8 @@ button,
   color: var(--text);
   cursor: pointer;
   font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.25;
+  font-weight: 600;
+  line-height: 1.35;
 }
 button:hover,
 .button-label:hover {
@@ -84,6 +89,8 @@ textarea {
   padding: 11px 12px;
   width: 100%;
   min-width: 0;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 input[type="checkbox"] {
   width: 18px;
@@ -102,7 +109,7 @@ label {
   gap: 9px;
 }
 p {
-  line-height: 1.55;
+  line-height: 1.6;
   font-weight: 400;
   color: var(--muted);
 }
@@ -111,13 +118,14 @@ h1 {
   font-weight: 700;
   line-height: 1.2;
   margin: 8px 0 16px;
-  letter-spacing: -0.8px;
+  letter-spacing: -0.035em;
 }
 h2 {
   font-size: clamp(1.1rem, 1vw + 0.85rem, 1.2rem);
   font-weight: 600;
   margin: 10px 0 18px;
   line-height: 1.35;
+  letter-spacing: -0.02em;
 }
 h3 {
   font-size: 1.1rem;
@@ -130,6 +138,12 @@ small {
 }
 strong {
   font-weight: 600;
+}
+.stat strong,
+.resource strong,
+.attribute strong,
+.combat-stat-line strong,
+input[type="number"] {
   font-variant-numeric: tabular-nums;
 }
 code {
@@ -141,8 +155,8 @@ code {
 }
 .eyebrow {
   font-size: 0.75rem;
-  letter-spacing: 1.8px;
-  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-weight: 600;
   color: var(--muted);
   margin: 0 0 12px;
 }
@@ -163,7 +177,12 @@ code {
   margin-bottom: 50px;
 }
 .auth-panel h1 {
-  font-size: 2.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 2.35rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
 }
 .auth-panel form {
   display: grid;
@@ -184,11 +203,13 @@ code {
   align-items: center;
   gap: 12px;
   font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 .brand small {
   display: block;
+  font-family: var(--font-ui);
   font-size: 0.65rem;
   letter-spacing: 0.8px;
   margin-top: 7px;
@@ -331,7 +352,10 @@ code {
   margin-bottom: 24px;
 }
 .overview-title h2 {
+  font-family: var(--font-display);
   font-size: 1.6rem;
+  font-weight: 500;
+  line-height: 1.25;
   margin: 6px 0;
 }
 .overview-title p:last-child {
@@ -2516,7 +2540,7 @@ dialog::backdrop {
     radial-gradient(circle at 90% 0%, #64151b24, transparent 22rem),
     linear-gradient(155deg, #080708 0%, #0b0909 58%, #060506 100%);
   box-shadow: none;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
 }
 
 .chat-thread-header {
@@ -2822,7 +2846,7 @@ dialog::backdrop {
 .notification-heading h2 {
   margin: 0;
   color: #fff5e6;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.75rem, 5vw, 2.35rem);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -2830,7 +2854,7 @@ dialog::backdrop {
 .notification-heading p {
   margin: 7px 0 0;
   color: #bcaea3;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.98rem;
 }
 .notification-header-actions {
@@ -2874,7 +2898,7 @@ dialog::backdrop {
   color: #958d89;
   background: #111011d9;
   box-shadow: inset 0 1px #ffffff08;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1rem;
 }
 .notification-tab[aria-pressed="true"] {
@@ -2904,7 +2928,7 @@ dialog::backdrop {
 .notification-group h3 {
   margin: 0 0 12px 4px;
   color: #b3a79e;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.08rem;
   font-weight: 500;
 }
@@ -2978,7 +3002,7 @@ dialog::backdrop {
 .notification-copy strong {
   overflow: hidden;
   color: #fff4e7;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.05rem;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -3016,7 +3040,7 @@ dialog::backdrop {
 }
 .notification-empty strong {
   color: #f2e5d7;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.15rem;
 }
 .notification-empty p {
@@ -3303,9 +3327,9 @@ dialog::backdrop {
 }
 .combat-title h1 {
   margin: 0;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.75rem, 5vw, 2.45rem);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.03em;
   text-shadow: 0 2px 12px #000;
 }
 .combat-title small {
@@ -3401,7 +3425,7 @@ dialog::backdrop {
 }
 .combat-side-heading h2 {
   margin: 0;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.05rem;
   letter-spacing: 0.03em;
 }
@@ -3420,7 +3444,7 @@ dialog::backdrop {
   z-index: 1;
   margin-left: auto;
   color: #b9b4aa;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.78rem;
   font-style: italic;
   white-space: nowrap;
@@ -3808,7 +3832,7 @@ dialog.combat-sheet {
 }
 .combat-sheet-heading h2 {
   margin: 2px 0 0;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
 }
 .combat-sheet-heading small,
 .combat-master-title > span > small {

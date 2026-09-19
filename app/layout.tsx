@@ -1,12 +1,17 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans, Lora } from "next/font/google";
 import ImageCache from "@/components/ImageCache";
 
-const inter = Inter({
+const interfaceFont = DM_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
+});
+const narrativeFont = Lora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-lora",
 });
 export const metadata: Metadata = {
   title: "Alvorecer RPG",
@@ -20,8 +25,11 @@ export const viewport: Viewport = {
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={inter.variable}>
-      <body className={inter.className}>
+    <html
+      lang="pt-BR"
+      className={`${interfaceFont.variable} ${narrativeFont.variable}`}
+    >
+      <body>
         {children}
         <ImageCache />
       </body>

@@ -86,7 +86,7 @@
 .profileHeader > strong {
   overflow: hidden;
   color: #f5dfb7;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.15rem, 3vw, 1.55rem);
   font-weight: 600;
   text-align: center;
@@ -145,7 +145,7 @@
   border: 0;
   color: #fff1d8;
   background: transparent;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1rem;
   outline: 0;
 }
@@ -180,7 +180,7 @@
   gap: 11px;
   margin: 0;
   color: #f0d9a3;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.55rem;
   font-weight: 500;
 }
@@ -248,13 +248,13 @@
 
 .featuredProfile strong {
   color: #f8eee0;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.05rem;
 }
 
 .featuredProfile small {
   color: #b49b74;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.76rem;
 }
 
@@ -449,7 +449,7 @@
 .feedAuthor strong {
   overflow: hidden;
   color: #fff0d6;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.18rem;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -563,7 +563,7 @@
 
 .postBody p strong {
   color: #fff0d6;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
 }
 
 .postBody time {
@@ -591,7 +591,7 @@
 
 .textFeedCard .postBody p {
   color: #f1e7da;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.08rem, 3vw, 1.42rem);
   line-height: 1.55;
   text-wrap: pretty;
@@ -695,7 +695,7 @@
 
 .emptyFeed strong {
   color: #ead7b7;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
 }
 
 .archives {
@@ -737,7 +737,7 @@
 .archivesHeading h1 {
   margin: 2px 0 4px;
   color: #fff0d6;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.65rem;
 }
 
@@ -846,7 +846,7 @@
 
 .archiveDetails > strong {
   color: #fff0d6;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.08rem;
 }
 
@@ -1045,10 +1045,10 @@ dialog.composer.feedComposer::backdrop {
   max-width: 470px;
   margin: 14px 0 10px;
   color: #fff1d8;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2.1rem, 8vw, 3.5rem);
   font-weight: 500;
-  line-height: 1.02;
+  line-height: 1.15;
   text-wrap: balance;
   text-shadow: 0 3px 14px #000;
 }
@@ -1122,7 +1122,7 @@ dialog.composer.feedComposer::backdrop {
 
 .feedComposerChoices strong {
   color: #fff0d4;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.55rem;
   font-weight: 500;
 }
@@ -1134,7 +1134,7 @@ dialog.composer.feedComposer::backdrop {
 
 .feedComposerChoiceArrow {
   color: #e7b66e;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 3rem;
   line-height: 1;
 }
@@ -1424,10 +1424,11 @@ dialog.composer.feedComposer::backdrop {
 .feedWriterIntro h2 {
   margin: 16px 0 11px;
   color: #fff1dc;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 7vw, 3.2rem);
   font-weight: 500;
-  line-height: 1.05;
+  line-height: 1.15;
+  text-wrap: balance;
   text-shadow: 0 3px 14px #000;
 }
 
@@ -1480,7 +1481,7 @@ dialog.composer.feedComposer::backdrop {
 .feedWriterIdentity strong {
   overflow: hidden;
   color: #fff0d8;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.35rem;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -1536,7 +1537,7 @@ dialog.composer.feedComposer::backdrop {
   color: #f4ece2;
   background: transparent;
   box-shadow: none;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.05rem, 3vw, 1.35rem);
   line-height: 1.55;
 }
@@ -1693,10 +1694,12 @@ dialog.composer.storyComposer::backdrop {
 .storyComposerHeader h2 {
   margin: 4px 0 2px;
   color: #f0d6aa;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.45rem, 5.4vw, 2rem);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  text-wrap: balance;
 }
 
 .storyComposerHeader strong {
@@ -1765,7 +1768,7 @@ dialog.composer.storyComposer::backdrop {
 }
 
 .storySourceCard strong {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.02rem;
 }
 
@@ -1807,7 +1810,7 @@ dialog.composer.storyComposer::backdrop {
 .storyGalleryHeader h3 {
   margin: 0;
   color: #f5ecdf;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.35rem;
   font-weight: 500;
 }
@@ -1867,7 +1870,7 @@ dialog.composer.storyComposer::backdrop {
 }
 
 .storyGalleryGateway strong {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.2rem;
 }
 
@@ -2284,7 +2287,7 @@ dialog.storyViewer::backdrop {
 .sheetHeader h2 {
   margin: 2px 0 0;
   color: #f6e5c8;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.35rem;
 }
 
@@ -2593,7 +2596,7 @@ dialog.commentsSheet {
 .profileHeading h2 {
   margin: 4px 0;
   color: #f8e9ce;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.75rem;
 }
 
@@ -2754,7 +2757,7 @@ dialog.commentsSheet {
 .profileMeta strong {
   overflow: hidden;
   color: #f6ead9;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.05rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2770,7 +2773,7 @@ dialog.commentsSheet {
 .profileMeta em {
   overflow: hidden;
   color: #99928a;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.76rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2794,7 +2797,7 @@ dialog.commentsSheet {
   position: absolute;
   right: -4px;
   color: #e7c47e;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.72rem;
   text-shadow: 0 1px 4px #000;
 }
@@ -2802,7 +2805,7 @@ dialog.commentsSheet {
 .rankNumber {
   min-width: 46px;
   color: #d7b878;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1.05rem;
   text-align: center;
 }
@@ -2845,7 +2848,7 @@ dialog.commentsSheet {
   padding: 26px 0 122px;
   border-top: 1px solid #654a2a;
   color: #987643;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.58rem;
   letter-spacing: 0.34em;
   text-align: center;
@@ -2880,7 +2883,7 @@ dialog.commentsSheet {
   border: 0;
   color: #e4d8c7;
   background: transparent;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.75rem;
   place-items: center;
 }
@@ -2918,7 +2921,7 @@ dialog.commentsSheet {
   color: #fff;
   background: #ef3349;
   box-shadow: 0 0 10px #ef334977;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.62rem;
   line-height: 1;
   place-items: center;
@@ -3512,11 +3515,11 @@ dialog.commentsSheet {
 }
 
 
-/* Social typography system: Inter + restrained weights for a cleaner network UI. */
+/* Familiar social reading, with a literary accent only in narrative headings. */
 .community {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .community :is(button, input, textarea, select) {
@@ -3533,12 +3536,17 @@ dialog.commentsSheet {
 .sectionHeading h2,
 .archivesHeading h1,
 .profileHeading h2,
+.storyGalleryHeader h3 {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
 .feedComposerIntro h2,
 .feedWriterIntro h2,
-.storyComposerHeader h2,
-.storyGalleryHeader h3 {
-  font-weight: 700;
-  letter-spacing: -0.03em;
+.storyComposerHeader h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.025em;
 }
 
 .featuredProfile strong,
@@ -3576,15 +3584,15 @@ dialog.commentsSheet {
 }
 
 .postBody p {
-  font-size: clamp(0.95rem, 0.45vw + 0.86rem, 1rem);
-  line-height: 1.52;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .textFeedCard .postBody p {
   font-size: clamp(1rem, 1vw + 0.78rem, 1.16rem);
   font-weight: 400;
-  line-height: 1.55;
-  letter-spacing: -0.012em;
+  line-height: 1.6;
+  letter-spacing: 0;
 }
 
 .feedActions button,
@@ -3609,7 +3617,7 @@ dialog.commentsSheet {
 .archivesHeading p,
 .profileMeta em,
 .footer {
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .bottomNav button {
@@ -3626,11 +3634,11 @@ dialog.commentsSheet {
   }
 
   .postBody p {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .textFeedCard .postBody p {
-    font-size: clamp(0.98rem, 4vw, 1.08rem);
+    font-size: clamp(1rem, 4vw, 1.08rem);
   }
 }
 
@@ -3726,7 +3734,7 @@ dialog.commentsSheet {
 
 .inboxIdentity strong {
   overflow: hidden;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.65rem, 5.2vw, 2.15rem);
   font-weight: 600;
   letter-spacing: -0.035em;
@@ -3978,7 +3986,7 @@ dialog.commentsSheet {
 
 .inboxIdentity strong {
   overflow: hidden;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.25rem, 4.9vw, 1.72rem);
   font-weight: 600;
   letter-spacing: -0.03em;
@@ -4069,7 +4077,7 @@ dialog.commentsSheet {
 .inboxRowText strong {
   overflow: hidden;
   color: #fff;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -4080,7 +4088,7 @@ dialog.commentsSheet {
 .inboxRowText small {
   display: block;
   overflow: hidden;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.9rem;
   font-weight: 400;
   line-height: 1.28;
@@ -4101,7 +4109,7 @@ dialog.commentsSheet {
   min-width: 47px;
   padding: 0 2px 0 6px;
   color: #827e7a;
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.78rem;
   font-weight: 400;
   text-align: right;
