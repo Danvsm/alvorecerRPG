@@ -92,6 +92,20 @@ export default function NotificationBell({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [limit, setLimit] = useState(20);
+
+  const visible = useMemo(
+    () =>
+      notifications
+        .filter((notification) => !notification.dismissed_at)
+        .toSorted((a, b) =>
+          String(b.created_at).localeCompare(String(a.created_at)),
+        ),
+    [notifications],
+  );
+  const unreadCount = visible.filter(
+    (notification) => !notification.read_at,
+  ).length;
+
   const filtered = useMemo(
     () =>
       filter === "unread"
