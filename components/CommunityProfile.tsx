@@ -131,7 +131,7 @@ function CollectionTile({
             size={82}
           />
         ) : item ? (
-          <CosmeticIcon item={item} />
+          <CosmeticIcon item={item} url={item?.id ? frameUrl : undefined} />
         ) : (
           <Award aria-hidden="true" />
         )}
@@ -709,7 +709,10 @@ export default function CommunityProfile({
                   <div key={entry?.cosmetic_id || `planned-${index}`}>
                     <span>
                       {entry?.item ? (
-                        <CosmeticIcon item={entry.item} />
+                        <CosmeticIcon
+                          item={entry.item}
+                          url={urls[entry.item.id]}
+                        />
                       ) : (
                         <Medal aria-hidden="true" />
                       )}

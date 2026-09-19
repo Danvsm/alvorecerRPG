@@ -64,7 +64,16 @@ const icons = {
   sword: Swords,
 };
 
-export function CosmeticIcon({ item }: { item: Row }) {
+export function CosmeticIcon({
+  item,
+  url,
+}: {
+  item: Row;
+  url?: string;
+}) {
+  if (item.kind === "medal" && url) {
+    return <img className="cosmetic-medal-image" src={url} alt="" />;
+  }
   const Icon = icons[item.icon as keyof typeof icons] || Star;
   return <Icon size={28} style={{ color: item.color }} />;
 }

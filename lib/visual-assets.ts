@@ -34,10 +34,12 @@ export function collectVisualAssets(
       path: String(avatar.storage_path),
       version: avatar.updated_at || avatar.created_at || avatar.storage_path,
     }));
-  const frames = cosmetics
+  const cosmeticAssets = cosmetics
     .filter(
       (cosmetic) =>
-        cosmetic.id && cosmetic.kind === "frame" && cosmetic.asset_path,
+        cosmetic.id &&
+        ["frame", "medal"].includes(String(cosmetic.kind)) &&
+        cosmetic.asset_path,
     )
     .map((cosmetic) => ({
       id: String(cosmetic.id),
@@ -46,7 +48,7 @@ export function collectVisualAssets(
       version:
         cosmetic.updated_at || cosmetic.created_at || cosmetic.asset_path,
     }));
-  return [...portraits, ...frames];
+  return [...portraits, ...cosmeticAssets];
 }
 
 export async function signVisualAssets(

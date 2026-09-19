@@ -44,6 +44,7 @@ import ItemThumbnail from "./ItemThumbnail";
 import AvatarGallery from "./AvatarGallery";
 import AvatarPickerDialog from "./AvatarPickerDialog";
 import CosmeticsPanel from "./CosmeticsPanel";
+import MedalManager from "./MedalManager";
 import CommunityPanel from "./CommunityPanel";
 import IdentityAvatar from "./IdentityAvatar";
 import IdentityBadge from "./IdentityBadge";
@@ -69,6 +70,7 @@ import {
   uploadAvatarImage,
   uploadFrameImage,
   uploadItemImage,
+  uploadMedalImage,
 } from "@/lib/media";
 import { invalidateCachedImage, versionedImageUrl } from "@/lib/image-cache";
 import {
@@ -3287,6 +3289,46 @@ export default function Game({ invite }: { invite?: string }) {
                 }
               />
 
+              </details>
+
+              <details className="panel cosmetics-section" open>
+                <summary>
+                  <span>
+                    <strong>Medalhas</strong>
+                    <small>Cadastre as medalhas da campanha.</small>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </summary>
+                <MedalManager
+                  medals={rows("cosmetics").filter(
+                    (cosmetic) => cosmetic.kind === "medal",
+                  )}
+                  urls={avatarUrls}
+                  busy={busy}
+                  create={({ file, name, description }) =>
+                    perform(async () => {
+                      const path = await uploadMedalImage(file, campaign);
+                      try {
+                        const response = await browserDb().rpc("medal_action", {
+                          c: campaign,
+                          d: {
+                            name,
+                            description,
+                            asset_path: path,
+                          },
+                        });
+                        if (response.error) throw response.error;
+                        await load(campaign, true);
+                        setMessage("Medalha cadastrada");
+                      } catch (caught) {
+                        await browserDb()
+                          .storage.from("avatar-frames")
+                          .remove([path]);
+                        throw caught;
+                      }
+                    })
+                  }
+                />
               </details>
             </>
           )}

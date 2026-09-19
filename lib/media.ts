@@ -146,6 +146,30 @@ async function postImageWebp(file: File) {
   return blob;
 }
 
+export async function uploadMedalImage(file: File, campaign: string) {
+  if (file.type !== "image/png")
+    throw new Error("A medalha precisa ser enviada em PNG");
+  if (file.size > 1024 * 1024)
+    throw new Error("O PNG da medalha deve ter no máximo 1 MB");
+
+  const image = await createImageBitmap(file);
+  if (image.width * image.height > 16000000) {
+    image.close();
+    throw new Error("A imagem excede 16 megapixels");
+  }
+  image.close();
+
+  const path = `${campaign}/medals/${crypto.randomUUID()}.png`;
+  const { error } = await browserDb()
+    .storage.from("avatar-frames")
+    .upload(path, file, {
+      contentType: "image/png",
+      cacheControl: "31536000",
+    });
+  if (error) throw error;
+  return path;
+}
+
 export async function uploadCommunityPostImage(
   file: File,
   campaign: string,

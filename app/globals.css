@@ -6115,3 +6115,182 @@ dialog.combat-sheet {
     padding: 14px;
   }
 }
+
+
+/* Medalhas */
+.medal-manager {
+  padding: 18px;
+}
+
+.medal-form {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.medal-upload-preview {
+  display: grid;
+  width: 150px;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #5a4527;
+  border-radius: 14px;
+  background: #0b0a0c;
+}
+
+.medal-upload-preview img,
+.medal-admin-art img,
+.cosmetic-medal-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.medal-upload-preview > span {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.medal-upload-preview svg {
+  width: 42px;
+  height: 42px;
+  color: #d9b568;
+}
+
+.medal-form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.medal-form-fields label {
+  min-width: 0;
+}
+
+.medal-form-fields label > small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.medal-description-field {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.medal-description-field textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.medal-character-count {
+  text-align: right;
+}
+
+.medal-form-fields > .primary,
+.medal-form-fields > .error {
+  grid-column: 1 / -1;
+}
+
+.medal-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.medal-admin-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.medal-admin-art {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+}
+
+.medal-admin-art > svg {
+  width: 38px;
+  height: 38px;
+  color: #d9b568;
+}
+
+.medal-admin-card > div:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.medal-admin-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.medal-admin-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.cosmetic-medal-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (max-width: 760px) {
+  .medal-manager {
+    padding: 14px;
+  }
+
+  .medal-form {
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .medal-upload-preview {
+    width: 104px;
+  }
+
+  .medal-form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .medal-description-field,
+  .medal-form-fields > .primary,
+  .medal-form-fields > .error {
+    grid-column: auto;
+  }
+
+  .medal-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .medal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .medal-upload-preview {
+    width: 112px;
+    justify-self: center;
+  }
+}
