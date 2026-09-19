@@ -28,6 +28,7 @@ import {
   MoreHorizontal,
   Archive,
   BellRing,
+  Palette,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -207,6 +208,7 @@ const masterMenu = [
   ["Histórico", ScrollText],
   ["Convites", LinkIcon],
   ["Configurações", Settings],
+  ["Cosméticos", Palette],
   ["Perfil", UserRound],
   ["Comunidade", Users],
   ["Interações", BellRing],
@@ -3190,8 +3192,14 @@ export default function Game({ invite }: { invite?: string }) {
               }
             />
           )}
-          {page === "Configurações" && isMaster && (
+          {page === "Cosméticos" && isMaster && (
             <>
+              <div className="toolbar">
+                <div>
+                  <h2>Cosméticos</h2>
+                  <p>Gerencie os elementos visuais disponíveis na campanha.</p>
+                </div>
+              </div>
               <AvatarGallery
                 manager
                 avatars={rows("campaign_avatars")}
@@ -3269,6 +3277,10 @@ export default function Game({ invite }: { invite?: string }) {
                   })
                 }
               />
+            </>
+          )}
+          {page === "Configurações" && isMaster && (
+            <>
               <ResourceConfiguration
                 campaign
                 resources={[]}
