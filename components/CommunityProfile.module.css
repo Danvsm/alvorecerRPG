@@ -725,7 +725,7 @@
   .identityBlock {
     grid-template-columns: 132px minmax(0, 1fr);
     align-items: center;
-    gap: 17px;
+    gap: 27px;
   }
 
   .identityCopy h1 {
