@@ -380,15 +380,19 @@
 
 .showcase {
   display: grid;
-  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
   padding-bottom: 26px;
   border-bottom: 1px solid #ffffff10;
 }
 
 .showcase > section {
+  display: grid;
   min-width: 0;
-  padding: 16px;
+  min-height: 176px;
+  grid-template-rows: auto 1fr;
+  padding: 14px;
   border: 1px solid #8b682d94;
   border-radius: 12px;
   background:
@@ -402,22 +406,29 @@
 }
 
 .showcase h2 {
-  margin: 0 0 13px;
+  margin: 0 0 10px;
   color: #eee5de;
   font-size: 0.88rem;
   font-weight: 550;
+  line-height: 1.2;
 }
 
 .equippedFrame {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  text-align: center;
 }
 
 .equippedFrame > span:last-child {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
 }
 
 .equippedFrame strong,
@@ -426,25 +437,36 @@
   color: #ddd4cc;
   font-size: 0.72rem;
   font-weight: 500;
+  line-height: 1.25;
   text-overflow: ellipsis;
 }
 
+.equippedFrame strong {
+  max-width: 100%;
+  white-space: nowrap;
+}
+
 .equippedFrame small {
+  max-width: 100%;
   color: #d19a55;
   font-size: 0.67rem;
+  line-height: 1.2;
 }
 
 .principalMedals {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
 }
 
 .principalMedals > div {
   display: grid;
   min-width: 0;
+  align-content: center;
   justify-items: center;
-  gap: 7px;
+  gap: 6px;
   text-align: center;
 }
 
@@ -804,41 +826,57 @@
   }
 
   .showcase {
-    grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
-    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .showcase > section {
-    padding: 12px 9px;
+    min-height: 166px;
+    padding: 11px 8px 10px;
+    border-radius: 10px;
   }
 
   .showcase h2 {
-    font-size: 0.76rem;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    white-space: nowrap;
   }
 
   .equippedFrame {
-    flex-direction: column;
-    text-align: center;
+    gap: 5px;
+  }
+
+  .equippedFrame strong {
+    font-size: 0.68rem;
+  }
+
+  .equippedFrame small {
+    font-size: 0.61rem;
   }
 
   .principalMedals {
-    gap: 3px;
+    gap: 2px;
+  }
+
+  .principalMedals > div {
+    gap: 5px;
   }
 
   .principalMedals > div > span {
-    width: 46px;
-    height: 46px;
+    width: clamp(36px, 10vw, 44px);
+    height: clamp(36px, 10vw, 44px);
   }
 
   .principalMedals svg {
-    width: 25px;
-    height: 25px;
+    width: clamp(21px, 6vw, 24px);
+    height: clamp(21px, 6vw, 24px);
   }
 
   .principalMedals strong {
-    max-width: 68px;
-    font-size: 0.62rem;
-    line-height: 1.3;
+    max-width: 52px;
+    font-size: 0.56rem;
+    line-height: 1.2;
+    white-space: normal;
   }
 
   .post {
@@ -881,12 +919,37 @@
   }
 
   .showcase {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .showcase > section {
+    min-height: 160px;
+    padding-inline: 7px;
+  }
+
+  .showcase h2 {
+    font-size: 0.68rem;
   }
 
   .equippedFrame {
-    flex-direction: row;
-    text-align: left;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .principalMedals > div > span {
+    width: 34px;
+    height: 34px;
+  }
+
+  .principalMedals svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .principalMedals strong {
+    max-width: 46px;
+    font-size: 0.52rem;
   }
 
   .post > p,

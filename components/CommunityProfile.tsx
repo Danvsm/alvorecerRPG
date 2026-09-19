@@ -679,7 +679,7 @@ export default function CommunityProfile({
                   cosmetics={cosmetics}
                   equipment={equipment}
                   urls={urls}
-                  size={104}
+                  size="clamp(78px, 22vw, 104px)"
                 />
                 <span>
                   <strong>
