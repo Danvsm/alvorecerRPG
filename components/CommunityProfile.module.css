@@ -81,27 +81,6 @@
   outline-offset: 5px;
 }
 
-.avatarEditBadge {
-  position: absolute;
-  right: 7%;
-  bottom: 7%;
-  z-index: 8;
-  display: grid;
-  width: 31px;
-  height: 31px;
-  place-items: center;
-  border: 2px solid #171113;
-  border-radius: 50%;
-  color: #f1dfbf;
-  background: #8f2433;
-  box-shadow: 0 5px 15px #000a;
-}
-
-.avatarEditBadge svg {
-  width: 14px;
-  height: 14px;
-}
-
 .avatarShell > i {
   position: absolute;
   right: 7%;
