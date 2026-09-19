@@ -117,7 +117,7 @@ async function pushToUsers(
           }),
           {
             TTL: 259200,
-            urgency: payload.kind === "message" ? "normal" : "high",
+            urgency: "high",
           },
         );
 
