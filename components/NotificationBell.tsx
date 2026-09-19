@@ -12,6 +12,9 @@ import {
   Mail,
   Sparkles,
   Trash2,
+  Megaphone,
+  Swords,
+  AlertTriangle,
 } from "lucide-react";
 import type { Row } from "@/lib/types";
 
@@ -35,6 +38,18 @@ const notificationKinds: Record<
   cosmetic: {
     Icon: Sparkles,
     subtitle: "Um novo item foi adicionado à sua coleção.",
+  },
+  announcement: {
+    Icon: Megaphone,
+    subtitle: "Você recebeu um novo aviso do mestre.",
+  },
+  event: {
+    Icon: Swords,
+    subtitle: "Um novo acontecimento da campanha espera por você.",
+  },
+  warning: {
+    Icon: AlertTriangle,
+    subtitle: "Um aviso importante precisa da sua atenção.",
   },
 };
 
@@ -114,6 +129,7 @@ export default function NotificationBell({
       if (fresh) {
         const kind = String(fresh.kind || "default");
         const subtitle =
+          String(fresh.body || "") ||
           notificationKinds[kind]?.subtitle ||
           "Uma nova atualização aconteceu no seu mundo.";
 
@@ -316,7 +332,9 @@ export default function NotificationBell({
                                     notification.title || "Nova notificação",
                                   )}
                                 </strong>
-                                <span>{style.subtitle}</span>
+                                <span>
+                                  {String(notification.body || style.subtitle)}
+                                </span>
                               </span>
                               <time dateTime={String(notification.created_at)}>
                                 {notificationTime(

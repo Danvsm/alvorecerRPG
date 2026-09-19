@@ -27,6 +27,7 @@ import {
   UserRound,
   MoreHorizontal,
   Archive,
+  BellRing,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -47,6 +48,7 @@ import IdentityAvatar from "./IdentityAvatar";
 import IdentityBadge from "./IdentityBadge";
 import DirectChat from "./DirectChat";
 import ConversationMonitor from "./ConversationMonitor";
+import InteractionsPanel from "./InteractionsPanel";
 import NotificationBell from "./NotificationBell";
 import NotificationPermissionPrompt from "./NotificationPermissionPrompt";
 import RewardsPanel from "./RewardsPanel";
@@ -175,6 +177,7 @@ const historyActions: Row = {
   resource_config: "Regra de recurso alterada",
   campaign_rule: "Padrão de recurso alterado",
   session_feedback: "Feedback enviado",
+  notification_sent: "Notificação enviada",
   player_disabled: "Acesso de jogador desativado",
   player_enabled: "Acesso de jogador reativado",
   player_delete_prepared: "Jogador excluído",
@@ -202,6 +205,7 @@ const masterMenu = [
   ["Configurações", Settings],
   ["Perfil", UserRound],
   ["Comunidade", Users],
+  ["Interações", BellRing],
   ["Monitoramento", Eye],
   ["Arquivos", Archive],
 ] as const;
@@ -2873,6 +2877,17 @@ export default function Game({ invite }: { invite?: string }) {
             </>
           )}
           {page === "Histórico" && history()}
+          {page === "Interações" && isMaster && (
+            <InteractionsPanel
+              campaign={campaign}
+              members={rows("campaign_members")}
+              profiles={rows("profiles")}
+              identities={rows("social_identities")}
+              cosmetics={rows("cosmetics")}
+              equipment={rows("cosmetic_equipment")}
+              urls={avatarUrls}
+            />
+          )}
           {page === "Monitoramento" && isMaster && (
             <ConversationMonitor
               campaign={campaign}
