@@ -3202,7 +3202,7 @@ export default function Game({ invite }: { invite?: string }) {
                   <p>Gerencie os elementos visuais disponíveis na campanha.</p>
                 </div>
               </div>
-              <details className="panel cosmetics-section" open>
+              <details className="panel cosmetics-section">
                 <summary>
                   <span>
                     <strong>Galeria de avatares</strong>
@@ -3291,7 +3291,7 @@ export default function Game({ invite }: { invite?: string }) {
 
               </details>
 
-              <details className="panel cosmetics-section" open>
+              <details className="panel cosmetics-section">
                 <summary>
                   <span>
                     <strong>Medalhas</strong>
@@ -3330,7 +3330,7 @@ export default function Game({ invite }: { invite?: string }) {
                   }
                 />
               </details>
-              <details className="panel cosmetics-section" open>
+              <details className="panel cosmetics-section">
                 <summary>
                   <span>
                     <strong>Molduras</strong>
