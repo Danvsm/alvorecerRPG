@@ -81,17 +81,6 @@ const rarityLabel: Record<string, string> = {
   master: "Mestre",
 };
 
-const rarityColor: Record<string, string> = {
-  common: "#a9a9ae",
-  uncommon: "#68c989",
-  rare: "#58bfff",
-  epic: "#ff526d",
-  legendary: "#e9b84d",
-  event: "#b78cff",
-  supporter: "#d68cff",
-  master: "#f0c661",
-};
-
 function normalizedSummary(row: Row): ProfileSummary {
   return {
     identity_id: String(row.identity_id),
@@ -150,13 +139,15 @@ function CollectionTile({
         )}
       </div>
       <strong>{item?.name || "Em desenvolvimento"}</strong>
-      <small style={item?.color ? { color: item.color } : undefined}>
-        {equipped
-          ? "Equipada"
-          : item
-            ? rarityLabel[item.rarity] || "Conquista"
-            : "Em breve"}
-      </small>
+      {item?.kind !== "medal" && (
+        <small style={item?.color ? { color: item.color } : undefined}>
+          {equipped
+            ? "Equipada"
+            : item
+              ? rarityLabel[item.rarity] || "Conquista"
+              : "Em breve"}
+        </small>
+      )}
     </article>
   );
 }
@@ -824,18 +815,7 @@ export default function CommunityProfile({
                         {entry?.item?.name ||
                           (canChoose ? "Escolher medalha" : "Sem medalha")}
                       </strong>
-                      {entry?.item ? (
-                        <small
-                          className={styles.principalMedalRarity}
-                          style={{
-                            color:
-                              rarityColor[String(entry.item.rarity)] ||
-                              rarityColor.common,
-                          }}
-                        >
-                          {rarityLabel[String(entry.item.rarity)] || "Conquista"}
-                        </small>
-                      ) : (
+                      {!entry?.item && (
                         <small className={styles.principalMedalRarity}>
                           {canChoose ? "Toque para escolher" : "Vazio"}
                         </small>
@@ -1091,11 +1071,6 @@ export default function CommunityProfile({
                 <div>
                   <small>Medalha</small>
                   <h2>{viewedMedal?.name || "Medalha"}</h2>
-                  <span>
-                    {viewedMedal
-                      ? rarityLabel[viewedMedal.rarity] || "Conquista"
-                      : "Conquista"}
-                  </span>
                 </div>
                 <button
                   type="button"
