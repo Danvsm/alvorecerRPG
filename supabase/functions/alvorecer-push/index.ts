@@ -322,6 +322,8 @@ Deno.serve(async (req: Request) => {
       action === "chat_mute" ||
       action === "chat_clear" ||
       action === "chat_report" ||
+      action === "chat_message_report" ||
+      action === "chat_message_delete" ||
       action === "chat_message"
     ) {
       const conversationId = cleanText(body?.conversationId, 80);
@@ -412,6 +414,128 @@ Deno.serve(async (req: Request) => {
         });
 
         if (error) throw new Error("Não foi possível enviar a denúncia.");
+
+        return Response.json(
+          { ok: true },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
+
+      if (action === "chat_message_report") {
+        const messageId = cleanText(body?.messageId, 80);
+        const reason = cleanText(body?.reason, 500);
+
+        if (!messageId) {
+          throw new Error("Mensagem inválida.");
+        }
+        if (reason.length < 3) {
+          throw new Error("Explique o motivo da denúncia.");
+        }
+
+        const { data: message, error: messageError } = await db
+          .from("direct_messages")
+          .select("id,conversation_id,sender_id,body,media_id,created_at,deleted_at")
+          .eq("id", messageId)
+          .eq("conversation_id", conversationId)
+          .maybeSingle();
+
+        if (messageError || !message) {
+          throw new Error("Mensagem não encontrada.");
+        }
+        if (String(message.sender_id) === actorId) {
+          throw new Error("Você não pode denunciar sua própria mensagem.");
+        }
+
+        const { error } = await db.from("conversation_reports").insert({
+          campaign_id: campaign,
+          conversation_id: conversationId,
+          reporter_user_id: user.id,
+          reporter_identity_id: actorId,
+          reported_identity_id: String(message.sender_id),
+          reason,
+          report_kind: "message",
+          message_id: message.id,
+          message_body_snapshot: String(message.body || "").slice(0, 4000),
+          message_media_id: message.media_id,
+          message_created_at: message.created_at,
+        });
+
+        if (error) {
+          throw new Error("Não foi possível enviar a denúncia.");
+        }
+
+        return Response.json(
+          { ok: true },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
+
+      if (action === "chat_message_delete") {
+        const messageId = cleanText(body?.messageId, 80);
+        if (!messageId) {
+          throw new Error("Mensagem inválida.");
+        }
+
+        const { data: message, error: messageError } = await db
+          .from("direct_messages")
+          .select("id,conversation_id,sender_id,media_id,deleted_at")
+          .eq("id", messageId)
+          .eq("conversation_id", conversationId)
+          .maybeSingle();
+
+        if (messageError || !message) {
+          throw new Error("Mensagem não encontrada.");
+        }
+        if (String(message.sender_id) !== actorId) {
+          throw new Error("Você só pode excluir suas próprias mensagens.");
+        }
+
+        if (!message.deleted_at) {
+          const deletedAt = new Date().toISOString();
+
+          const { error: deleteError } = await db
+            .from("direct_messages")
+            .update({
+              deleted_at: deletedAt,
+              deleted_by_identity_id: actorId,
+            })
+            .eq("id", messageId)
+            .eq("sender_id", actorId);
+
+          if (deleteError) {
+            throw new Error("Não foi possível excluir a mensagem.");
+          }
+
+          if (message.media_id) {
+            const { data: media } = await db
+              .from("chat_media")
+              .select("id,storage_path")
+              .eq("id", message.media_id)
+              .maybeSingle();
+
+            if (media) {
+              await db
+                .from("chat_media")
+                .update({ deleted_at: deletedAt })
+                .eq("id", media.id);
+
+              await db.storage
+                .from("chat-media")
+                .remove([String(media.storage_path)]);
+            }
+          }
+
+          await db.rpc("record_event", {
+            c: campaign,
+            ch: null,
+            action: "chat_message_deleted",
+            detail: {
+              conversation_id: conversationId,
+              message_id: messageId,
+            },
+            actor: user.id,
+          });
+        }
 
         return Response.json(
           { ok: true },

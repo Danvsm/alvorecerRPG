@@ -63,7 +63,17 @@ export default function DirectChat({
       name: string;
     } | null>(null),
     [reportReason, setReportReason] = useState(""),
-    [feedback, setFeedback] = useState("");
+    [feedback, setFeedback] = useState(""),
+    [messageMenu, setMessageMenu] = useState<{
+      message: Row;
+      x: number;
+      y: number;
+    } | null>(null),
+    [messageDialog, setMessageDialog] = useState<{
+      type: "report" | "delete";
+      message: Row;
+    } | null>(null),
+    [messageReportReason, setMessageReportReason] = useState("");
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -113,7 +123,12 @@ export default function DirectChat({
   };
 
   const chatControl = async (
-    controlAction: "chat_mute" | "chat_clear" | "chat_report",
+    controlAction:
+      | "chat_mute"
+      | "chat_clear"
+      | "chat_report"
+      | "chat_message_report"
+      | "chat_message_delete",
     conversationId: string,
     extra: Record<string, unknown> = {},
   ) => {
@@ -238,6 +253,71 @@ export default function DirectChat({
       setReportReason("");
       setActionDialog(null);
       showFeedback("Denúncia enviada.");
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openMessageMenu = (
+    message: Row,
+    clientX: number,
+    clientY: number,
+  ) => {
+    const width = 176;
+    const height = 104;
+    const x = Math.max(10, Math.min(clientX, window.innerWidth - width - 10));
+    const y = Math.max(10, Math.min(clientY, window.innerHeight - height - 10));
+    setMessageMenu({ message, x, y });
+  };
+
+  const deleteOwnMessage = async () => {
+    if (!messageDialog || messageDialog.type !== "delete" || !selected) return;
+
+    const target = messageDialog.message;
+    setBusy(true);
+    setError("");
+    try {
+      await chatControl("chat_message_delete", selected, {
+        messageId: target.id,
+      });
+
+      setMessages((current) =>
+        current.filter((message) => message.id !== target.id),
+      );
+      setMessageDialog(null);
+      setRefresh((value) => value + 1);
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:chat-updated", {
+          detail: { campaign },
+        }),
+      );
+      showFeedback(target.media_id ? "Foto excluída." : "Mensagem excluída.");
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reportMessage = async () => {
+    if (!messageDialog || messageDialog.type !== "report" || !selected) return;
+    if (messageReportReason.trim().length < 3) {
+      setError("Explique o motivo da denúncia.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      await chatControl("chat_message_report", selected, {
+        messageId: messageDialog.message.id,
+        reason: messageReportReason.trim(),
+      });
+      setMessageReportReason("");
+      setMessageDialog(null);
+      showFeedback("Mensagem denunciada.");
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -889,9 +969,32 @@ export default function DirectChat({
               return (
                 <div
                   className={
-                    m.sender_id === actor ? "chat-message mine" : "chat-message"
+                    m.sender_id === actor
+                      ? "chat-message mine chat-message-actionable"
+                      : "chat-message chat-message-actionable"
                   }
                   key={m.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={
+                    m.sender_id === actor
+                      ? "Abrir opções da sua mensagem"
+                      : "Abrir opções da mensagem"
+                  }
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openMessageMenu(m, event.clientX, event.clientY);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    openMessageMenu(
+                      m,
+                      rect.left + rect.width / 2,
+                      rect.top + rect.height / 2,
+                    );
+                  }}
                 >
                   <div className="chat-message-author">
                     <IdentityAvatar
@@ -1014,6 +1117,57 @@ export default function DirectChat({
               </button>
             </form>
           )}
+          {messageMenu && (
+            <>
+              <button
+                type="button"
+                className="chat-context-backdrop"
+                aria-label="Fechar opções da mensagem"
+                onClick={() => setMessageMenu(null)}
+              />
+              <div
+                className="chat-message-context-menu"
+                role="menu"
+                style={{ left: messageMenu.x, top: messageMenu.y }}
+              >
+                {messageMenu.message.sender_id === actor ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="danger"
+                    onClick={() => {
+                      setMessageDialog({
+                        type: "delete",
+                        message: messageMenu.message,
+                      });
+                      setMessageMenu(null);
+                    }}
+                  >
+                    <Trash2 size={17} />
+                    Excluir
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="danger"
+                    onClick={() => {
+                      setMessageReportReason("");
+                      setMessageDialog({
+                        type: "report",
+                        message: messageMenu.message,
+                      });
+                      setMessageMenu(null);
+                    }}
+                  >
+                    <Flag size={17} />
+                    Denunciar
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
           {contactMenu && (
             <>
               <button
@@ -1082,6 +1236,99 @@ export default function DirectChat({
                 </button>
               </div>
             </>
+          )}
+
+          {messageDialog?.type === "delete" && (
+            <div className="chat-action-backdrop" role="presentation">
+              <section
+                className="chat-action-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="chat-delete-message-title"
+              >
+                <div className="chat-action-dialog-icon danger">
+                  <Trash2 size={22} />
+                </div>
+                <h3 id="chat-delete-message-title">
+                  {messageDialog.message.media_id
+                    ? "Excluir foto?"
+                    : "Excluir mensagem?"}
+                </h3>
+                <p>
+                  Ela será removida para você e para a outra pessoa.
+                </p>
+                <div className="chat-action-dialog-actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setMessageDialog(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy}
+                    onClick={() => void deleteOwnMessage()}
+                  >
+                    {busy ? "Excluindo..." : "Excluir"}
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {messageDialog?.type === "report" && (
+            <div className="chat-action-backdrop" role="presentation">
+              <section
+                className="chat-action-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="chat-report-message-title"
+              >
+                <div className="chat-action-dialog-icon">
+                  <Flag size={22} />
+                </div>
+                <h3 id="chat-report-message-title">Denunciar mensagem</h3>
+                <p>Conte o motivo da denúncia.</p>
+                <label className="chat-report-field">
+                  <span className="visually-hidden">Motivo da denúncia</span>
+                  <textarea
+                    rows={4}
+                    maxLength={500}
+                    value={messageReportReason}
+                    onChange={(event) =>
+                      setMessageReportReason(event.target.value)
+                    }
+                    placeholder="Escreva o motivo..."
+                    autoFocus
+                  />
+                  <small>{messageReportReason.length}/500</small>
+                </label>
+                <div className="chat-action-dialog-actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setMessageReportReason("");
+                      setMessageDialog(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={
+                      busy || messageReportReason.trim().length < 3
+                    }
+                    onClick={() => void reportMessage()}
+                  >
+                    {busy ? "Enviando..." : "Enviar denúncia"}
+                  </button>
+                </div>
+              </section>
+            </div>
           )}
 
           {actionDialog?.type === "clear" && (

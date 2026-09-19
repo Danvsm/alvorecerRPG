@@ -120,7 +120,7 @@ export default function ConversationMonitor({
         browserDb()
           .from("conversation_reports")
           .select(
-            "id,campaign_id,conversation_id,reporter_identity_id,reported_identity_id,reason,status,created_at",
+            "id,campaign_id,conversation_id,reporter_identity_id,reported_identity_id,reason,status,created_at,report_kind,message_id,message_body_snapshot,message_media_id,message_created_at",
           )
           .eq("campaign_id", campaign)
           .order("created_at", { ascending: false })
@@ -196,6 +196,17 @@ export default function ConversationMonitor({
             });
           }
 
+          void loadConversations();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          const message = payload.new as Row;
+          if (message.conversation_id === selected) {
+            void loadMessages(selected);
+          }
           void loadConversations();
         },
       )
@@ -324,7 +335,20 @@ export default function ConversationMonitor({
                   <span>denunciou</span>
                   <strong>{identityName(String(report.reported_identity_id))}</strong>
                 </div>
-                <p>{String(report.reason || "")}</p>
+                {String(report.report_kind) === "message" && (
+                  <div className="monitor-report-message">
+                    <strong>Mensagem denunciada</strong>
+                    <span>
+                      {report.message_media_id
+                        ? "Imagem enviada"
+                        : String(report.message_body_snapshot || "Mensagem sem texto")}
+                    </span>
+                  </div>
+                )}
+                <p>
+                  <strong className="monitor-report-reason-label">Motivo:</strong>{" "}
+                  {String(report.reason || "")}
+                </p>
                 <time dateTime={String(report.created_at)}>
                   {new Date(String(report.created_at)).toLocaleString("pt-BR", {
                     day: "2-digit",
@@ -460,11 +484,27 @@ export default function ConversationMonitor({
                         </div>
                       </div>
 
-                      {message.body && <p>{message.body}</p>}
-                      {message.media_id && (
-                        <span className="monitor-media-note">
-                          Imagem anexada à mensagem
-                        </span>
+                      {message.deleted_at ? (
+                        <>
+                          <span className="monitor-media-note">
+                            Excluída pelo autor
+                          </span>
+                          {message.body && <p>{message.body}</p>}
+                          {message.media_id && (
+                            <span className="monitor-media-note">
+                              Imagem removida pelo autor
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {message.body && <p>{message.body}</p>}
+                          {message.media_id && (
+                            <span className="monitor-media-note">
+                              Imagem anexada à mensagem
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   );

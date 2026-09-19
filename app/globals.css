@@ -5933,3 +5933,82 @@ dialog.combat-sheet {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Message actions */
+.chat-message-actionable {
+  cursor: pointer;
+  outline: none;
+}
+
+.chat-message-actionable:focus-visible {
+  box-shadow:
+    0 0 0 2px #141112,
+    0 0 0 4px #8f6754;
+}
+
+.chat-message-context-menu {
+  position: fixed;
+  z-index: 2147482001;
+  display: grid;
+  width: 176px;
+  overflow: hidden;
+  border: 1px solid #393230;
+  border-radius: 12px;
+  background: #171415f7;
+  box-shadow: 0 16px 44px #00000080;
+  backdrop-filter: blur(18px);
+}
+
+.chat-message-context-menu button {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  color: #f2ece8;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.chat-message-context-menu button:hover,
+.chat-message-context-menu button:active {
+  background: #ffffff08;
+}
+
+.chat-message-context-menu button.danger {
+  color: #ef9d9d;
+}
+
+.monitor-report-message {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border-left: 2px solid #8d4c52;
+  border-radius: 7px;
+  background: #ffffff05;
+}
+
+.monitor-report-message strong {
+  color: #efb0b4;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.monitor-report-message span {
+  color: #e3d8d3;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.monitor-report-reason-label {
+  color: #a99b96;
+  font-weight: 650;
+}
