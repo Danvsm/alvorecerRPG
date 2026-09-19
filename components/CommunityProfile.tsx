@@ -721,9 +721,6 @@ export default function CommunityProfile({
                   urls={urls}
                   size="clamp(126px, 32vw, 176px)"
                 />
-                <span className={styles.avatarEditBadge} aria-hidden="true">
-                  <Pencil />
-                </span>
               </button>
             ) : (
               <IdentityAvatar
