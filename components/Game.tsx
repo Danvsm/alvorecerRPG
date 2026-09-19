@@ -3330,6 +3330,54 @@ export default function Game({ invite }: { invite?: string }) {
                   }
                 />
               </details>
+              <details className="panel cosmetics-section" open>
+                <summary>
+                  <span>
+                    <strong>Molduras</strong>
+                    <small>Painel de molduras do mestre.</small>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </summary>
+                <div className="cosmetics-admin-embed">
+                  <CosmeticsPanel
+                    identity={ownIdentity}
+                    cosmetics={rows("cosmetics")}
+                    grants={rows("cosmetic_grants")}
+                    equipment={rows("cosmetic_equipment")}
+                    identities={rows("social_identities")}
+                    profiles={rows("profiles")}
+                    collections={rows("cosmetic_collections")}
+                    urls={avatarUrls}
+                    master
+                    adminOnly
+                    save={async (op, d) => {
+                      const request = cosmeticsActionRequest(campaign, op, d);
+                      const result = await browserDb().rpc(
+                        request.rpc,
+                        request.params,
+                      );
+                      if (result.error) throw new Error(result.error.message);
+                      await load(campaign, true);
+                      return result.data;
+                    }}
+                    upload={(file) => uploadFrameImage(file, campaign)}
+                    removeAsset={async (path) => {
+                      for (let attempt = 0; attempt < 3; attempt += 1) {
+                        const result = await browserDb()
+                          .storage.from("avatar-frames")
+                          .remove([path]);
+                        if (!result.error) {
+                          await invalidateCachedImage(path);
+                          return;
+                        }
+                      }
+                      throw new Error(
+                        "Moldura excluída, mas a limpeza do arquivo ficou pendente",
+                      );
+                    }}
+                  />
+                </div>
+              </details>
             </>
           )}
           {page === "Configurações" && isMaster && (
@@ -3696,7 +3744,7 @@ export default function Game({ invite }: { invite?: string }) {
                 profiles={rows("profiles")}
                 collections={rows("cosmetic_collections")}
                 urls={avatarUrls}
-                master={Boolean(isMaster)}
+                master={false}
                 save={async (op, d) => {
                   const request = cosmeticsActionRequest(campaign, op, d);
                   const result = await browserDb().rpc(

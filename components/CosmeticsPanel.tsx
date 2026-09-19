@@ -480,6 +480,7 @@ export default function CosmeticsPanel({
   collections,
   urls,
   master,
+  adminOnly = false,
   save,
   upload,
   removeAsset,
@@ -493,6 +494,7 @@ export default function CosmeticsPanel({
   collections: Row[];
   urls: Record<string, string>;
   master: boolean;
+  adminOnly?: boolean;
   save: (operation: string, data: Row) => Promise<any>;
   upload: (file: File) => Promise<string>;
   removeAsset: (path: string) => Promise<void>;
@@ -602,8 +604,9 @@ export default function CosmeticsPanel({
     );
   return (
     <>
-      <section className="panel">
-        <div className="spread">
+      {!adminOnly && (
+        <section className="panel">
+          <div className="spread">
           <div>
             <h2>Editar moldura</h2>
             <p>Equipe uma moldura recebida ou continue com o avatar normal.</p>
@@ -697,7 +700,8 @@ export default function CosmeticsPanel({
             {error}
           </p>
         )}
-      </section>
+        </section>
+      )}
       {master && (
         <section className="panel frame-admin">
           <div className="spread">
@@ -1080,8 +1084,9 @@ export default function CosmeticsPanel({
           )}
         </section>
       )}
-      <section className="panel">
-        <h2>Outros cosméticos</h2>
+      {!adminOnly && (
+        <section className="panel">
+          <h2>Outros cosméticos</h2>
         {Object.entries(names)
           .filter(([kind]) => kind !== "frame")
           .map(([kind, label]) => (
@@ -1135,7 +1140,8 @@ export default function CosmeticsPanel({
               </div>
             </details>
           ))}
-      </section>
+        </section>
+      )}
     </>
   );
 }
