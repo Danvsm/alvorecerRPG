@@ -257,7 +257,6 @@ export default function CommunityProfile({
     setPostUrls({});
     setTab("wall");
     setEditingBio(false);
-    closeActions();
     cursorRef.current = undefined;
 
     void (async () => {
@@ -322,7 +321,7 @@ export default function CommunityProfile({
         if (generation === generationRef.current) setLoading(false);
       }
     })();
-  }, [actor, campaign, closeActions, identity.id, signPostMedia]);
+  }, [actor, campaign, identity.id, signPostMedia]);
 
   const saveBio = async () => {
     if (!summary) return;
