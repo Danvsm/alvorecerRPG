@@ -6036,3 +6036,82 @@ dialog.combat-sheet {
   color: #a99b96;
   font-weight: 650;
 }
+
+
+/* Painéis recolhíveis da área de Cosméticos */
+.cosmetics-section {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cosmetics-section > summary {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cosmetics-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cosmetics-section > summary > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.cosmetics-section > summary strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.cosmetics-section > summary small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.cosmetics-section > summary > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: #d9b568;
+  transition: transform 160ms ease;
+}
+
+.cosmetics-section[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.cosmetics-section[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+.avatar-manager-compact {
+  padding: 18px;
+}
+
+.avatar-manager-compact .avatar-filters {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .cosmetics-section > summary {
+    min-height: 60px;
+    padding: 14px;
+  }
+
+  .cosmetics-section > summary small {
+    font-size: 0.72rem;
+  }
+
+  .avatar-manager-compact {
+    padding: 14px;
+  }
+}
