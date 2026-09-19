@@ -127,7 +127,8 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.match(source, />Criar</);
   assert.match(source, />Conversar</);
   assert.match(source, />Perfil</);
-  assert.match(source, /Perfil da comunidade em breve/);
+  assert.match(source, /onClick=\{\(\) => actor && revealProfile\(actor\)\}/);
+  assert.match(source, /<CommunityProfile/);
   assert.match(source, /unreadMessages > 0/);
   assert.match(source, /styles\.messageBadge/);
   assert.doesNotMatch(source, /Seções da Comunidade/);

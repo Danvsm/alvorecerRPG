@@ -3001,7 +3001,6 @@ export default function Game({ invite }: { invite?: string }) {
               campaign={campaign}
               identities={rows("social_identities")}
               cosmetics={rows("cosmetics")}
-              grants={rows("cosmetic_grants")}
               equipment={rows("cosmetic_equipment")}
               urls={avatarUrls}
               actor={socialActor}

@@ -83,6 +83,18 @@
   gap: 10px;
 }
 
+.profileHeader > strong {
+  overflow: hidden;
+  color: #f5dfb7;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 12px #000;
+  white-space: nowrap;
+}
+
 .headerActions :global(.notification-container > button) {
   display: flex;
   gap: 4px;

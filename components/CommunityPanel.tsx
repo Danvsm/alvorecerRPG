@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import {
+  ArrowLeft,
   ChevronRight,
   Compass,
   Crown,
   Home,
   Menu,
-  MessageCircle,
   Plus,
   Search,
   Send,
@@ -20,14 +20,13 @@ import { browserDb } from "@/lib/client";
 import { orderCommunityIdentities } from "@/lib/community";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
-import { CosmeticIcon } from "./CosmeticsPanel";
 import CommunityArchives from "./CommunityArchives";
 import CommunityFeed from "./CommunityFeed";
 import CommunityStories from "./CommunityStories";
 import CommunityInbox from "./CommunityInbox";
+import CommunityProfile from "./CommunityProfile";
 import IdentityAvatar from "./IdentityAvatar";
 import NotificationBell from "./NotificationBell";
-import ProfileWall from "./ProfileWall";
 import styles from "./CommunityPanel.module.css";
 
 type CommunityView =
@@ -78,7 +77,6 @@ export default function CommunityPanel({
   campaign,
   identities,
   cosmetics,
-  grants,
   equipment,
   urls,
   actor,
@@ -96,7 +94,6 @@ export default function CommunityPanel({
   campaign: string;
   identities: Row[];
   cosmetics: Row[];
-  grants: Row[];
   equipment: Row[];
   urls: Record<string, string>;
   actor: string;
@@ -124,7 +121,7 @@ export default function CommunityPanel({
   const [error, setError] = useState("");
   const communityRef = useRef<HTMLDivElement>(null);
   const directoryRef = useRef<HTMLElement>(null);
-  const profileRef = useRef<HTMLElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -286,32 +283,56 @@ export default function CommunityPanel({
 
   return (
     <div className={styles.community} ref={communityRef}>
-      {view !== "messages" && <header className={styles.socialHeader}>
-        <div className={styles.headerShade} />
-        <button
-          type="button"
-          className={styles.headerButton}
-          aria-label="Abrir menu"
-          onClick={openMenu}
-        >
-          <Menu aria-hidden="true" />
-        </button>
-        <div className={styles.headerActions}>
+      {view === "profile" && current ? (
+        <header className={`${styles.socialHeader} ${styles.profileHeader}`}>
+          <div className={styles.headerShade} />
           <button
             type="button"
             className={styles.headerButton}
-            aria-label="Pesquisar na comunidade"
-            aria-expanded={searchOpen}
-            onClick={revealSearch}
+            aria-label="Voltar ao início"
+            onClick={() => {
+              setSelected("");
+              setView("home");
+            }}
           >
-            <Search aria-hidden="true" />
+            <ArrowLeft aria-hidden="true" />
           </button>
-          <NotificationBell
-            notifications={notifications}
-            save={saveNotification}
-          />
-        </div>
-      </header>}
+          <strong>{current.name}</strong>
+          <div className={styles.headerActions}>
+            <NotificationBell
+              notifications={notifications}
+              save={saveNotification}
+            />
+          </div>
+        </header>
+      ) : view !== "messages" ? (
+        <header className={styles.socialHeader}>
+          <div className={styles.headerShade} />
+          <button
+            type="button"
+            className={styles.headerButton}
+            aria-label="Abrir menu"
+            onClick={openMenu}
+          >
+            <Menu aria-hidden="true" />
+          </button>
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.headerButton}
+              aria-label="Pesquisar na comunidade"
+              aria-expanded={searchOpen}
+              onClick={revealSearch}
+            >
+              <Search aria-hidden="true" />
+            </button>
+            <NotificationBell
+              notifications={notifications}
+              save={saveNotification}
+            />
+          </div>
+        </header>
+      ) : null}
 
       {view !== "messages" && <div
         className={`${styles.searchDock} ${
@@ -367,87 +388,26 @@ export default function CommunityPanel({
       )}
 
       {current && view === "profile" && (
-        <section className={styles.publicProfile} ref={profileRef}>
-          <div className={styles.profileHeading}>
-            <span className={styles.avatarWrap}>
-              <IdentityAvatar
-                identity={current}
-                cosmetics={cosmetics}
-                equipment={equipment}
-                urls={urls}
-                size={108}
-              />
-              <OnlineDot online={isOnline(current)} />
-            </span>
-            <div>
-              <small>PERFIL PÚBLICO</small>
-              <h2>{current.name}</h2>
-              <p>{profileCaption(current)}</p>
-              {current.user_id && (
-                <span className={styles.presenceLabel}>
-                  <i className={isOnline(current) ? styles.online : ""} />
-                  {isOnline(current) ? "Online agora" : "Offline"}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setSelected("");
-                setView("home");
-              }}
-            >
-              Fechar
-            </button>
-          </div>
-          <div className={styles.profileActions}>
-            {current.id !== actor && (
-              <button type="button" onClick={() => message(current.id)}>
-                <MessageCircle aria-hidden="true" /> Mensagem
-              </button>
-            )}
-            {master &&
-              deleteWorldCharacter &&
-              current.kind === "npc" &&
-              current.user_id == null && (
-                <button
-                  type="button"
-                  className="danger-button"
-                  onClick={() => setPendingDelete(current)}
-                >
-                  Excluir definitivamente
-                </button>
-              )}
-          </div>
-          <div className={styles.collection}>
-            {grants
-              .filter((grant) => grant.identity_id === current.id)
-              .map((grant) => {
-                const item = cosmetics.find(
-                  (cosmetic) => cosmetic.id === grant.cosmetic_id,
-                );
-                return (
-                  item && (
-                    <span key={item.id} title={item.name}>
-                      <CosmeticIcon item={item} />
-                      {item.name}
-                    </span>
-                  )
-                );
-              })}
-          </div>
-          <ProfileWall
+        <div ref={profileRef}>
+          <CommunityProfile
             campaign={campaign}
-            profile={current.id}
             actor={actor}
-            master={master}
-            identities={identities}
+            identity={current}
+            online={isOnline(current)}
             cosmetics={cosmetics}
             equipment={equipment}
             urls={urls}
-            revision={identities}
+            openMessage={() => message(current.id)}
+            requestDelete={
+              master &&
+              deleteWorldCharacter &&
+              current.kind === "npc" &&
+              current.user_id == null
+                ? () => setPendingDelete(current)
+                : undefined
+            }
           />
-        </section>
+        </div>
       )}
 
       {view === "messages" && (
@@ -641,9 +601,9 @@ export default function CommunityPanel({
         </button>
         <button
           type="button"
-          className={styles.disabledBottomItem}
-          title="Perfil da comunidade em breve"
-          disabled
+          className={view === "profile" ? styles.activeBottomItem : ""}
+          disabled={!actor}
+          onClick={() => actor && revealProfile(actor)}
         >
           <UserRound aria-hidden="true" />
           <span>Perfil</span>
