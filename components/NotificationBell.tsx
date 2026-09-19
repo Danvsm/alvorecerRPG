@@ -291,7 +291,9 @@ export default function NotificationBell({
                                   )}
                                 </strong>
                                 <span>
-                                  {String(notification.body || style.subtitle)}
+                                  {String(notification.kind) === "message"
+                    ? "Entre no Alvorecer para ver quem foi."
+                    : String(notification.body || style.subtitle)}
                                 </span>
                               </span>
                               <time dateTime={String(notification.created_at)}>

@@ -258,9 +258,12 @@ self.addEventListener("push", (event) => {
   }
 
   const rawTitle = String(payload.title || "Notificação");
-  const brandedTitle = rawTitle.toLocaleLowerCase().startsWith("alvorecer")
-    ? rawTitle
-    : `Alvorecer • ${rawTitle}`;
+  const brandedTitle =
+    payload.kind === "message"
+      ? rawTitle
+      : rawTitle.toLocaleLowerCase().startsWith("alvorecer")
+        ? rawTitle
+        : `Alvorecer • ${rawTitle}`;
 
   event.waitUntil(
     (async () => {

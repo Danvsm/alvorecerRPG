@@ -305,7 +305,7 @@ Deno.serve(async (req: Request) => {
         [String(recipient.user_id)],
         {
           title: "Olha quem te mandou mensagem 👀",
-          body: "Você recebeu uma nova mensagem. Entre no Alvorecer para ver quem foi.",
+          body: "Entre no Alvorecer para ver quem foi.",
           tag: `alvorecer-chat-${conversation.id}`,
           url: "/",
           kind: "message",
