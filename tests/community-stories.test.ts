@@ -385,6 +385,7 @@ test("Stories UI keeps creation, activity privacy and cleanup together", async (
     activityMigration,
     activityHardening,
     cleanup,
+    styles,
   ] = await Promise.all([
     readFile(
       new URL("../components/CommunityStories.tsx", import.meta.url),
@@ -405,6 +406,10 @@ test("Stories UI keeps creation, activity privacy and cleanup together", async (
       ),
       "utf8",
     ),
+    readFile(
+      new URL("../components/CommunityPanel.module.css", import.meta.url),
+      "utf8",
+    ),
   ]);
   const migrationSource = `${baseMigration}\n${activityMigration}\n${activityHardening}`;
   const composerAssets = await Promise.all(
@@ -420,7 +425,7 @@ test("Stories UI keeps creation, activity privacy and cleanup together", async (
   assert.match(panel, /<CommunityStories/);
   assert.match(panel, /onClick=\{revealCreate\}/);
   assert.doesNotMatch(panel, /Nova publicação/);
-  assert.match(stories, /Seu story/);
+  assert.match(stories, />Story</);
   assert.match(stories, /<IdentityAvatar/);
   assert.match(stories, /community_story_action/);
   assert.match(stories, /create_story/);
@@ -438,6 +443,8 @@ test("Stories UI keeps creation, activity privacy and cleanup together", async (
   assert.match(stories, /capture="environment"/);
   assert.match(stories, /Abrir galeria/);
   assert.match(stories, /Prévia do Story/);
+  assert.match(styles, /\.storyUnseen\s*\{[^}]*#4ee69a/s);
+  assert.match(styles, /\.storySeen\s*\{[^}]*#5b5148/s);
   assert.equal(
     composerAssets.every((asset) => asset.length < 128 * 1024),
     true,

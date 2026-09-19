@@ -151,10 +151,10 @@ test("image URLs keep their authorization token and change only with the asset v
 });
 
 test("the worker revision forces browsers to install the CSP-corrected script", () => {
-  assert.equal(IMAGE_CACHE_WORKER_REVISION, "2");
+  assert.equal(IMAGE_CACHE_WORKER_REVISION, "5");
   assert.equal(IMAGE_CACHE_NAME, "alvorecer-images-v2");
-  assert.equal(imageCacheWorkerUrl(), "/image-cache-sw.js?v=2");
-  assert.equal(imageCacheWorkerUrl(true), "/image-cache-sw.js?v=2&debug=1");
+  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=5");
+  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=5&debug=1");
   assert.match(workerSource, /alvorecer-images-v2/);
   assert.match(workerSource, /alvorecer-images-meta-v2/);
 });

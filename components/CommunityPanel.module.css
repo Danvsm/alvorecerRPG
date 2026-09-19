@@ -289,9 +289,11 @@
 }
 
 .storyUnseen {
-  border-color: #e3aa55;
-  background: linear-gradient(145deg, #9d142c, #dc9c43) border-box;
-  box-shadow: 0 0 15px #b83a2855;
+  border-color: #4ee69a;
+  background: linear-gradient(145deg, #137a4e, #63efaa) border-box;
+  box-shadow:
+    0 0 15px #35db8780,
+    0 0 4px #8affc0a6;
 }
 
 .storySeen {

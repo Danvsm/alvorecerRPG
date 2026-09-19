@@ -76,7 +76,7 @@ test("the top rail is reserved for active Stories", async () => {
 
   assert.match(panel, /<CommunityStories/);
   assert.match(stories, /community_stories/);
-  assert.match(stories, /Seu story/);
+  assert.match(stories, />Story</);
   assert.doesNotMatch(panel, /const featured =/);
 });
 
@@ -107,9 +107,6 @@ test("the supplied community wallpaper is optimized and used by the social heade
 });
 
 test("community follows the Orkutista social layout without dropping existing flows", async () => {
-  await access(
-    new URL("../public/community/orkutista-logo.webp", import.meta.url),
-  );
   const [source, css] = await Promise.all([
     readFile(
       new URL("../components/CommunityPanel.tsx", import.meta.url),
@@ -121,7 +118,7 @@ test("community follows the Orkutista social layout without dropping existing fl
     ),
   ]);
 
-  assert.match(source, /\/community\/orkutista-logo\.webp/);
+  assert.doesNotMatch(source, /\/community\/orkutista-logo\.webp/);
   assert.match(source, /aria-label="Abrir menu"/);
   assert.match(source, /Pesquisar na comunidade/);
   assert.match(source, /Navegação da comunidade/);
