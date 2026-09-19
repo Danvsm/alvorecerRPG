@@ -225,6 +225,32 @@ const playerMenu = [
   ["Perfil", UserRound],
   ["Comunidade", Users],
 ] as const;
+
+const PAGE_QUERY_KEY = "view";
+
+function pageFromLocation() {
+  if (typeof window === "undefined") return "Comunidade";
+  const url = new URL(window.location.href);
+  return url.searchParams.get(PAGE_QUERY_KEY) || "Comunidade";
+}
+
+function syncPageLocation(
+  name: string,
+  mode: "push" | "replace" = "replace",
+) {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+  if (name === "Comunidade") url.searchParams.delete(PAGE_QUERY_KEY);
+  else url.searchParams.set(PAGE_QUERY_KEY, name);
+
+  const target = `${url.pathname}${url.search}${url.hash}`;
+  if (mode === "push") {
+    window.history.pushState({ page: name }, "", target);
+  } else {
+    window.history.replaceState({ page: name }, "", target);
+  }
+}
 function formatHistoryValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
   if (Array.isArray(value)) return value.map(formatHistoryValue).join(", ");
@@ -293,16 +319,18 @@ export default function Game({ invite }: { invite?: string }) {
   }, []);
 
   useEffect(() => {
-    const storedPage = window.sessionStorage.getItem("alvorecer:current-page");
-    if (storedPage) setPage(storedPage);
-    else setPage("Comunidade");
+    setPage(pageFromLocation());
     setPageRestored(true);
-  }, []);
 
-  useEffect(() => {
-    if (!pageRestored) return;
-    window.sessionStorage.setItem("alvorecer:current-page", page);
-  }, [page, pageRestored]);
+    const restoreFromHistory = () => {
+      setPage(pageFromLocation());
+    };
+
+    window.addEventListener("popstate", restoreFromHistory);
+    return () => {
+      window.removeEventListener("popstate", restoreFromHistory);
+    };
+  }, []);
 
   useEffect(() => {
     if (!pageRestored || !campaign) return;
@@ -312,6 +340,7 @@ export default function Game({ invite }: { invite?: string }) {
     const allowedMenu = membership.role === "master" ? masterMenu : playerMenu;
     if (!allowedMenu.some(([name]) => name === page)) {
       setPage("Comunidade");
+      syncPageLocation("Comunidade", "replace");
     }
   }, [campaign, members, page, pageRestored]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
@@ -907,6 +936,7 @@ export default function Game({ invite }: { invite?: string }) {
   }
   function navigate(name: string) {
     setPage(name);
+    syncPageLocation(name, "push");
     setMenu(false);
     setPasswords({});
     setInviteUrl("");
@@ -1447,7 +1477,7 @@ export default function Game({ invite }: { invite?: string }) {
           </button>
           <button
             onClick={() => {
-              window.sessionStorage.removeItem("alvorecer:current-page");
+              syncPageLocation("Comunidade", "replace");
               void browserDb().auth.signOut();
             }}
           >
@@ -2571,7 +2601,7 @@ export default function Game({ invite }: { invite?: string }) {
               busy={busy}
               onOpenNavigation={() => setMenu(true)}
               onSelectRoom={setRoom}
-              onHistory={() => setPage("Histórico")}
+              onHistory={() => navigate("Histórico")}
               onCreateRoom={() =>
                 edit(
                   "Criar nova sala de combate",
@@ -3584,7 +3614,7 @@ export default function Game({ invite }: { invite?: string }) {
                   </button>
                   <button
                     onClick={() => {
-                      window.sessionStorage.removeItem("alvorecer:current-page");
+                      syncPageLocation("Comunidade", "replace");
                       void browserDb().auth.signOut();
                     }}
                   >
