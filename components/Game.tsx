@@ -3200,8 +3200,17 @@ export default function Game({ invite }: { invite?: string }) {
                   <p>Gerencie os elementos visuais disponíveis na campanha.</p>
                 </div>
               </div>
+              <details className="panel cosmetics-section" open>
+                <summary>
+                  <span>
+                    <strong>Galeria de avatares</strong>
+                    <small>Cadastre, visualize e administre os avatares da campanha.</small>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </summary>
               <AvatarGallery
                 manager
+                compact
                 avatars={rows("campaign_avatars")}
                 urls={avatarUrls}
                 players={avatarPlayers}
@@ -3277,6 +3286,8 @@ export default function Game({ invite }: { invite?: string }) {
                   })
                 }
               />
+
+              </details>
             </>
           )}
           {page === "Configurações" && isMaster && (
