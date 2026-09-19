@@ -114,6 +114,7 @@ export default function CommunityPanel({
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [view, setView] = useState<CommunityView>(initialView);
+  const [profileActionsOpen, setProfileActionsOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState(false);
   const [filter, setFilter] = useState<CommunityFilter>("all");
   const [visibleCount, setVisibleCount] = useState(12);
@@ -275,6 +276,7 @@ export default function CommunityPanel({
   };
 
   const revealProfile = (identityId: string) => {
+    setProfileActionsOpen(false);
     setSelected(identityId);
     setView("profile");
     window.requestAnimationFrame(() =>
@@ -292,6 +294,7 @@ export default function CommunityPanel({
             className={styles.headerButton}
             aria-label="Voltar ao início"
             onClick={() => {
+              setProfileActionsOpen(false);
               setSelected("");
               setView("home");
             }}
@@ -307,8 +310,10 @@ export default function CommunityPanel({
             <button
               type="button"
               className={styles.headerButton}
-              aria-label="Mais opções"
-              onClick={openMenu}
+              aria-label="Opções do perfil"
+              aria-haspopup="menu"
+              aria-expanded={profileActionsOpen}
+              onClick={() => setProfileActionsOpen((open) => !open)}
             >
               <MoreVertical aria-hidden="true" />
             </button>
@@ -407,6 +412,8 @@ export default function CommunityPanel({
             equipment={equipment}
             urls={urls}
             openMessage={() => message(current.id)}
+            actionsOpen={profileActionsOpen}
+            closeActions={() => setProfileActionsOpen(false)}
             requestDelete={
               master &&
               deleteWorldCharacter &&

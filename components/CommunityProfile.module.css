@@ -903,3 +903,92 @@
     animation: none;
   }
 }
+
+
+.profileActionsBackdrop {
+  position: fixed;
+  z-index: 27;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.profileActionsMenu {
+  position: fixed;
+  z-index: 28;
+  top: max(62px, calc(env(safe-area-inset-top) + 52px));
+  right: max(14px, calc((100vw - 860px) / 2 + 14px));
+  display: grid;
+  width: min(238px, calc(100vw - 28px));
+  overflow: hidden;
+  border: 1px solid #ffffff17;
+  border-radius: 13px;
+  background: #151214f5;
+  box-shadow: 0 18px 48px #000a;
+  backdrop-filter: blur(18px);
+}
+
+.profileActionsMenu > button {
+  display: flex;
+  width: 100%;
+  min-height: 50px;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid #ffffff0d;
+  border-radius: 0;
+  color: #eee6df;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.84rem;
+  font-weight: 550;
+  text-align: left;
+}
+
+.profileActionsMenu > button:last-child {
+  border-bottom: 0;
+}
+
+.profileActionsMenu > button:not(:disabled):hover,
+.profileActionsMenu > button:not(:disabled):active {
+  background: #ffffff08;
+}
+
+.profileActionsMenu > button:disabled {
+  color: #827a75;
+  cursor: default;
+  opacity: 0.68;
+}
+
+.profileActionsMenu svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #d5ae6c;
+  stroke-width: 1.8;
+}
+
+.profileActionsMenu button > span {
+  display: grid;
+  gap: 2px;
+}
+
+.profileActionsMenu small {
+  color: #746d68;
+  font-size: 0.65rem;
+  font-weight: 450;
+}
+
+@media (max-width: 520px) {
+  .profileActionsMenu {
+    top: max(58px, calc(env(safe-area-inset-top) + 48px));
+    right: 10px;
+    width: min(226px, calc(100vw - 20px));
+  }
+}

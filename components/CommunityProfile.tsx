@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   Frame,
   Heart,
+  ImageIcon,
   LoaderCircle,
   Medal,
   MessageCircle,
@@ -157,6 +158,8 @@ export default function CommunityProfile({
   equipment,
   urls,
   openMessage,
+  actionsOpen,
+  closeActions,
   requestDelete,
 }: {
   campaign: string;
@@ -167,6 +170,8 @@ export default function CommunityProfile({
   equipment: Row[];
   urls: Record<string, string>;
   openMessage: () => void;
+  actionsOpen: boolean;
+  closeActions: () => void;
   requestDelete?: () => void;
 }) {
   const [summary, setSummary] = useState<ProfileSummary>();
@@ -252,6 +257,7 @@ export default function CommunityProfile({
     setPostUrls({});
     setTab("wall");
     setEditingBio(false);
+    closeActions();
     cursorRef.current = undefined;
 
     void (async () => {
@@ -316,7 +322,7 @@ export default function CommunityProfile({
         if (generation === generationRef.current) setLoading(false);
       }
     })();
-  }, [actor, campaign, identity.id, signPostMedia]);
+  }, [actor, campaign, closeActions, identity.id, signPostMedia]);
 
   const saveBio = async () => {
     if (!summary) return;
@@ -444,6 +450,62 @@ export default function CommunityProfile({
       className={styles.profile}
       aria-label={`Perfil de ${identity.name}`}
     >
+      {actionsOpen && (
+        <>
+          <button
+            type="button"
+            className={styles.profileActionsBackdrop}
+            aria-label="Fechar opções do perfil"
+            onClick={closeActions}
+          />
+          <div className={styles.profileActionsMenu} role="menu">
+            {!summary ? (
+              <button type="button" role="menuitem" disabled>
+                Carregando...
+              </button>
+            ) : summary.can_edit ? (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    closeActions();
+                    setEditingBio(true);
+                  }}
+                >
+                  <Pencil aria-hidden="true" />
+                  Editar perfil
+                </button>
+                <button type="button" role="menuitem" disabled>
+                  <ImageIcon aria-hidden="true" />
+                  <span>
+                    Alterar wallpaper
+                    <small>Indisponível no momento</small>
+                  </span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                disabled={busyAction === "follow"}
+                onClick={() => {
+                  closeActions();
+                  void toggleFollow();
+                }}
+              >
+                {summary.viewer_following ? (
+                  <UserCheck aria-hidden="true" />
+                ) : (
+                  <UserPlus aria-hidden="true" />
+                )}
+                {summary.viewer_following ? "Deixar de seguir" : "Seguir"}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
       <div className={styles.hero}>
         <div className={styles.heroShade} />
         <div className={styles.identityBlock}>
@@ -510,15 +572,6 @@ export default function CommunityProfile({
             ) : (
               <div className={styles.bioLine}>
                 <p>“{bio}”</p>
-                {summary?.can_edit && (
-                  <button
-                    type="button"
-                    aria-label="Editar biografia"
-                    onClick={() => setEditingBio(true)}
-                  >
-                    <Pencil aria-hidden="true" />
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -581,33 +634,13 @@ export default function CommunityProfile({
           </span>
         </div>
 
-        <div className={styles.actions}>
-          {summary?.can_edit ? (
-            <button type="button" onClick={() => setEditingBio(true)}>
-              <Pencil aria-hidden="true" /> Editar perfil
+        {!summary?.can_edit && (
+          <div className={styles.actions}>
+            <button type="button" onClick={openMessage}>
+              <Send aria-hidden="true" /> Mensagem
             </button>
-          ) : (
-            <>
-              <button type="button" onClick={openMessage}>
-                <Send aria-hidden="true" /> Mensagem
-              </button>
-              <button
-                type="button"
-                className={summary?.viewer_following ? styles.following : ""}
-                disabled={busyAction === "follow" || !summary}
-                aria-pressed={summary?.viewer_following || false}
-                onClick={() => void toggleFollow()}
-              >
-                {summary?.viewer_following ? (
-                  <UserCheck aria-hidden="true" />
-                ) : (
-                  <UserPlus aria-hidden="true" />
-                )}
-                {summary?.viewer_following ? "Seguindo" : "Seguir"}
-              </button>
-            </>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div
