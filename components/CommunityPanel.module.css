@@ -4178,3 +4178,65 @@ dialog.commentsSheet {
     font-size: 0.72rem;
   }
 }
+
+
+/* Perfil social: topo discreto sobreposto ao hero. */
+.profileHeader {
+  min-height: 72px;
+  margin-bottom: -72px;
+  padding: max(10px, env(safe-area-inset-top)) 22px 8px;
+  background: transparent;
+  isolation: isolate;
+}
+
+.profileHeader .headerShade {
+  background: linear-gradient(180deg, #050405bd 0%, #08070855 58%, transparent 100%);
+  backdrop-filter: blur(2px);
+}
+
+.profileHeaderTitle {
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.profileHeader .headerActions {
+  gap: 2px;
+}
+
+.profileHeader .headerButton,
+.profileHeader .headerActions :global(.notification-container > button) {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  color: #f4eee8;
+}
+
+.profileHeader .headerButton svg,
+.profileHeader .headerActions :global(.notification-container > button svg) {
+  width: 23px;
+  height: 23px;
+  stroke-width: 1.7;
+}
+
+@media (max-width: 760px) {
+  .profileHeader {
+    min-height: 68px;
+    margin-bottom: -68px;
+    padding: max(9px, env(safe-area-inset-top)) 12px 6px;
+  }
+}
+
+@media (max-width: 430px) {
+  .profileHeader {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .profileHeader .headerButton,
+  .profileHeader .headerActions :global(.notification-container > button) {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+  }
+}

@@ -8,6 +8,7 @@ import {
   Crown,
   Home,
   Menu,
+  MoreVertical,
   Plus,
   Search,
   Send,
@@ -297,12 +298,20 @@ export default function CommunityPanel({
           >
             <ArrowLeft aria-hidden="true" />
           </button>
-          <strong>{current.name}</strong>
+          <strong className={styles.profileHeaderTitle}>{current.name}</strong>
           <div className={styles.headerActions}>
             <NotificationBell
               notifications={notifications}
               save={saveNotification}
             />
+            <button
+              type="button"
+              className={styles.headerButton}
+              aria-label="Mais opções"
+              onClick={openMenu}
+            >
+              <MoreVertical aria-hidden="true" />
+            </button>
           </div>
         </header>
       ) : view !== "messages" ? (
