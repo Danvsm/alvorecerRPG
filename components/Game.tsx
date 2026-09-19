@@ -3041,12 +3041,14 @@ export default function Game({ invite }: { invite?: string }) {
               identities={rows("social_identities")}
               cosmetics={rows("cosmetics")}
               equipment={rows("cosmetic_equipment")}
+              avatars={rows("campaign_avatars")}
               urls={avatarUrls}
               actor={socialActor}
               master={Boolean(isMaster)}
               notifications={rows("notifications")}
               openMenu={() => setMenu(true)}
               saveNotification={saveNotification}
+              refreshVisuals={() => load(campaign, true)}
               unreadMessages={unreadMessages}
               message={(id) => setChatPeer({ id, nonce: Date.now() })}
               changeActor={isMaster ? setSpeakingAs : undefined}
