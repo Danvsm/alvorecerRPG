@@ -457,51 +457,49 @@
   display: grid;
   min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: 6px;
+  align-items: start;
+  gap: 10px;
 }
 
 .principalMedals > div {
   display: grid;
   min-width: 0;
-  align-content: center;
+  align-content: start;
   justify-items: center;
-  gap: 6px;
+  gap: 3px;
   text-align: center;
 }
 
 .medalSlotButton {
   display: grid;
-  width: 58px;
-  height: 58px;
-  border: 1px solid #a87720;
+  width: 72px;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid transparent;
   border-radius: 50%;
   color: #d5a82f;
-  background: #0a0909;
-  box-shadow:
-    inset 0 0 0 4px #080708,
-    inset 0 0 18px #5d3d0a4a;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
   place-items: center;
 }
 
 .principalMedals svg {
-  width: 31px;
-  height: 31px;
+  width: 36px;
+  height: 36px;
   stroke-width: 1.6;
-}
-
-.medalSlotButton {
-  padding: 0;
-  cursor: pointer;
 }
 
 .medalSlotButton:not(:disabled):hover,
 .medalSlotButton:not(:disabled):focus-visible {
-  border-color: #dfb451;
-  box-shadow:
-    inset 0 0 0 4px #080708,
-    inset 0 0 20px #8a5a0b66,
-    0 0 0 2px #d5a82f2c;
+  border-color: #d6a94580;
+  background: #d5a82f0a;
+  box-shadow: 0 0 0 2px #d5a82f1f;
 }
 
 .medalSlotButton:disabled {
@@ -510,9 +508,34 @@
 }
 
 .medalSlotButton img {
-  width: 82%;
-  height: 82%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
+  object-position: center;
+}
+
+.principalMedals strong {
+  display: -webkit-box;
+  width: 100%;
+  max-width: 104px;
+  min-height: 1.8em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.principalMedalRarity {
+  min-height: 1em;
+  font-size: 0.63rem;
+  font-weight: 650;
+  line-height: 1.1;
 }
 
 .medalDialog {
@@ -1089,8 +1112,8 @@
   }
 
   .showcase {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 9px;
   }
 
   .showcase > section {
@@ -1118,28 +1141,34 @@
   }
 
   .principalMedals {
-    gap: 2px;
+    gap: 8px;
   }
 
   .principalMedals > div {
-    gap: 5px;
+    gap: 3px;
   }
 
   .medalSlotButton {
-    width: clamp(36px, 10vw, 44px);
-    height: clamp(36px, 10vw, 44px);
+    width: clamp(62px, 19vw, 74px);
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
   }
 
   .principalMedals svg {
-    width: clamp(21px, 6vw, 24px);
-    height: clamp(21px, 6vw, 24px);
+    width: clamp(30px, 9vw, 38px);
+    height: clamp(30px, 9vw, 38px);
   }
 
   .principalMedals strong {
-    max-width: 52px;
-    font-size: 0.56rem;
-    line-height: 1.2;
-    white-space: normal;
+    max-width: 96px;
+    min-height: 2.35em;
+    font-size: 0.66rem;
+    line-height: 1.18;
+  }
+
+  .principalMedalRarity {
+    font-size: 0.61rem;
   }
 
   .post {
@@ -1201,18 +1230,24 @@
   }
 
   .medalSlotButton {
-    width: 34px;
-    height: 34px;
+    width: 58px;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
   }
 
   .principalMedals svg {
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
   }
 
   .principalMedals strong {
-    max-width: 46px;
-    font-size: 0.52rem;
+    max-width: 84px;
+    font-size: 0.61rem;
+  }
+
+  .principalMedalRarity {
+    font-size: 0.57rem;
   }
 
   .post > p,
