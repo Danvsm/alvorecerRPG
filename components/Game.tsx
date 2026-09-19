@@ -94,6 +94,10 @@ import {
 } from "./CharacterDeleteDialog";
 import type { Row, Field, Form } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
+import {
+  installAlvorecerSoundUnlock,
+  playAlvorecerSound,
+} from "@/lib/site-sounds";
 const tables = [
   "resource_rules",
   "item_effects",
@@ -283,6 +287,10 @@ export default function Game({ invite }: { invite?: string }) {
   const onboardingPrompted = useRef(false);
   const isMaster =
     members.find((m) => m.campaign_id === campaign)?.role === "master";
+  useEffect(() => {
+    installAlvorecerSoundUnlock();
+  }, []);
+
   useEffect(() => {
     setPage(isMaster ? "Visão Geral" : "Início");
   }, [campaign, isMaster]);
@@ -518,6 +526,13 @@ export default function Game({ invite }: { invite?: string }) {
         (payload) => {
           const notification = payload.new as Row;
           if (notification.campaign_id !== campaign) return;
+
+          void playAlvorecerSound(
+            String(notification.kind) === "message"
+              ? "message"
+              : "notification",
+          );
+
           setData((current) => {
             const existing = current.notifications || [];
             if (
