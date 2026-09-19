@@ -261,6 +261,7 @@ export default function Game({ invite }: { invite?: string }) {
     [data, setData] = useState<Record<string, Row[]>>({}),
     [participants, setParticipants] = useState<Row[]>([]),
     [page, setPage] = useState("Comunidade"),
+    [pageRestored, setPageRestored] = useState(false),
     [selected, setSelected] = useState(""),
     [room, setRoom] = useState(""),
     [loading, setLoading] = useState(false),
@@ -292,8 +293,27 @@ export default function Game({ invite }: { invite?: string }) {
   }, []);
 
   useEffect(() => {
-    setPage("Comunidade");
-  }, [campaign, isMaster]);
+    const storedPage = window.sessionStorage.getItem("alvorecer:current-page");
+    if (storedPage) setPage(storedPage);
+    else setPage("Comunidade");
+    setPageRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!pageRestored) return;
+    window.sessionStorage.setItem("alvorecer:current-page", page);
+  }, [page, pageRestored]);
+
+  useEffect(() => {
+    if (!pageRestored || !campaign) return;
+    const membership = members.find((member) => member.campaign_id === campaign);
+    if (!membership) return;
+
+    const allowedMenu = membership.role === "master" ? masterMenu : playerMenu;
+    if (!allowedMenu.some(([name]) => name === page)) {
+      setPage("Comunidade");
+    }
+  }, [campaign, members, page, pageRestored]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
   const avatarShape = avatarShapeFromTheme(currentCampaign?.theme);
   const rows = (t: string) => data[t] || [];
@@ -1425,7 +1445,12 @@ export default function Game({ invite }: { invite?: string }) {
               </small>
             </span>
           </button>
-          <button onClick={() => browserDb().auth.signOut()}>
+          <button
+            onClick={() => {
+              window.sessionStorage.removeItem("alvorecer:current-page");
+              void browserDb().auth.signOut();
+            }}
+          >
             <LogOut size={17} />
             <span className="visually-hidden">Sair</span>
           </button>
@@ -3557,7 +3582,12 @@ export default function Game({ invite }: { invite?: string }) {
                   >
                     <KeyRound size={17} /> Alterar minha senha
                   </button>
-                  <button onClick={() => browserDb().auth.signOut()}>
+                  <button
+                    onClick={() => {
+                      window.sessionStorage.removeItem("alvorecer:current-page");
+                      void browserDb().auth.signOut();
+                    }}
+                  >
                     <LogOut size={17} /> Sair da conta
                   </button>
                 </div>
