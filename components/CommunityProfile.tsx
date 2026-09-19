@@ -607,7 +607,16 @@ export default function CommunityProfile({
     [collectibles, cosmeticById],
   );
   const titles = owned.filter((entry) => entry.kind === "title");
-  const frames = owned.filter((entry) => entry.kind === "frame");
+  const frames = owned.filter((entry) => {
+    if (entry.kind !== "frame" || !entry.item) return false;
+    if (!entry.item.active || entry.item.archived_at) return false;
+    if (identity.kind === "master") return true;
+    if (entry.item.rarity === "master") return false;
+    return (
+      !entry.item.exclusive_identity_id ||
+      entry.item.exclusive_identity_id === identity.id
+    );
+  });
   const medals = owned.filter((entry) => entry.kind === "medal");
   const equippedFrameId = equipment.find(
     (entry) => entry.identity_id === identity.id && entry.kind === "frame",
