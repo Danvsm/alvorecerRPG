@@ -4,6 +4,7 @@ import Image from "next/image";
 import {
   Award,
   BadgeCheck,
+  Check,
   Frame,
   Heart,
   ImageIcon,
@@ -55,6 +56,7 @@ type ProfileCollectible = {
   kind: "frame" | "title" | "medal";
   equipped: boolean;
   earned_at: string;
+  featured_slot: number | null;
 };
 
 type ProfileTab = "wall" | "achievements" | "frames" | "medals";
@@ -191,6 +193,13 @@ export default function CommunityProfile({
   const [hasMore, setHasMore] = useState(false);
   const [busyAction, setBusyAction] = useState("");
   const [error, setError] = useState("");
+  const [medalDialog, setMedalDialog] = useState<
+    | { mode: "select"; slot: number }
+    | { mode: "info"; medalId: string }
+    | null
+  >(null);
+  const [selectedMedalId, setSelectedMedalId] = useState("");
+  const medalDialogRef = useRef<HTMLDialogElement>(null);
   const cursorRef = useRef<{ createdAt: string; id: string } | undefined>(
     undefined,
   );
@@ -200,6 +209,17 @@ export default function CommunityProfile({
     () => new Map(cosmetics.map((item) => [item.id, item])),
     [cosmetics],
   );
+
+  useEffect(() => {
+    if (!medalDialog) return;
+    medalDialogRef.current?.showModal();
+  }, [medalDialog]);
+
+  const closeMedalDialog = () => {
+    medalDialogRef.current?.close();
+    setMedalDialog(null);
+    setSelectedMedalId("");
+  };
 
   const signPostMedia = useCallback(async (page: ProfilePost[]) => {
     const media = page.filter((post) => post.image_path);
@@ -262,6 +282,8 @@ export default function CommunityProfile({
     setPostUrls({});
     setTab("wall");
     setEditingBio(false);
+    setMedalDialog(null);
+    setSelectedMedalId("");
     cursorRef.current = undefined;
 
     void (async () => {
@@ -315,6 +337,8 @@ export default function CommunityProfile({
             kind: row.kind,
             equipped: Boolean(row.equipped),
             earned_at: String(row.earned_at),
+            featured_slot:
+              row.featured_slot == null ? null : Number(row.featured_slot),
           })),
         );
         setPosts(loadedPosts);
@@ -348,6 +372,47 @@ export default function CommunityProfile({
       setSummary((current) => (current ? { ...current, bio } : current));
       setBioDraft(bio);
       setEditingBio(false);
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
+  const saveFeaturedMedal = async () => {
+    if (
+      !summary?.can_edit ||
+      medalDialog?.mode !== "select" ||
+      !selectedMedalId
+    )
+      return;
+
+    const slot = medalDialog.slot;
+    setBusyAction("featured-medal");
+    setError("");
+    try {
+      const response = await browserDb().rpc("community_profile_action", {
+        c: campaign,
+        op: "featured_medal",
+        d: {
+          actor_id: actor,
+          slot,
+          medal_id: selectedMedalId,
+        },
+      });
+      if (response.error) throw response.error;
+
+      setCollectibles((current) =>
+        current.map((entry) => {
+          if (entry.kind !== "medal") return entry;
+          if (entry.cosmetic_id === selectedMedalId)
+            return { ...entry, featured_slot: slot };
+          if (entry.featured_slot === slot)
+            return { ...entry, featured_slot: null };
+          return entry;
+        }),
+      );
+      closeMedalDialog();
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -463,9 +528,13 @@ export default function CommunityProfile({
     (entry) => entry.identity_id === identity.id && entry.kind === "frame",
   )?.cosmetic_id;
   const equippedFrame = cosmeticById.get(equippedFrameId);
-  const principalMedals = [...medals]
-    .sort((left, right) => Number(right.equipped) - Number(left.equipped))
-    .slice(0, 3);
+  const principalMedals = [1, 2, 3].map((slot) =>
+    medals.find((entry) => entry.featured_slot === slot),
+  );
+  const viewedMedal =
+    medalDialog?.mode === "info"
+      ? cosmeticById.get(medalDialog.medalId)
+      : undefined;
   const displayedTitles = titles.slice(0, 2);
   const bio = summary?.bio || DEFAULT_BIO;
 
@@ -702,24 +771,51 @@ export default function CommunityProfile({
             <section>
               <h2>Principais medalhas</h2>
               <div className={styles.principalMedals}>
-                {(principalMedals.length
-                  ? principalMedals
-                  : [undefined, undefined, undefined]
-                ).map((entry, index) => (
-                  <div key={entry?.cosmetic_id || `planned-${index}`}>
-                    <span>
-                      {entry?.item ? (
-                        <CosmeticIcon
-                          item={entry.item}
-                          url={urls[entry.item.id]}
-                        />
-                      ) : (
-                        <Medal aria-hidden="true" />
-                      )}
-                    </span>
-                    <strong>{entry?.item?.name || "Em desenvolvimento"}</strong>
-                  </div>
-                ))}
+                {principalMedals.map((entry, index) => {
+                  const slot = index + 1;
+                  const canChoose = Boolean(summary?.can_edit);
+                  const canOpen = canChoose || Boolean(entry?.item);
+                  return (
+                    <div key={entry?.cosmetic_id || `medal-slot-${slot}`}>
+                      <button
+                        type="button"
+                        className={styles.medalSlotButton}
+                        disabled={!canOpen}
+                        aria-label={
+                          canChoose
+                            ? `Trocar medalha da posição ${slot}`
+                            : entry?.item
+                              ? `Ver detalhes da medalha ${entry.item.name}`
+                              : `Posição ${slot} sem medalha`
+                        }
+                        onClick={() => {
+                          if (canChoose) {
+                            setSelectedMedalId(entry?.cosmetic_id || "");
+                            setMedalDialog({ mode: "select", slot });
+                          } else if (entry?.cosmetic_id) {
+                            setMedalDialog({
+                              mode: "info",
+                              medalId: entry.cosmetic_id,
+                            });
+                          }
+                        }}
+                      >
+                        {entry?.item ? (
+                          <CosmeticIcon
+                            item={entry.item}
+                            url={urls[entry.item.id]}
+                          />
+                        ) : (
+                          <Medal aria-hidden="true" />
+                        )}
+                      </button>
+                      <strong>
+                        {entry?.item?.name ||
+                          (canChoose ? "Escolher medalha" : "Sem medalha")}
+                      </strong>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           </div>
@@ -852,6 +948,151 @@ export default function CommunityProfile({
             </div>
           )}
         </div>
+      )}
+
+      {medalDialog && (
+        <dialog
+          ref={medalDialogRef}
+          className={styles.medalDialog}
+          onCancel={(event) => {
+            event.preventDefault();
+            if (busyAction !== "featured-medal") closeMedalDialog();
+          }}
+        >
+          {medalDialog.mode === "select" ? (
+            <>
+              <div className={styles.medalDialogHeader}>
+                <div>
+                  <small>Principais medalhas</small>
+                  <h2>Escolher medalha</h2>
+                  <p>
+                    Esta medalha ficará na posição {medalDialog.slot} do seu
+                    perfil.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Fechar"
+                  disabled={busyAction === "featured-medal"}
+                  onClick={closeMedalDialog}
+                >
+                  <X aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className={styles.medalChoiceList}>
+                {medals.map((entry) => {
+                  const selected = selectedMedalId === entry.cosmetic_id;
+                  return (
+                    <button
+                      type="button"
+                      key={entry.cosmetic_id}
+                      className={
+                        selected
+                          ? `${styles.medalChoice} ${styles.medalChoiceSelected}`
+                          : styles.medalChoice
+                      }
+                      aria-pressed={selected}
+                      disabled={busyAction === "featured-medal"}
+                      onClick={() => setSelectedMedalId(entry.cosmetic_id)}
+                    >
+                      <span className={styles.medalChoiceArt}>
+                        {entry.item ? (
+                          <CosmeticIcon
+                            item={entry.item}
+                            url={urls[entry.item.id]}
+                          />
+                        ) : (
+                          <Medal aria-hidden="true" />
+                        )}
+                      </span>
+                      <span className={styles.medalChoiceCopy}>
+                        <strong>{entry.item?.name || "Medalha"}</strong>
+                        <small>
+                          {entry.item?.description ||
+                            "Esta medalha ainda não possui descrição."}
+                        </small>
+                      </span>
+                      <span className={styles.medalChoiceCheck}>
+                        {selected && <Check aria-hidden="true" />}
+                      </span>
+                    </button>
+                  );
+                })}
+                {!medals.length && (
+                  <p className={styles.medalChoiceEmpty}>
+                    Você ainda não recebeu nenhuma medalha.
+                  </p>
+                )}
+              </div>
+
+              <div className={styles.medalDialogActions}>
+                <button
+                  type="button"
+                  disabled={busyAction === "featured-medal"}
+                  onClick={closeMedalDialog}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={
+                    busyAction === "featured-medal" || !selectedMedalId
+                  }
+                  onClick={() => void saveFeaturedMedal()}
+                >
+                  {busyAction === "featured-medal"
+                    ? "Salvando..."
+                    : "Confirmar"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.medalInfoHeader}>
+                <span className={styles.medalInfoArt}>
+                  {viewedMedal ? (
+                    <CosmeticIcon
+                      item={viewedMedal}
+                      url={urls[viewedMedal.id]}
+                    />
+                  ) : (
+                    <Medal aria-hidden="true" />
+                  )}
+                </span>
+                <div>
+                  <small>Medalha</small>
+                  <h2>{viewedMedal?.name || "Medalha"}</h2>
+                  <span>
+                    {viewedMedal
+                      ? rarityLabel[viewedMedal.rarity] || "Conquista"
+                      : "Conquista"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Fechar"
+                  onClick={closeMedalDialog}
+                >
+                  <X aria-hidden="true" />
+                </button>
+              </div>
+              <div className={styles.medalInfoBody}>
+                <h3>Sobre esta medalha</h3>
+                <p>
+                  {viewedMedal?.description ||
+                    "Esta medalha ainda não possui uma descrição."}
+                </p>
+              </div>
+              <div className={styles.medalDialogActions}>
+                <button type="button" onClick={closeMedalDialog}>
+                  Fechar
+                </button>
+              </div>
+            </>
+          )}
+        </dialog>
       )}
 
       {requestDelete && (
