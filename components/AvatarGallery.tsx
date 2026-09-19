@@ -78,7 +78,15 @@ export default function AvatarGallery({
   );
 
   return (
-    <section className={manager ? "panel avatar-manager" : "avatar-picker"}>
+    <section
+      className={
+        manager
+          ? compact
+            ? "avatar-manager avatar-manager-compact"
+            : "panel avatar-manager"
+          : "avatar-picker"
+      }
+    >
       <div className="spread">
         {!compact && (
           <div>
