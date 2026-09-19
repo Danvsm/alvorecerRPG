@@ -48,6 +48,7 @@ import IdentityBadge from "./IdentityBadge";
 import DirectChat from "./DirectChat";
 import ConversationMonitor from "./ConversationMonitor";
 import NotificationBell from "./NotificationBell";
+import NotificationPermissionPrompt from "./NotificationPermissionPrompt";
 import RewardsPanel from "./RewardsPanel";
 import PlayerDataDetails, { ageFromDate } from "./PlayerDataDetails";
 import CharacterSheet from "./CharacterSheet";
@@ -1320,6 +1321,7 @@ export default function Game({ invite }: { invite?: string }) {
       }
     >
       <ActivityTracker campaign={campaign} userId={session.user.id} />
+      <NotificationPermissionPrompt userId={session.user.id} />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <Brand logo={currentCampaign?.theme?.logo} />
         <div className="campaign-switch">

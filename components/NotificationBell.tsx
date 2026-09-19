@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
@@ -77,6 +77,8 @@ export default function NotificationBell({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [limit, setLimit] = useState(20);
+  const browserNotificationReady = useRef(false);
+  const seenNotificationIds = useRef<Set<string>>(new Set());
 
   const visible = useMemo(
     () =>
@@ -90,6 +92,46 @@ export default function NotificationBell({
   const unreadCount = visible.filter(
     (notification) => !notification.read_at,
   ).length;
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+
+    const currentIds = new Set(
+      visible.map((notification) => String(notification.id)),
+    );
+
+    if (!browserNotificationReady.current) {
+      seenNotificationIds.current = currentIds;
+      browserNotificationReady.current = true;
+      return;
+    }
+
+    if (Notification.permission === "granted" && document.hidden) {
+      const fresh = visible.find(
+        (notification) =>
+          !seenNotificationIds.current.has(String(notification.id)),
+      );
+
+      if (fresh) {
+        const kind = String(fresh.kind || "default");
+        const subtitle =
+          notificationKinds[kind]?.subtitle ||
+          "Uma nova atualização aconteceu no seu mundo.";
+
+        try {
+          new Notification(String(fresh.title || "Alvorecer"), {
+            body: subtitle,
+            icon: "/favicon.ico",
+            tag: `alvorecer-${String(fresh.id)}`,
+          });
+        } catch {
+          // Browser accepted permission but does not support direct display here.
+        }
+      }
+    }
+
+    seenNotificationIds.current = currentIds;
+  }, [visible]);
+
   const filtered = useMemo(
     () =>
       filter === "unread"
