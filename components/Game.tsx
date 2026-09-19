@@ -408,6 +408,8 @@ export default function Game({ invite }: { invite?: string }) {
               q = q.order("created_at", { ascending: false }).limit(200);
             if (t === "activity_sessions")
               q = q.order("started_at", { ascending: false }).limit(200);
+            if (t === "notifications")
+              q = q.order("created_at", { ascending: false }).limit(200);
             return q;
           }),
         ),
@@ -503,6 +505,33 @@ export default function Game({ invite }: { invite?: string }) {
         () => {
           clearTimeout(timer);
           timer = setTimeout(() => load(campaign), 100);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          const notification = payload.new as Row;
+          if (notification.campaign_id !== campaign) return;
+          setData((current) => {
+            const existing = current.notifications || [];
+            if (
+              existing.some(
+                (entry) => String(entry.id) === String(notification.id),
+              )
+            ) {
+              return current;
+            }
+            return {
+              ...current,
+              notifications: [notification, ...existing].slice(0, 200),
+            };
+          });
         },
       )
       .subscribe((status) => {
