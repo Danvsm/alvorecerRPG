@@ -457,7 +457,7 @@ export default function CommunityProfile({
             aria-label="Fechar opções do perfil"
             onClick={closeActions}
           />
-          <div className={styles.profileActionsMenu} role="menu">
+          <div id="profile-actions-menu" className={styles.profileActionsMenu} role="menu">
             {!summary ? (
               <button type="button" role="menuitem" disabled>
                 Carregando...

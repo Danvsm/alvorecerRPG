@@ -312,6 +312,7 @@ export default function CommunityPanel({
               className={styles.headerButton}
               aria-label="Opções do perfil"
               aria-haspopup="menu"
+              aria-controls="profile-actions-menu"
               aria-expanded={profileActionsOpen}
               onClick={() => setProfileActionsOpen((open) => !open)}
             >
