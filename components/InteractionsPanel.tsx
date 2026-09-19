@@ -234,22 +234,50 @@ export default function InteractionsPanel({
     setSuccess("");
 
     try {
-      const result = await browserDb().rpc("send_master_notification", {
-        c: campaign,
-        recipient_ids: selectedUsers,
-        notification_kind: kind,
-        notification_title: title.trim(),
-        notification_body: body.trim(),
+      const session = await browserDb().auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) throw new Error("Entre novamente para enviar notificações.");
+
+      const response = await fetch("/api/push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "send",
+          campaign,
+          recipientIds: selectedUsers,
+          kind,
+          title: title.trim(),
+          body: body.trim(),
+        }),
       });
 
-      if (result.error) throw result.error;
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Não foi possível enviar a notificação.");
+      }
 
-      const count = Number(result.data || selectedUsers.length);
-      setSuccess(
-        count === 1
-          ? "Notificação enviada para 1 jogador."
-          : `Notificação enviada para ${count} jogadores.`,
-      );
+      const count = Number(result.sent || selectedUsers.length);
+      const devices = Number(result.pushDelivered || 0);
+      const subscribed = Number(result.subscribedDevices || 0);
+
+      if (devices > 0) {
+        setSuccess(
+          count === 1
+            ? `Notificação enviada. Push entregue a ${devices} aparelho(s).`
+            : `Notificação enviada para ${count} jogadores. Push entregue a ${devices} aparelho(s).`,
+        );
+      } else if (subscribed === 0) {
+        setSuccess(
+          "A notificação entrou no Alvorecer, mas nenhum aparelho selecionado está registrado para push ainda.",
+        );
+      } else {
+        setSuccess(
+          "A notificação entrou no Alvorecer, mas o servidor não confirmou a entrega do push neste envio.",
+        );
+      }
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {

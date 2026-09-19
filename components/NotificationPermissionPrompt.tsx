@@ -4,7 +4,7 @@ import { BellRing, Check, MessageCircle, ShieldAlert, Sparkles, Swords, X } from
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  ensureAlvorecerNotificationWorker,
+  ensureAlvorecerPushSubscription,
   showAlvorecerNotification,
 } from "@/lib/browser-notifications";
 
@@ -12,12 +12,16 @@ const REMINDER_MS = 24 * 60 * 60 * 1000;
 
 export default function NotificationPermissionPrompt({
   userId,
+  campaign,
 }: {
   userId: string;
+  campaign: string;
 }) {
   const [open, setOpen] = useState(false);
   const [requesting, setRequesting] = useState(false);
-  const [result, setResult] = useState<"granted" | "denied" | "">("");
+  const [result, setResult] = useState<
+    "granted" | "denied" | "setup_error" | ""
+  >("");
 
   useEffect(() => {
     if (
@@ -29,7 +33,10 @@ export default function NotificationPermissionPrompt({
     }
 
     if (Notification.permission === "granted") {
-      void ensureAlvorecerNotificationWorker();
+      void ensureAlvorecerPushSubscription(campaign).catch(() => {
+        setResult("setup_error");
+        setOpen(true);
+      });
       return;
     }
 
@@ -46,7 +53,7 @@ export default function NotificationPermissionPrompt({
 
     const timer = window.setTimeout(() => setOpen(true), 900);
     return () => window.clearTimeout(timer);
-  }, [userId]);
+  }, [campaign, userId]);
 
   const dismiss = () => {
     if (userId) {
@@ -63,7 +70,10 @@ export default function NotificationPermissionPrompt({
     setRequesting(true);
 
     try {
-      const permission = await Notification.requestPermission();
+      const permission =
+        Notification.permission === "granted"
+          ? "granted"
+          : await Notification.requestPermission();
       setResult(permission === "granted" ? "granted" : "denied");
 
       if (permission === "granted") {
@@ -71,9 +81,15 @@ export default function NotificationPermissionPrompt({
           `alvorecer:notification-prompt:${userId}`,
         );
 
+        const subscription = await ensureAlvorecerPushSubscription(campaign);
+        if (!subscription) {
+          setResult("setup_error");
+          return;
+        }
+
         await showAlvorecerNotification({
           title: "Notificações ativadas",
-          body: "Pronto. O Alvorecer pode avisar você sobre novidades importantes.",
+          body: "Pronto. Este aparelho está registrado para receber avisos mesmo com o Chrome fechado.",
           tag: "alvorecer-permission-test",
         });
 
@@ -116,6 +132,35 @@ export default function NotificationPermissionPrompt({
             <h2>Experiência completa ativada</h2>
             <p>Agora você pode receber avisos importantes do Alvorecer.</p>
           </div>
+        ) : result === "setup_error" ? (
+          <>
+            <p className="notification-permission-eyebrow">NOTIFICAÇÕES</p>
+            <h2 id="notification-permission-title">
+              Falta concluir o registro deste aparelho
+            </h2>
+            <p className="notification-permission-lead">
+              A permissão do navegador está liberada, mas o aparelho ainda não
+              conseguiu criar a assinatura de push necessária para receber
+              avisos com o Chrome fechado.
+            </p>
+            <button
+              className="notification-permission-primary"
+              disabled={requesting}
+              onClick={() => void enable()}
+              type="button"
+            >
+              <BellRing size={20} />
+              {requesting ? "Tentando..." : "Tentar novamente"}
+            </button>
+            <button
+              className="notification-permission-secondary"
+              disabled={requesting}
+              onClick={dismiss}
+              type="button"
+            >
+              Agora não
+            </button>
+          </>
         ) : result === "denied" ? (
           <>
             <p className="notification-permission-eyebrow">NOTIFICAÇÕES</p>

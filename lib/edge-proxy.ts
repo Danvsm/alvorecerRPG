@@ -1,5 +1,8 @@
 import "server-only";
-export async function edgeProxy(req: Request, route: "auth" | "admin") {
+export async function edgeProxy(
+  req: Request,
+  route: "auth" | "admin" | "push",
+) {
   try {
     const origin = req.headers.get("origin");
     const allowed = [
@@ -24,7 +27,11 @@ export async function edgeProxy(req: Request, route: "auth" | "admin") {
         { error: "Supabase não configurado" },
         { status: 503 },
       );
-    const response = await fetch(`${url}/functions/v1/alvorecer-api/${route}`, {
+
+    const functionPath =
+      route === "push" ? "alvorecer-push" : `alvorecer-api/${route}`;
+
+    const response = await fetch(`${url}/functions/v1/${functionPath}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -40,7 +47,10 @@ export async function edgeProxy(req: Request, route: "auth" | "admin") {
     let payload = await response.text();
     try {
       const parsed = JSON.parse(payload);
-      if (typeof parsed.url === "string" && parsed.url.startsWith("/convite/"))
+      if (
+        typeof parsed.url === "string" &&
+        parsed.url.startsWith("/convite/")
+      )
         payload = JSON.stringify({ ...parsed, url: expected + parsed.url });
     } catch {}
     return new Response(payload, {

@@ -1354,7 +1354,7 @@ export default function Game({ invite }: { invite?: string }) {
       }
     >
       <ActivityTracker campaign={campaign} userId={session.user.id} />
-      <NotificationPermissionPrompt userId={session.user.id} />
+      <NotificationPermissionPrompt userId={session.user.id} campaign={campaign} />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <Brand logo={currentCampaign?.theme?.logo} />
         <div className="campaign-switch">

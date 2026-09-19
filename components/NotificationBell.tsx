@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
@@ -17,7 +17,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { Row } from "@/lib/types";
-import { showAlvorecerNotification } from "@/lib/browser-notifications";
 
 type NotificationFilter = "all" | "unread";
 type NotificationGroup = "Hoje" | "Ontem" | "Mais antigas";
@@ -93,58 +92,6 @@ export default function NotificationBell({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [limit, setLimit] = useState(20);
-  const browserNotificationReady = useRef(false);
-  const seenNotificationIds = useRef<Set<string>>(new Set());
-
-  const visible = useMemo(
-    () =>
-      notifications
-        .filter((notification) => !notification.dismissed_at)
-        .toSorted((a, b) =>
-          String(b.created_at).localeCompare(String(a.created_at)),
-        ),
-    [notifications],
-  );
-  const unreadCount = visible.filter(
-    (notification) => !notification.read_at,
-  ).length;
-  useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-
-    const currentIds = new Set(
-      visible.map((notification) => String(notification.id)),
-    );
-
-    if (!browserNotificationReady.current) {
-      seenNotificationIds.current = currentIds;
-      browserNotificationReady.current = true;
-      return;
-    }
-
-    if (Notification.permission === "granted") {
-      const fresh = visible.find(
-        (notification) =>
-          !seenNotificationIds.current.has(String(notification.id)),
-      );
-
-      if (fresh) {
-        const kind = String(fresh.kind || "default");
-        const subtitle =
-          String(fresh.body || "") ||
-          notificationKinds[kind]?.subtitle ||
-          "Uma nova atualização aconteceu no seu mundo.";
-
-        void showAlvorecerNotification({
-          title: String(fresh.title || "Alvorecer"),
-          body: subtitle,
-          tag: `alvorecer-${String(fresh.id)}`,
-        });
-      }
-    }
-
-    seenNotificationIds.current = currentIds;
-  }, [visible]);
-
   const filtered = useMemo(
     () =>
       filter === "unread"

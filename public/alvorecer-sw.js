@@ -6,6 +6,34 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+self.addEventListener("push", (event) => {
+  let payload = {
+    title: "Alvorecer",
+    body: "Você recebeu uma nova notificação.",
+    tag: undefined,
+    url: "/",
+  };
+
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "Alvorecer", {
+      body: payload.body || "Você recebeu uma nova notificação.",
+      icon: "/favicon.ico",
+      tag: payload.tag,
+      renotify: Boolean(payload.tag),
+      data: { url: payload.url || "/" },
+      vibrate: [180, 90, 180],
+    }),
+  );
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
@@ -20,7 +48,9 @@ self.addEventListener("notificationclick", (event) => {
       .then((clients) => {
         for (const client of clients) {
           if ("focus" in client) {
-            client.navigate(targetUrl);
+            if ("navigate" in client) {
+              client.navigate(targetUrl);
+            }
             return client.focus();
           }
         }
