@@ -257,13 +257,7 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const rawTitle = String(payload.title || "Notificação");
-  const brandedTitle =
-    payload.kind === "message"
-      ? rawTitle
-      : rawTitle.toLocaleLowerCase().startsWith("alvorecer")
-        ? rawTitle
-        : `Alvorecer • ${rawTitle}`;
+  const notificationTitle = String(payload.title || "Notificação");
 
   event.waitUntil(
     (async () => {
@@ -275,7 +269,7 @@ self.addEventListener("push", (event) => {
         (client) => client.visibilityState === "visible",
       );
 
-      await self.registration.showNotification(brandedTitle, {
+      await self.registration.showNotification(notificationTitle, {
         body: payload.body || "Você recebeu uma nova notificação.",
         icon: "/alvorecer-mark.svg",
         tag: payload.tag,
