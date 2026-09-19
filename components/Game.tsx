@@ -260,7 +260,7 @@ export default function Game({ invite }: { invite?: string }) {
     [campaigns, setCampaigns] = useState<Row[]>([]),
     [data, setData] = useState<Record<string, Row[]>>({}),
     [participants, setParticipants] = useState<Row[]>([]),
-    [page, setPage] = useState("Visão Geral"),
+    [page, setPage] = useState("Comunidade"),
     [selected, setSelected] = useState(""),
     [room, setRoom] = useState(""),
     [loading, setLoading] = useState(false),
