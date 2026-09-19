@@ -735,8 +735,10 @@
 
   .tabs button {
     min-height: 56px;
-    gap: 5px;
+    flex-direction: column;
+    gap: 4px;
     font-size: 0.75rem;
+    line-height: 1.25;
   }
 
   .tabs svg {
