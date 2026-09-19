@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Eye, MessageCircle, RefreshCw, Search } from "lucide-react";
+import { ArrowLeft, Eye, Flag, MessageCircle, RefreshCw, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -45,6 +45,7 @@ export default function ConversationMonitor({
   >({});
   const [selected, setSelected] = useState("");
   const [messages, setMessages] = useState<Row[]>([]);
+  const [reports, setReports] = useState<Row[]>([]);
   const [query, setQuery] = useState("");
   const [loadingList, setLoadingList] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -112,6 +113,28 @@ export default function ConversationMonitor({
     }
   }, [campaign, selected]);
 
+  const loadReports = useCallback(async () => {
+    if (!campaign) return;
+
+    try {
+      const result = await retryNetworkRead(() =>
+        browserDb()
+          .from("conversation_reports")
+          .select(
+            "id,campaign_id,conversation_id,reporter_identity_id,reported_identity_id,reason,status,created_at",
+          )
+          .eq("campaign_id", campaign)
+          .order("created_at", { ascending: false })
+          .limit(100),
+      );
+
+      if (result.error) throw result.error;
+      setReports(result.data || []);
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    }
+  }, [campaign]);
+
   const loadMessages = useCallback(async (conversationId: string) => {
     if (!conversationId) {
       setMessages([]);
@@ -143,6 +166,10 @@ export default function ConversationMonitor({
   useEffect(() => {
     void loadConversations();
   }, [loadConversations]);
+
+  useEffect(() => {
+    void loadReports();
+  }, [loadReports]);
 
   useEffect(() => {
     void loadMessages(selected);
@@ -179,12 +206,22 @@ export default function ConversationMonitor({
         { event: "INSERT", schema: "public", table: "direct_conversations" },
         () => void loadConversations(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "conversation_reports",
+          filter: `campaign_id=eq.${campaign}`,
+        },
+        () => void loadReports(),
+      )
       .subscribe();
 
     return () => {
       void db.removeChannel(channel);
     };
-  }, [campaign, loadConversations, selected]);
+  }, [campaign, loadConversations, loadReports, selected]);
 
   useEffect(() => {
     if (!selected) return;
@@ -256,7 +293,10 @@ export default function ConversationMonitor({
         <button
           type="button"
           disabled={loadingList}
-          onClick={() => void loadConversations()}
+          onClick={() => {
+            void loadConversations();
+            void loadReports();
+          }}
         >
           <RefreshCw size={16} className={loadingList ? "spin" : ""} />
           Atualizar
@@ -267,6 +307,38 @@ export default function ConversationMonitor({
         <div className="error" role="alert">
           {error}
         </div>
+      )}
+
+      {reports.length > 0 && (
+        <section className="monitor-reports" aria-label="Denúncias de conversa">
+          <header>
+            <span>
+              <Flag size={17} />
+              Denúncias
+            </span>
+            <strong>{reports.length}</strong>
+          </header>
+          <div className="monitor-report-list">
+            {reports.map((report) => (
+              <article className="monitor-report" key={report.id}>
+                <div className="monitor-report-people">
+                  <strong>{identityName(String(report.reporter_identity_id))}</strong>
+                  <span>denunciou</span>
+                  <strong>{identityName(String(report.reported_identity_id))}</strong>
+                </div>
+                <p>{String(report.reason || "")}</p>
+                <time dateTime={String(report.created_at)}>
+                  {new Date(String(report.created_at)).toLocaleString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
 
       <div

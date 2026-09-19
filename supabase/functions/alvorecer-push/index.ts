@@ -49,6 +49,79 @@ function cleanText(value: unknown, max: number) {
   return String(value || "").trim().slice(0, max);
 }
 
+async function conversationContext(
+  db: ServiceDb,
+  campaign: string,
+  userId: string,
+  memberRole: string,
+  conversationId: string,
+  actorId: string,
+) {
+  if (!conversationId || !actorId) {
+    throw new Error("Conversa inválida.");
+  }
+
+  const { data: conversation, error: conversationError } = await db
+    .from("direct_conversations")
+    .select("id,campaign_id,first_id,second_id")
+    .eq("id", conversationId)
+    .eq("campaign_id", campaign)
+    .maybeSingle();
+
+  if (conversationError || !conversation) {
+    throw new Error("Conversa não encontrada.");
+  }
+
+  if (
+    actorId !== String(conversation.first_id) &&
+    actorId !== String(conversation.second_id)
+  ) {
+    throw new Error("Conversa não autorizada.");
+  }
+
+  const { data: actor, error: actorError } = await db
+    .from("social_identities")
+    .select("id,user_id,kind,active")
+    .eq("id", actorId)
+    .eq("campaign_id", campaign)
+    .maybeSingle();
+
+  if (actorError || !actor || !actor.active) {
+    throw new Error("Identidade não autorizada.");
+  }
+
+  const actorOwnedByUser = String(actor.user_id || "") === userId;
+  const masterNpc =
+    memberRole === "master" && String(actor.kind || "") === "npc";
+
+  if (!actorOwnedByUser && !masterNpc) {
+    throw new Error("Identidade não autorizada.");
+  }
+
+  const recipientIdentityId =
+    actorId === String(conversation.first_id)
+      ? String(conversation.second_id)
+      : String(conversation.first_id);
+
+  const { data: recipient, error: recipientError } = await db
+    .from("social_identities")
+    .select("id,user_id,active")
+    .eq("id", recipientIdentityId)
+    .eq("campaign_id", campaign)
+    .maybeSingle();
+
+  if (recipientError || !recipient || !recipient.active) {
+    throw new Error("Destinatário indisponível.");
+  }
+
+  return {
+    conversation,
+    actor,
+    recipient,
+    recipientIdentityId,
+  };
+}
+
 async function pushToUsers(
   db: ServiceDb,
   campaign: string,
@@ -225,69 +298,128 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (action === "chat_message") {
+    if (action === "chat_state") {
+      const { data, error } = await db
+        .from("conversation_mutes")
+        .select("conversation_id")
+        .eq("campaign_id", campaign)
+        .eq("user_id", user.id);
+
+      if (error) throw new Error("Não foi possível carregar as preferências.");
+
+      return Response.json(
+        {
+          ok: true,
+          mutedConversationIds: (data || []).map((entry) =>
+            String(entry.conversation_id)
+          ),
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    if (
+      action === "chat_mute" ||
+      action === "chat_clear" ||
+      action === "chat_report" ||
+      action === "chat_message"
+    ) {
       const conversationId = cleanText(body?.conversationId, 80);
       const actorId = cleanText(body?.actorId, 80);
+      const context = await conversationContext(
+        db,
+        campaign,
+        user.id,
+        String(member.role || ""),
+        conversationId,
+        actorId,
+      );
 
-      if (!conversationId || !actorId) {
-        throw new Error("Conversa inválida.");
+      if (action === "chat_mute") {
+        const muted = Boolean(body?.muted);
+
+        if (muted) {
+          const { error } = await db.from("conversation_mutes").upsert(
+            {
+              conversation_id: conversationId,
+              campaign_id: campaign,
+              user_id: user.id,
+            },
+            { onConflict: "conversation_id,user_id" },
+          );
+          if (error) throw new Error("Não foi possível silenciar a conversa.");
+        } else {
+          const { error } = await db
+            .from("conversation_mutes")
+            .delete()
+            .eq("conversation_id", conversationId)
+            .eq("user_id", user.id);
+          if (error) throw new Error("Não foi possível reativar a conversa.");
+        }
+
+        return Response.json(
+          { ok: true, muted },
+          { headers: { "Cache-Control": "no-store" } },
+        );
       }
 
-      const { data: conversation, error: conversationError } = await db
-        .from("direct_conversations")
-        .select("id,campaign_id,first_id,second_id")
-        .eq("id", conversationId)
-        .eq("campaign_id", campaign)
-        .maybeSingle();
+      if (action === "chat_clear") {
+        const clearedAt = new Date().toISOString();
 
-      if (conversationError || !conversation) {
-        throw new Error("Conversa não encontrada.");
+        const { error: clearError } = await db
+          .from("direct_messages")
+          .update({ cleared_at: clearedAt })
+          .eq("conversation_id", conversationId)
+          .is("cleared_at", null);
+
+        if (clearError) {
+          throw new Error("Não foi possível limpar a conversa.");
+        }
+
+        await db
+          .from("notifications")
+          .delete()
+          .eq("kind", "message")
+          .eq("reference_id", conversationId);
+
+        await db.rpc("record_event", {
+          c: campaign,
+          ch: null,
+          action: "chat_cleared",
+          detail: { conversation_id: conversationId },
+          actor: user.id,
+        });
+
+        return Response.json(
+          { ok: true, clearedAt },
+          { headers: { "Cache-Control": "no-store" } },
+        );
       }
 
-      if (
-        actorId !== String(conversation.first_id) &&
-        actorId !== String(conversation.second_id)
-      ) {
-        throw new Error("Conversa não autorizada.");
+      if (action === "chat_report") {
+        const reason = cleanText(body?.reason, 500);
+        if (reason.length < 3) {
+          throw new Error("Explique o motivo da denúncia.");
+        }
+
+        const { error } = await db.from("conversation_reports").insert({
+          campaign_id: campaign,
+          conversation_id: conversationId,
+          reporter_user_id: user.id,
+          reporter_identity_id: actorId,
+          reported_identity_id: context.recipientIdentityId,
+          reason,
+        });
+
+        if (error) throw new Error("Não foi possível enviar a denúncia.");
+
+        return Response.json(
+          { ok: true },
+          { headers: { "Cache-Control": "no-store" } },
+        );
       }
 
-      const { data: actor, error: actorError } = await db
-        .from("social_identities")
-        .select("id,user_id,kind,active")
-        .eq("id", actorId)
-        .eq("campaign_id", campaign)
-        .maybeSingle();
-
-      if (actorError || !actor || !actor.active) {
-        throw new Error("Identidade não autorizada.");
-      }
-
-      const actorOwnedByUser = String(actor.user_id || "") === user.id;
-      const masterNpc =
-        member.role === "master" && String(actor.kind || "") === "npc";
-
-      if (!actorOwnedByUser && !masterNpc) {
-        throw new Error("Identidade não autorizada.");
-      }
-
-      const recipientIdentityId =
-        actorId === String(conversation.first_id)
-          ? String(conversation.second_id)
-          : String(conversation.first_id);
-
-      const { data: recipient, error: recipientError } = await db
-        .from("social_identities")
-        .select("user_id,active")
-        .eq("id", recipientIdentityId)
-        .eq("campaign_id", campaign)
-        .maybeSingle();
-
-      if (
-        recipientError ||
-        !recipient ||
-        !recipient.active ||
-        !recipient.user_id
-      ) {
+      if (!context.recipient.user_id) {
         return Response.json(
           {
             ok: true,
@@ -299,14 +431,34 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const { data: mute } = await db
+        .from("conversation_mutes")
+        .select("conversation_id")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", String(context.recipient.user_id))
+        .maybeSingle();
+
+      if (mute) {
+        return Response.json(
+          {
+            ok: true,
+            muted: true,
+            pushDelivered: 0,
+            pushFailed: 0,
+            subscribedDevices: 0,
+          },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
+
       const delivery = await pushToUsers(
         db,
         campaign,
-        [String(recipient.user_id)],
+        [String(context.recipient.user_id)],
         {
           title: "Olha quem te mandou mensagem 👀",
           body: "Entre no Alvorecer para ver quem foi.",
-          tag: `alvorecer-chat-${conversation.id}`,
+          tag: `alvorecer-chat-${context.conversation.id}`,
           url: "/",
           kind: "message",
         },
@@ -399,7 +551,7 @@ Deno.serve(async (req: Request) => {
     );
   } catch (caught) {
     return Response.json(
-      { error: (caught as Error).message || "Falha no servidor de push." },
+      { error: (caught as Error).message || "Falha no servidor." },
       {
         status: 400,
         headers: { "Cache-Control": "no-store" },

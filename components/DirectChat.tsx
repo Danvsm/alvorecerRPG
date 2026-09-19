@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ImagePlus, MessageCircle, Send, X } from "lucide-react";
+import { Bell, BellOff, ChevronLeft, Flag, ImagePlus, MessageCircle, Send, Trash2, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
@@ -47,7 +47,23 @@ export default function DirectChat({
     [limit, setLimit] = useState(50),
     [latestByConversation, setLatestByConversation] = useState<Record<string, Row>>({}),
     [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set()),
-    [contactsInteractive, setContactsInteractive] = useState(true);
+    [contactsInteractive, setContactsInteractive] = useState(true),
+    [mutedConversations, setMutedConversations] = useState<Set<string>>(new Set()),
+    [contactMenu, setContactMenu] = useState<{
+      conversationId: string;
+      identityId: string;
+      name: string;
+      x: number;
+      y: number;
+    } | null>(null),
+    [actionDialog, setActionDialog] = useState<{
+      type: "clear" | "report";
+      conversationId: string;
+      identityId: string;
+      name: string;
+    } | null>(null),
+    [reportReason, setReportReason] = useState(""),
+    [feedback, setFeedback] = useState("");
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,6 +71,12 @@ export default function DirectChat({
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
   const contactUnlockTimer = useRef<number | null>(null);
+  const contactPress = useRef<{
+    timer: number | null;
+    x: number;
+    y: number;
+    moved: boolean;
+  } | null>(null);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -89,15 +111,166 @@ export default function DirectChat({
       // A mensagem continua enviada mesmo se o aviso push falhar.
     }
   };
+
+  const chatControl = async (
+    controlAction: "chat_mute" | "chat_clear" | "chat_report",
+    conversationId: string,
+    extra: Record<string, unknown> = {},
+  ) => {
+    const sessionResult = await browserDb().auth.getSession();
+    const token = sessionResult.data.session?.access_token;
+    if (!token) throw new Error("Entre novamente.");
+
+    const response = await fetch("/api/push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        action: controlAction,
+        campaign,
+        conversationId,
+        actorId: actor,
+        ...extra,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || "Não foi possível concluir a ação.");
+    }
+    return payload as Row;
+  };
+
+  const showFeedback = (message: string) => {
+    setFeedback(message);
+    window.setTimeout(() => {
+      setFeedback((current) => (current === message ? "" : current));
+    }, 2400);
+  };
+
+  const closeContactPress = () => {
+    if (contactPress.current?.timer !== null) {
+      window.clearTimeout(contactPress.current.timer);
+    }
+    contactPress.current = null;
+  };
+
+  const openContactMenu = (
+    conversationId: string,
+    identityId: string,
+    name: string,
+    clientX: number,
+    clientY: number,
+  ) => {
+    const width = 205;
+    const height = 150;
+    const x = Math.max(10, Math.min(clientX, window.innerWidth - width - 10));
+    const y = Math.max(10, Math.min(clientY, window.innerHeight - height - 10));
+    suppressContactUntil.current = performance.now() + 750;
+    setContactMenu({ conversationId, identityId, name, x, y });
+  };
+
+  const toggleMute = async (
+    conversationId: string,
+    currentlyMuted: boolean,
+  ) => {
+    setBusy(true);
+    setError("");
+    try {
+      await chatControl("chat_mute", conversationId, {
+        muted: !currentlyMuted,
+      });
+      setMutedConversations((current) => {
+        const next = new Set(current);
+        if (currentlyMuted) next.delete(conversationId);
+        else next.add(conversationId);
+        return next;
+      });
+      showFeedback(currentlyMuted ? "Notificações reativadas." : "Conversa silenciada.");
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
+      setContactMenu(null);
+    }
+  };
+
+  const confirmClear = async () => {
+    if (!actionDialog || actionDialog.type !== "clear") return;
+    setBusy(true);
+    setError("");
+    try {
+      await chatControl("chat_clear", actionDialog.conversationId);
+      setLatestByConversation((current) => {
+        const next = { ...current };
+        delete next[actionDialog.conversationId];
+        return next;
+      });
+      if (selected === actionDialog.conversationId) {
+        setMessages([]);
+      }
+      setRefresh((value) => value + 1);
+      showFeedback("Conversa limpa.");
+      setActionDialog(null);
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitReport = async () => {
+    if (!actionDialog || actionDialog.type !== "report") return;
+    if (reportReason.trim().length < 3) {
+      setError("Explique o motivo da denúncia.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      await chatControl("chat_report", actionDialog.conversationId, {
+        reason: reportReason.trim(),
+      });
+      setReportReason("");
+      setActionDialog(null);
+      showFeedback("Denúncia enviada.");
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
   useEffect(() => {
     onUnreadChange?.(unread);
   }, [onUnreadChange, unread]);
+
+  useEffect(() => {
+    let valid = true;
+    retryNetworkRead(() =>
+      browserDb()
+        .from("conversation_mutes")
+        .select("conversation_id")
+        .eq("campaign_id", campaign),
+    ).then((result) => {
+      if (!valid || result.error) return;
+      setMutedConversations(
+        new Set((result.data || []).map((entry: Row) => String(entry.conversation_id))),
+      );
+    });
+    return () => {
+      valid = false;
+    };
+  }, [campaign, actor, refresh]);
 
   useEffect(
     () => () => {
       if (contactUnlockTimer.current !== null) {
         window.clearTimeout(contactUnlockTimer.current);
       }
+      closeContactPress();
     },
     [],
   );
@@ -579,6 +752,75 @@ export default function DirectChat({
                       className="chat-contact-row"
                       key={identity.id}
                       disabled={busy || !contactsInteractive}
+                      onPointerDown={(event) => {
+                        if (!conversation || event.pointerType === "mouse" && event.button !== 0) {
+                          return;
+                        }
+                        closeContactPress();
+                        const startX = event.clientX;
+                        const startY = event.clientY;
+                        const timer = window.setTimeout(() => {
+                          if (contactPress.current?.moved) return;
+                          openContactMenu(
+                            String(conversation.id),
+                            String(identity.id),
+                            String(identity.name),
+                            startX,
+                            startY,
+                          );
+                          if ("vibrate" in navigator) navigator.vibrate(18);
+                        }, 520);
+                        contactPress.current = {
+                          timer,
+                          x: startX,
+                          y: startY,
+                          moved: false,
+                        };
+                      }}
+                      onPointerMove={(event) => {
+                        if (!contactPress.current) return;
+                        if (
+                          Math.abs(event.clientX - contactPress.current.x) +
+                            Math.abs(event.clientY - contactPress.current.y) >
+                          12
+                        ) {
+                          contactPress.current.moved = true;
+                          closeContactPress();
+                        }
+                      }}
+                      onPointerUp={closeContactPress}
+                      onPointerCancel={closeContactPress}
+                      onContextMenu={(event) => {
+                        if (!conversation) return;
+                        event.preventDefault();
+                        openContactMenu(
+                          String(conversation.id),
+                          String(identity.id),
+                          String(identity.name),
+                          event.clientX,
+                          event.clientY,
+                        );
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          !conversation ||
+                          !(
+                            event.key === "ContextMenu" ||
+                            (event.shiftKey && event.key === "F10")
+                          )
+                        ) {
+                          return;
+                        }
+                        event.preventDefault();
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        openContactMenu(
+                          String(conversation.id),
+                          String(identity.id),
+                          String(identity.name),
+                          rect.right - 210,
+                          rect.top + 18,
+                        );
+                      }}
                       onClick={(e) => {
                         if (performance.now() < suppressContactUntil.current) {
                           e.preventDefault();
@@ -614,9 +856,14 @@ export default function DirectChat({
                       </span>
 
                       {conversation && (
-                        <time dateTime={activityAt}>
-                          {contactTime(activityAt)}
-                        </time>
+                        <span className="chat-contact-meta">
+                          {mutedConversations.has(String(conversation.id)) && (
+                            <BellOff size={14} aria-label="Conversa silenciada" />
+                          )}
+                          <time dateTime={activityAt}>
+                            {contactTime(activityAt)}
+                          </time>
+                        </span>
                       )}
                     </button>
                   );
@@ -766,6 +1013,168 @@ export default function DirectChat({
               </button>
             </form>
           )}
+          {contactMenu && (
+            <>
+              <button
+                type="button"
+                className="chat-context-backdrop"
+                aria-label="Fechar opções da conversa"
+                onClick={() => setContactMenu(null)}
+              />
+              <div
+                className="chat-context-menu"
+                role="menu"
+                style={{ left: contactMenu.x, top: contactMenu.y }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionDialog({
+                      type: "clear",
+                      conversationId: contactMenu.conversationId,
+                      identityId: contactMenu.identityId,
+                      name: contactMenu.name,
+                    });
+                    setContactMenu(null);
+                  }}
+                >
+                  <Trash2 size={17} />
+                  Limpar conversa
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() =>
+                    void toggleMute(
+                      contactMenu.conversationId,
+                      mutedConversations.has(contactMenu.conversationId),
+                    )
+                  }
+                >
+                  {mutedConversations.has(contactMenu.conversationId) ? (
+                    <Bell size={17} />
+                  ) : (
+                    <BellOff size={17} />
+                  )}
+                  {mutedConversations.has(contactMenu.conversationId)
+                    ? "Ativar notificações"
+                    : "Silenciar"}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => {
+                    setReportReason("");
+                    setActionDialog({
+                      type: "report",
+                      conversationId: contactMenu.conversationId,
+                      identityId: contactMenu.identityId,
+                      name: contactMenu.name,
+                    });
+                    setContactMenu(null);
+                  }}
+                >
+                  <Flag size={17} />
+                  Denunciar
+                </button>
+              </div>
+            </>
+          )}
+
+          {actionDialog?.type === "clear" && (
+            <div className="chat-action-backdrop" role="presentation">
+              <section
+                className="chat-action-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="chat-clear-title"
+              >
+                <div className="chat-action-dialog-icon danger">
+                  <Trash2 size={22} />
+                </div>
+                <h3 id="chat-clear-title">Limpar conversa?</h3>
+                <p>
+                  Tem certeza que deseja limpar a conversa? As mensagens serão
+                  removidas para você e para a outra pessoa.
+                </p>
+                <div className="chat-action-dialog-actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setActionDialog(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy}
+                    onClick={() => void confirmClear()}
+                  >
+                    {busy ? "Limpando..." : "Limpar conversa"}
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {actionDialog?.type === "report" && (
+            <div className="chat-action-backdrop" role="presentation">
+              <section
+                className="chat-action-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="chat-report-title"
+              >
+                <div className="chat-action-dialog-icon">
+                  <Flag size={22} />
+                </div>
+                <h3 id="chat-report-title">Denunciar conversa</h3>
+                <p>Conte o motivo da denúncia.</p>
+                <label className="chat-report-field">
+                  <span className="visually-hidden">Motivo da denúncia</span>
+                  <textarea
+                    rows={4}
+                    maxLength={500}
+                    value={reportReason}
+                    onChange={(event) => setReportReason(event.target.value)}
+                    placeholder="Escreva o motivo..."
+                    autoFocus
+                  />
+                  <small>{reportReason.length}/500</small>
+                </label>
+                <div className="chat-action-dialog-actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setReportReason("");
+                      setActionDialog(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy || reportReason.trim().length < 3}
+                    onClick={() => void submitReport()}
+                  >
+                    {busy ? "Enviando..." : "Enviar denúncia"}
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {feedback && (
+            <p className="chat-action-feedback" role="status">
+              {feedback}
+            </p>
+          )}
+
           {error && (
             <p role="alert" className="error">
               {error}
