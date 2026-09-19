@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
+import { avatarSelectableFor } from "@/lib/avatar";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import AvatarFrame from "./AvatarFrame";
@@ -159,11 +160,13 @@ export default function CommunityProfile({
   online,
   cosmetics,
   equipment,
+  avatars,
   urls,
   actionsOpen,
   closeActions,
   followSignal,
   onFollowState,
+  onVisualChange,
   requestDelete,
 }: {
   campaign: string;
@@ -172,6 +175,7 @@ export default function CommunityProfile({
   online: boolean;
   cosmetics: Row[];
   equipment: Row[];
+  avatars: Row[];
   urls: Record<string, string>;
   actionsOpen: boolean;
   closeActions: () => void;
@@ -181,6 +185,7 @@ export default function CommunityProfile({
     canEdit: boolean;
     busy: boolean;
   }) => void;
+  onVisualChange: () => Promise<void>;
   requestDelete?: () => void;
 }) {
   const [summary, setSummary] = useState<ProfileSummary>();
@@ -201,7 +206,13 @@ export default function CommunityProfile({
     | null
   >(null);
   const [selectedMedalId, setSelectedMedalId] = useState("");
+  const [visualDialog, setVisualDialog] = useState<
+    "menu" | "avatar" | "frame" | null
+  >(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState("");
+  const [selectedFrameId, setSelectedFrameId] = useState("");
   const medalDialogRef = useRef<HTMLDialogElement>(null);
+  const visualDialogRef = useRef<HTMLDialogElement>(null);
   const cursorRef = useRef<{ createdAt: string; id: string } | undefined>(
     undefined,
   );
@@ -216,6 +227,19 @@ export default function CommunityProfile({
     if (!medalDialog) return;
     medalDialogRef.current?.showModal();
   }, [medalDialog]);
+
+  useEffect(() => {
+    if (!visualDialog) return;
+    if (!visualDialogRef.current?.open) visualDialogRef.current?.showModal();
+  }, [visualDialog]);
+
+  const closeVisualDialog = () => {
+    if (busyAction === "profile-visual") return;
+    visualDialogRef.current?.close();
+    setVisualDialog(null);
+    setSelectedAvatarId("");
+    setSelectedFrameId("");
+  };
 
   const closeMedalDialog = () => {
     medalDialogRef.current?.close();
@@ -286,6 +310,9 @@ export default function CommunityProfile({
     setEditingBio(false);
     setMedalDialog(null);
     setSelectedMedalId("");
+    setVisualDialog(null);
+    setSelectedAvatarId("");
+    setSelectedFrameId("");
     cursorRef.current = undefined;
 
     void (async () => {
@@ -422,6 +449,56 @@ export default function CommunityProfile({
     }
   };
 
+  const saveProfileAvatar = async () => {
+    if (!summary?.can_edit || !selectedAvatarId) return;
+    setBusyAction("profile-visual");
+    setError("");
+    try {
+      const response = await browserDb().rpc("identity_action", {
+        c: campaign,
+        op: "avatar",
+        d: {
+          identity_id: identity.id,
+          avatar_id: selectedAvatarId,
+        },
+      });
+      if (response.error) throw response.error;
+      await onVisualChange();
+      closeVisualDialog();
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
+  const saveProfileFrame = async () => {
+    if (!summary?.can_edit) return;
+    setBusyAction("profile-visual");
+    setError("");
+    try {
+      const response = await browserDb().rpc("frame_action", {
+        c: campaign,
+        op: selectedFrameId ? "equip" : "unequip",
+        d: selectedFrameId
+          ? {
+              identity_id: identity.id,
+              frame_id: selectedFrameId,
+            }
+          : {
+              identity_id: identity.id,
+            },
+      });
+      if (response.error) throw response.error;
+      await onVisualChange();
+      closeVisualDialog();
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
   const toggleFollow = async () => {
     if (!summary || summary.can_edit) return;
     const previous = summary.viewer_following;
@@ -530,6 +607,14 @@ export default function CommunityProfile({
     (entry) => entry.identity_id === identity.id && entry.kind === "frame",
   )?.cosmetic_id;
   const equippedFrame = cosmeticById.get(equippedFrameId);
+  const selectableAvatars = avatars.filter((avatar) =>
+    avatarSelectableFor(
+      avatar,
+      identity.user_id,
+      identity.kind === "master",
+      identity.avatar_id,
+    ),
+  );
   const principalMedals = [1, 2, 3].map((slot) =>
     medals.find((entry) => entry.featured_slot === slot),
   );
@@ -612,13 +697,37 @@ export default function CommunityProfile({
         <div className={styles.heroShade} />
         <div className={styles.identityBlock}>
           <span className={styles.avatarShell}>
-            <IdentityAvatar
-              identity={identity}
-              cosmetics={cosmetics}
-              equipment={equipment}
-              urls={urls}
-              size="clamp(126px, 32vw, 176px)"
-            />
+            {summary?.can_edit ? (
+              <button
+                type="button"
+                className={styles.avatarEditTrigger}
+                aria-label="Alterar avatar ou moldura"
+                onClick={() => {
+                  setSelectedAvatarId(String(identity.avatar_id || ""));
+                  setSelectedFrameId(String(equippedFrameId || ""));
+                  setVisualDialog("menu");
+                }}
+              >
+                <IdentityAvatar
+                  identity={identity}
+                  cosmetics={cosmetics}
+                  equipment={equipment}
+                  urls={urls}
+                  size="clamp(126px, 32vw, 176px)"
+                />
+                <span className={styles.avatarEditBadge} aria-hidden="true">
+                  <Pencil />
+                </span>
+              </button>
+            ) : (
+              <IdentityAvatar
+                identity={identity}
+                cosmetics={cosmetics}
+                equipment={equipment}
+                urls={urls}
+                size="clamp(126px, 32vw, 176px)"
+              />
+            )}
             {identity.user_id && (
               <i
                 className={online ? styles.online : styles.offline}
@@ -744,7 +853,33 @@ export default function CommunityProfile({
           <div className={styles.showcase}>
             <section>
               <h2>Moldura equipada</h2>
-              <div className={styles.equippedFrame}>
+              <div
+                className={
+                  summary?.can_edit
+                    ? `${styles.equippedFrame} ${styles.equippedFrameEditable}`
+                    : styles.equippedFrame
+                }
+                role={summary?.can_edit ? "button" : undefined}
+                tabIndex={summary?.can_edit ? 0 : undefined}
+                aria-label={
+                  summary?.can_edit ? "Trocar moldura equipada" : undefined
+                }
+                onClick={() => {
+                  if (!summary?.can_edit) return;
+                  setSelectedFrameId(String(equippedFrameId || ""));
+                  setVisualDialog("frame");
+                }}
+                onKeyDown={(event) => {
+                  if (
+                    !summary?.can_edit ||
+                    (event.key !== "Enter" && event.key !== " ")
+                  )
+                    return;
+                  event.preventDefault();
+                  setSelectedFrameId(String(equippedFrameId || ""));
+                  setVisualDialog("frame");
+                }}
+              >
                 <IdentityAvatar
                   identity={identity}
                   cosmetics={cosmetics}
@@ -955,6 +1090,248 @@ export default function CommunityProfile({
             </div>
           )}
         </div>
+      )}
+
+      {visualDialog && (
+        <dialog
+          ref={visualDialogRef}
+          className={styles.visualDialog}
+          onCancel={(event) => {
+            event.preventDefault();
+            closeVisualDialog();
+          }}
+        >
+          <div className={styles.visualDialogHeader}>
+            <div>
+              <small>Perfil</small>
+              <h2>
+                {visualDialog === "menu"
+                  ? "Personalizar perfil"
+                  : visualDialog === "avatar"
+                    ? "Trocar avatar"
+                    : "Trocar moldura"}
+              </h2>
+              {visualDialog === "menu" && (
+                <p>Escolha o que você quer alterar.</p>
+              )}
+            </div>
+            <button
+              type="button"
+              aria-label="Fechar"
+              disabled={busyAction === "profile-visual"}
+              onClick={closeVisualDialog}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </div>
+
+          {visualDialog === "menu" && (
+            <div className={styles.visualActionGrid}>
+              <button
+                type="button"
+                className={styles.visualActionCard}
+                onClick={() => {
+                  setSelectedAvatarId(String(identity.avatar_id || ""));
+                  setVisualDialog("avatar");
+                }}
+              >
+                <span className={styles.visualActionPreview}>
+                  <IdentityAvatar
+                    identity={identity}
+                    cosmetics={cosmetics}
+                    equipment={equipment}
+                    urls={urls}
+                    size={82}
+                  />
+                </span>
+                <span>
+                  <ImageIcon aria-hidden="true" />
+                  <strong>Trocar avatar</strong>
+                  <small>Escolher outra imagem para o perfil.</small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={styles.visualActionCard}
+                onClick={() => {
+                  setSelectedFrameId(String(equippedFrameId || ""));
+                  setVisualDialog("frame");
+                }}
+              >
+                <span className={styles.visualActionPreview}>
+                  <IdentityAvatar
+                    identity={identity}
+                    cosmetics={cosmetics}
+                    equipment={equipment}
+                    urls={urls}
+                    size={82}
+                  />
+                </span>
+                <span>
+                  <Frame aria-hidden="true" />
+                  <strong>Trocar moldura</strong>
+                  <small>Escolher outra moldura para o perfil.</small>
+                </span>
+              </button>
+            </div>
+          )}
+
+          {visualDialog === "avatar" && (
+            <>
+              <div className={styles.visualPickerGrid}>
+                {selectableAvatars.map((avatar) => {
+                  const selected = selectedAvatarId === String(avatar.id);
+                  return (
+                    <button
+                      type="button"
+                      key={avatar.id}
+                      className={
+                        selected
+                          ? `${styles.visualPickerCard} ${styles.visualPickerSelected}`
+                          : styles.visualPickerCard
+                      }
+                      aria-pressed={selected}
+                      disabled={busyAction === "profile-visual"}
+                      onClick={() => setSelectedAvatarId(String(avatar.id))}
+                    >
+                      <span className={styles.avatarPickerArt}>
+                        {urls[avatar.id] ? (
+                          <img
+                            src={urls[avatar.id]}
+                            alt={String(avatar.name || "Avatar")}
+                          />
+                        ) : (
+                          <ImageIcon aria-hidden="true" />
+                        )}
+                        {selected && (
+                          <i className={styles.visualSelectedMark}>
+                            <Check aria-hidden="true" />
+                          </i>
+                        )}
+                      </span>
+                      <strong>{avatar.name}</strong>
+                    </button>
+                  );
+                })}
+              </div>
+              {!selectableAvatars.length && (
+                <p className={styles.visualEmpty}>
+                  Nenhum avatar disponível para este perfil.
+                </p>
+              )}
+              <div className={styles.visualDialogActions}>
+                <button
+                  type="button"
+                  disabled={busyAction === "profile-visual"}
+                  onClick={() => setVisualDialog("menu")}
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={
+                    busyAction === "profile-visual" || !selectedAvatarId
+                  }
+                  onClick={() => void saveProfileAvatar()}
+                >
+                  {busyAction === "profile-visual" ? "Salvando..." : "Confirmar"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {visualDialog === "frame" && (
+            <>
+              <div className={styles.visualPickerGrid}>
+                <button
+                  type="button"
+                  className={
+                    !selectedFrameId
+                      ? `${styles.visualPickerCard} ${styles.visualPickerSelected}`
+                      : styles.visualPickerCard
+                  }
+                  aria-pressed={!selectedFrameId}
+                  disabled={busyAction === "profile-visual"}
+                  onClick={() => setSelectedFrameId("")}
+                >
+                  <span
+                    className={`${styles.framePickerArt} ${styles.noFrameArt}`}
+                  >
+                    <X aria-hidden="true" />
+                    {!selectedFrameId && (
+                      <i className={styles.visualSelectedMark}>
+                        <Check aria-hidden="true" />
+                      </i>
+                    )}
+                  </span>
+                  <strong>Sem moldura</strong>
+                </button>
+
+                {frames.map((entry) => {
+                  const selected =
+                    selectedFrameId === String(entry.cosmetic_id);
+                  return (
+                    <button
+                      type="button"
+                      key={entry.cosmetic_id}
+                      className={
+                        selected
+                          ? `${styles.visualPickerCard} ${styles.visualPickerSelected}`
+                          : styles.visualPickerCard
+                      }
+                      aria-pressed={selected}
+                      disabled={busyAction === "profile-visual"}
+                      onClick={() =>
+                        setSelectedFrameId(String(entry.cosmetic_id))
+                      }
+                    >
+                      <span className={styles.framePickerArt}>
+                        <AvatarFrame
+                          avatarUrl={
+                            identity.avatar_id
+                              ? urls[identity.avatar_id]
+                              : undefined
+                          }
+                          avatarAlt=""
+                          frame={entry.item}
+                          frameUrl={
+                            entry.item?.id ? urls[entry.item.id] : undefined
+                          }
+                          size={84}
+                        />
+                        {selected && (
+                          <i className={styles.visualSelectedMark}>
+                            <Check aria-hidden="true" />
+                          </i>
+                        )}
+                      </span>
+                      <strong>{entry.item?.name || "Moldura"}</strong>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={styles.visualDialogActions}>
+                <button
+                  type="button"
+                  disabled={busyAction === "profile-visual"}
+                  onClick={() => setVisualDialog("menu")}
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busyAction === "profile-visual"}
+                  onClick={() => void saveProfileFrame()}
+                >
+                  {busyAction === "profile-visual" ? "Salvando..." : "Confirmar"}
+                </button>
+              </div>
+            </>
+          )}
+        </dialog>
       )}
 
       {medalDialog && (
