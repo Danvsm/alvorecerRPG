@@ -6249,6 +6249,130 @@ dialog.combat-sheet {
   overflow-wrap: anywhere;
 }
 
+.medal-admin-card {
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.medal-admin-card:hover {
+  border-color: #8b6a38;
+  background: #171318;
+  transform: translateY(-1px);
+}
+
+.medal-admin-card:focus-visible {
+  outline: 2px solid #d9b568;
+  outline-offset: 3px;
+}
+
+.medal-admin-card small {
+  color: #b89a69;
+  font-size: 0.7rem;
+}
+
+.medal-action-dialog {
+  width: min(560px, calc(100vw - 28px));
+}
+
+.medal-dialog-heading {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.medal-dialog-heading h2 {
+  margin: 2px 0 0;
+}
+
+.medal-dialog-heading small {
+  color: var(--muted);
+}
+
+.medal-dialog-preview {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  overflow: hidden;
+}
+
+.medal-dialog-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.medal-dialog-preview > svg {
+  width: 34px;
+  height: 34px;
+  color: #d9b568;
+}
+
+.medal-dialog-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.medal-dialog-options button {
+  min-height: 52px;
+  justify-content: center;
+}
+
+.medal-dialog-copy {
+  margin: 10px 0 16px;
+}
+
+.medal-dialog-copy h3 {
+  margin-bottom: 6px;
+}
+
+.medal-dialog-copy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.medal-player-list {
+  display: grid;
+  gap: 8px;
+  max-height: 300px;
+  margin: 16px 0 20px;
+  overflow: auto;
+}
+
+.medal-player-option {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.medal-player-option > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.medal-player-option small {
+  color: var(--muted);
+}
+
+.medal-player-option.selected {
+  border-color: #d9b568;
+  background: #251d13;
+}
+
+
 .cosmetic-medal-image {
   display: block;
   max-width: 100%;
@@ -6256,6 +6380,10 @@ dialog.combat-sheet {
 }
 
 @media (max-width: 760px) {
+  .medal-dialog-options {
+    grid-template-columns: 1fr;
+  }
+
   .medal-manager {
     padding: 14px;
   }
