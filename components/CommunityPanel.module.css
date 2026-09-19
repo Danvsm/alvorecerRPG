@@ -4240,3 +4240,29 @@ dialog.commentsSheet {
     height: 38px;
   }
 }
+
+
+.profileFollowButton {
+  transition:
+    color 140ms ease,
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+.profileFollowButton:hover,
+.profileFollowButton:active {
+  transform: scale(1.04);
+}
+
+.profileFollowButton:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.profileFollowButton.profileFollowing {
+  color: #d8b560;
+}
+
+.profileFollowButton.profileFollowing svg {
+  filter: drop-shadow(0 0 7px #d8b56066);
+}

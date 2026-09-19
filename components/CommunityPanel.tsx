@@ -14,9 +14,11 @@ import {
   Send,
   SlidersHorizontal,
   Trophy,
+  UserCheck,
+  UserPlus,
   UserRound,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { orderCommunityIdentities } from "@/lib/community";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -115,6 +117,27 @@ export default function CommunityPanel({
   const [searchOpen, setSearchOpen] = useState(false);
   const [view, setView] = useState<CommunityView>(initialView);
   const [profileActionsOpen, setProfileActionsOpen] = useState(false);
+  const [profileFollowing, setProfileFollowing] = useState(false);
+  const [profileCanEdit, setProfileCanEdit] = useState<boolean | null>(null);
+  const [profileFollowBusy, setProfileFollowBusy] = useState(false);
+  const [profileFollowSignal, setProfileFollowSignal] = useState(0);
+  const handleProfileFollowState = useCallback(
+    ({
+      following,
+      canEdit,
+      busy,
+    }: {
+      following: boolean;
+      canEdit: boolean;
+      busy: boolean;
+    }) => {
+      setProfileFollowing(following);
+      setProfileCanEdit(canEdit);
+      setProfileFollowBusy(busy);
+    },
+    [],
+  );
+
   const [rankingMode, setRankingMode] = useState(false);
   const [filter, setFilter] = useState<CommunityFilter>("all");
   const [visibleCount, setVisibleCount] = useState(12);
@@ -277,6 +300,10 @@ export default function CommunityPanel({
 
   const revealProfile = (identityId: string) => {
     setProfileActionsOpen(false);
+    setProfileCanEdit(null);
+    setProfileFollowing(false);
+    setProfileFollowBusy(false);
+    setProfileFollowSignal(0);
     setSelected(identityId);
     setView("profile");
     window.requestAnimationFrame(() =>
@@ -307,6 +334,28 @@ export default function CommunityPanel({
               notifications={notifications}
               save={saveNotification}
             />
+            {profileCanEdit === false && (
+              <button
+                type="button"
+                className={`${styles.headerButton} ${styles.profileFollowButton} ${
+                  profileFollowing ? styles.profileFollowing : ""
+                }`}
+                aria-label={
+                  profileFollowing ? "Deixar de seguir" : "Seguir perfil"
+                }
+                aria-pressed={profileFollowing}
+                disabled={profileFollowBusy}
+                onClick={() =>
+                  setProfileFollowSignal((signal) => signal + 1)
+                }
+              >
+                {profileFollowing ? (
+                  <UserCheck aria-hidden="true" />
+                ) : (
+                  <UserPlus aria-hidden="true" />
+                )}
+              </button>
+            )}
             <button
               type="button"
               className={styles.headerButton}
@@ -415,6 +464,8 @@ export default function CommunityPanel({
             openMessage={() => message(current.id)}
             actionsOpen={profileActionsOpen}
             closeActions={() => setProfileActionsOpen(false)}
+            followSignal={profileFollowSignal}
+            onFollowState={handleProfileFollowState}
             requestDelete={
               master &&
               deleteWorldCharacter &&

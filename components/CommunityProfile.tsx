@@ -160,6 +160,8 @@ export default function CommunityProfile({
   openMessage,
   actionsOpen,
   closeActions,
+  followSignal,
+  onFollowState,
   requestDelete,
 }: {
   campaign: string;
@@ -172,6 +174,12 @@ export default function CommunityProfile({
   openMessage: () => void;
   actionsOpen: boolean;
   closeActions: () => void;
+  followSignal: number;
+  onFollowState: (state: {
+    following: boolean;
+    canEdit: boolean;
+    busy: boolean;
+  }) => void;
   requestDelete?: () => void;
 }) {
   const [summary, setSummary] = useState<ProfileSummary>();
@@ -298,6 +306,11 @@ export default function CommunityProfile({
         const signed = await signPostMedia(loadedPosts);
         if (generation !== generationRef.current) return;
         setSummary(loadedSummary);
+        onFollowState({
+          following: loadedSummary.viewer_following,
+          canEdit: loadedSummary.can_edit,
+          busy: false,
+        });
         setBioDraft(loadedSummary.bio);
         setCollectibles(
           (collectionResponse.data || []).map((row: Row) => ({
@@ -321,7 +334,7 @@ export default function CommunityProfile({
         if (generation === generationRef.current) setLoading(false);
       }
     })();
-  }, [actor, campaign, identity.id, signPostMedia]);
+  }, [actor, campaign, identity.id, onFollowState, signPostMedia]);
 
   const saveBio = async () => {
     if (!summary) return;
@@ -348,7 +361,13 @@ export default function CommunityProfile({
   const toggleFollow = async () => {
     if (!summary || summary.can_edit) return;
     const previous = summary.viewer_following;
-    setSummary({ ...summary, viewer_following: !previous });
+    const optimistic = !previous;
+    setSummary({ ...summary, viewer_following: optimistic });
+    onFollowState({
+      following: optimistic,
+      canEdit: false,
+      busy: true,
+    });
     setBusyAction("follow");
     setError("");
     try {
@@ -358,20 +377,36 @@ export default function CommunityProfile({
         d: { actor_id: actor, target_id: identity.id },
       });
       if (response.error) throw response.error;
+      const active = Boolean(response.data?.active);
       setSummary((current) =>
-        current
-          ? { ...current, viewer_following: Boolean(response.data?.active) }
-          : current,
+        current ? { ...current, viewer_following: active } : current,
       );
+      onFollowState({
+        following: active,
+        canEdit: false,
+        busy: false,
+      });
     } catch (reason) {
       setSummary((current) =>
         current ? { ...current, viewer_following: previous } : current,
       );
+      onFollowState({
+        following: previous,
+        canEdit: false,
+        busy: false,
+      });
       setError(readableErrorMessage(reason));
     } finally {
       setBusyAction("");
     }
   };
+
+  useEffect(() => {
+    if (!followSignal || !summary || summary.can_edit) return;
+    void toggleFollow();
+    // O sinal muda apenas quando o botão do topo é tocado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [followSignal]);
 
   const togglePostLike = async (post: ProfilePost) => {
     const nextLiked = !post.viewer_liked;
@@ -642,32 +677,9 @@ export default function CommunityProfile({
         )}
       </div>
 
-      <div
-        className={styles.tabs}
-        role="tablist"
-        aria-label="Conteúdo do perfil"
-      >
-        {tabs.map(({ id, label, Icon }) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? styles.activeTab : ""}
-            key={id}
-            onClick={() => setTab(id)}
-          >
-            <Icon aria-hidden="true" />
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <p className={styles.status}>
-          <LoaderCircle aria-hidden="true" /> Carregando perfil...
-        </p>
-      ) : tab === "wall" ? (
-        <div className={styles.wall} role="tabpanel">
+      {!loading && (
+        <div className={styles.profileShowcaseArea}>
+          <span className={styles.showcaseDivider} aria-hidden="true" />
           <div className={styles.showcase}>
             <section>
               <h2>Moldura equipada</h2>
@@ -718,7 +730,35 @@ export default function CommunityProfile({
               </div>
             </section>
           </div>
+        </div>
+      )}
 
+      <div
+        className={styles.tabs}
+        role="tablist"
+        aria-label="Conteúdo do perfil"
+      >
+        {tabs.map(({ id, label, Icon }) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? styles.activeTab : ""}
+            key={id}
+            onClick={() => setTab(id)}
+          >
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p className={styles.status}>
+          <LoaderCircle aria-hidden="true" /> Carregando perfil...
+        </p>
+      ) : tab === "wall" ? (
+        <div className={styles.wall} role="tabpanel">
           <div className={styles.postList} aria-label="Publicações do perfil">
             {posts.map((post) => (
               <article className={styles.post} key={post.id}>
