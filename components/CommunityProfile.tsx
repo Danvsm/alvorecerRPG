@@ -464,7 +464,10 @@ export default function CommunityProfile({
       });
       if (response.error) throw response.error;
       await onVisualChange();
-      closeVisualDialog();
+      visualDialogRef.current?.close();
+      setVisualDialog(null);
+      setSelectedAvatarId("");
+      setSelectedFrameId("");
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -491,7 +494,10 @@ export default function CommunityProfile({
       });
       if (response.error) throw response.error;
       await onVisualChange();
-      closeVisualDialog();
+      visualDialogRef.current?.close();
+      setVisualDialog(null);
+      setSelectedAvatarId("");
+      setSelectedFrameId("");
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
