@@ -84,12 +84,11 @@ export default function ConversationMonitor({
       }
 
       const latestResult = await retryNetworkRead(() =>
-        browserDb()
-          .from("direct_messages")
-          .select("id,conversation_id,sender_id,body,media_id,created_at")
-          .in("conversation_id", ids)
-          .order("created_at", { ascending: false })
-          .limit(500),
+        browserDb().rpc("master_conversation_messages", {
+          c: campaign,
+          target: null,
+          page_size: 500,
+        }),
       );
 
       if (latestResult.error) throw latestResult.error;
@@ -146,12 +145,11 @@ export default function ConversationMonitor({
 
     try {
       const result = await retryNetworkRead(() =>
-        browserDb()
-          .from("direct_messages")
-          .select("id,conversation_id,sender_id,body,media_id,created_at")
-          .eq("conversation_id", conversationId)
-          .order("created_at", { ascending: false })
-          .limit(200),
+        browserDb().rpc("master_conversation_messages", {
+          c: campaign,
+          target: conversationId,
+          page_size: 200,
+        }),
       );
 
       if (result.error) throw result.error;
@@ -161,7 +159,7 @@ export default function ConversationMonitor({
     } finally {
       setLoadingMessages(false);
     }
-  }, []);
+  }, [campaign]);
 
   useEffect(() => {
     void loadConversations();
