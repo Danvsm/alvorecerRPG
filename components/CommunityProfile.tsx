@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Pencil,
   Save,
-  Send,
   Trash2,
   Trophy,
   UserCheck,
@@ -157,7 +156,6 @@ export default function CommunityProfile({
   cosmetics,
   equipment,
   urls,
-  openMessage,
   actionsOpen,
   closeActions,
   followSignal,
@@ -171,7 +169,6 @@ export default function CommunityProfile({
   cosmetics: Row[];
   equipment: Row[];
   urls: Record<string, string>;
-  openMessage: () => void;
   actionsOpen: boolean;
   closeActions: () => void;
   followSignal: number;
@@ -668,13 +665,6 @@ export default function CommunityProfile({
           </span>
         </div>
 
-        {!summary?.can_edit && (
-          <div className={styles.actions}>
-            <button type="button" onClick={openMessage}>
-              <Send aria-hidden="true" /> Mensagem
-            </button>
-          </div>
-        )}
       </div>
 
       {!loading && (

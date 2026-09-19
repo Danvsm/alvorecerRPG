@@ -334,6 +334,16 @@ export default function CommunityPanel({
               notifications={notifications}
               save={saveNotification}
             />
+            {profileCanEdit === false && current && (
+              <button
+                type="button"
+                className={styles.headerButton}
+                aria-label="Enviar mensagem"
+                onClick={() => message(current.id)}
+              >
+                <Send aria-hidden="true" />
+              </button>
+            )}
             {profileCanEdit === false && (
               <button
                 type="button"
@@ -461,7 +471,6 @@ export default function CommunityPanel({
             cosmetics={cosmetics}
             equipment={equipment}
             urls={urls}
-            openMessage={() => message(current.id)}
             actionsOpen={profileActionsOpen}
             closeActions={() => setProfileActionsOpen(false)}
             followSignal={profileFollowSignal}
