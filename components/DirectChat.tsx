@@ -151,8 +151,9 @@ export default function DirectChat({
   };
 
   const closeContactPress = () => {
-    if (contactPress.current?.timer !== null) {
-      window.clearTimeout(contactPress.current.timer);
+    const press = contactPress.current;
+    if (press?.timer != null) {
+      window.clearTimeout(press.timer);
     }
     contactPress.current = null;
   };
