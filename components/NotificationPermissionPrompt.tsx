@@ -76,25 +76,33 @@ export default function NotificationPermissionPrompt({
           : await Notification.requestPermission();
       setResult(permission === "granted" ? "granted" : "denied");
 
-      if (permission === "granted") {
-        window.localStorage.removeItem(
-          `alvorecer:notification-prompt:${userId}`,
-        );
-
-        const subscription = await ensureAlvorecerPushSubscription(campaign);
-        if (!subscription) {
-          setResult("setup_error");
-          return;
-        }
-
-        await showAlvorecerNotification({
-          title: "Notificações ativadas",
-          body: "Pronto. Este aparelho está registrado para receber avisos mesmo com o Chrome fechado.",
-          tag: "alvorecer-permission-test",
-        });
-
-        window.setTimeout(() => setOpen(false), 1200);
+      if (permission !== "granted") {
+        setResult("denied");
+        return;
       }
+
+      window.localStorage.removeItem(
+        `alvorecer:notification-prompt:${userId}`,
+      );
+
+      const subscription = await ensureAlvorecerPushSubscription(campaign);
+      if (!subscription) {
+        setResult("setup_error");
+        return;
+      }
+
+      setResult("granted");
+
+      await showAlvorecerNotification({
+        title: "Notificações ativadas",
+        body: "Pronto. Este aparelho está registrado para receber avisos mesmo com o Chrome fechado.",
+        tag: "alvorecer-permission-test",
+      });
+
+      window.setTimeout(() => setOpen(false), 1200);
+    } catch {
+      setResult("setup_error");
+      setOpen(true);
     } finally {
       setRequesting(false);
     }

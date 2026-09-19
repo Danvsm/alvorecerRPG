@@ -5,11 +5,15 @@ import { browserDb } from "@/lib/client";
 const VAPID_PUBLIC_KEY =
   "BJBrWPRxiT-G4BR87p377bpqMpPYprbbMKEpCj3_TyOgRZ6rzKgdZZ0qMMv1uBhY97KgSlK_Obn16BGJkLGnGyE";
 
-function urlBase64ToUint8Array(value: string) {
+function urlBase64ToArrayBuffer(value: string): ArrayBuffer {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = window.atob(base64);
-  return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+  const bytes = new Uint8Array(raw.length);
+  for (let index = 0; index < raw.length; index += 1) {
+    bytes[index] = raw.charCodeAt(index);
+  }
+  return bytes.buffer;
 }
 
 export async function ensureAlvorecerNotificationWorker() {
@@ -49,7 +53,7 @@ export async function ensureAlvorecerPushSubscription(campaign: string) {
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToArrayBuffer(VAPID_PUBLIC_KEY),
     });
   }
 
@@ -105,7 +109,6 @@ export async function showAlvorecerNotification({
         body,
         icon: "/favicon.ico",
         tag,
-        renotify: Boolean(tag),
         data: { url: "/" },
       });
       return true;
