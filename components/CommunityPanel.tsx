@@ -81,12 +81,14 @@ export default function CommunityPanel({
   identities,
   cosmetics,
   equipment,
+  avatars,
   urls,
   actor,
   master,
   notifications,
   openMenu,
   saveNotification,
+  refreshVisuals,
   unreadMessages,
   message,
   changeActor,
@@ -98,12 +100,14 @@ export default function CommunityPanel({
   identities: Row[];
   cosmetics: Row[];
   equipment: Row[];
+  avatars: Row[];
   urls: Record<string, string>;
   actor: string;
   master: boolean;
   notifications: Row[];
   openMenu: () => void;
   saveNotification: (op: string, details: Row) => Promise<unknown>;
+  refreshVisuals: () => Promise<void>;
   unreadMessages: number;
   message: (id: string) => void;
   changeActor?: (id: string) => void;
@@ -479,11 +483,13 @@ export default function CommunityPanel({
             online={isOnline(current)}
             cosmetics={cosmetics}
             equipment={equipment}
+            avatars={avatars}
             urls={urls}
             actionsOpen={profileActionsOpen}
             closeActions={() => setProfileActionsOpen(false)}
             followSignal={profileFollowSignal}
             onFollowState={handleProfileFollowState}
+            onVisualChange={refreshVisuals}
             requestDelete={
               master &&
               deleteWorldCharacter &&
