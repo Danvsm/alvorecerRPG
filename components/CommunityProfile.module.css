@@ -53,6 +53,55 @@
   filter: drop-shadow(0 14px 28px #000c);
 }
 
+.avatarEditTrigger {
+  position: relative;
+  display: grid;
+  width: fit-content;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  overflow: visible;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.avatarEditTrigger:hover,
+.avatarEditTrigger:focus-visible {
+  border: 0;
+  background: transparent;
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.avatarEditTrigger:focus-visible {
+  outline: 2px solid #d4a94c;
+  outline-offset: 5px;
+}
+
+.avatarEditBadge {
+  position: absolute;
+  right: 7%;
+  bottom: 7%;
+  z-index: 8;
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border: 2px solid #171113;
+  border-radius: 50%;
+  color: #f1dfbf;
+  background: #8f2433;
+  box-shadow: 0 5px 15px #000a;
+}
+
+.avatarEditBadge svg {
+  width: 14px;
+  height: 14px;
+}
+
 .avatarShell > i {
   position: absolute;
   right: 7%;
@@ -423,6 +472,23 @@
   text-align: center;
 }
 
+.equippedFrameEditable {
+  cursor: pointer;
+  border-radius: 12px;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.equippedFrameEditable:hover,
+.equippedFrameEditable:focus-visible {
+  background: #ffffff08;
+  box-shadow: inset 0 0 0 1px #d2a34a38;
+  transform: translateY(-1px);
+  outline: none;
+}
+
 .equippedFrame > span:last-child {
   display: grid;
   min-width: 0;
@@ -541,6 +607,247 @@
   font-size: 0.63rem;
   font-weight: 650;
   line-height: 1.1;
+}
+
+.visualDialog {
+  width: min(620px, calc(100vw - 28px));
+  max-height: min(760px, 86dvh);
+  padding: 20px;
+  overflow: hidden;
+  border-color: #5d472b;
+  background:
+    radial-gradient(circle at 50% -20%, #9b6b241f, transparent 330px),
+    linear-gradient(180deg, #151114, #0b090b 72%);
+}
+
+.visualDialogHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.visualDialogHeader small {
+  color: #c39a5b;
+  font-size: 0.67rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.visualDialogHeader h2 {
+  margin: 3px 0 4px;
+  color: #f2e8de;
+  font-size: 1.18rem;
+}
+
+.visualDialogHeader p {
+  margin: 0;
+  color: #92877f;
+  font-size: 0.78rem;
+}
+
+.visualDialogHeader > button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  border-color: #ffffff12;
+  background: #090809;
+}
+
+.visualActionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.visualActionCard {
+  display: grid;
+  min-height: 190px;
+  grid-template-rows: 112px auto;
+  gap: 10px;
+  padding: 15px;
+  border-color: #ffffff11;
+  border-radius: 16px;
+  background:
+    linear-gradient(160deg, #1b1516, #0c0a0c),
+    #0c0a0c;
+  text-align: left;
+}
+
+.visualActionCard:hover,
+.visualActionCard:focus-visible {
+  border-color: #a57a39;
+  background:
+    linear-gradient(160deg, #241a15, #0e0b0d),
+    #0c0a0c;
+  box-shadow: inset 0 0 24px #a56f1518;
+}
+
+.visualActionPreview {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+}
+
+.visualActionCard > span:last-child {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 3px 8px;
+}
+
+.visualActionCard > span:last-child > svg {
+  grid-row: 1 / 3;
+  width: 18px;
+  height: 18px;
+  color: #d3aa63;
+}
+
+.visualActionCard strong {
+  color: #eee2d6;
+  font-size: 0.84rem;
+}
+
+.visualActionCard small {
+  color: #887f78;
+  font-size: 0.69rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.visualPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 10px;
+  max-height: min(460px, 55dvh);
+  padding: 2px 3px 12px;
+  overflow-y: auto;
+}
+
+.visualPickerCard {
+  display: grid;
+  min-width: 0;
+  min-height: 132px;
+  align-content: start;
+  justify-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-color: #ffffff0f;
+  border-radius: 13px;
+  background: #0b090b;
+  text-align: center;
+}
+
+.visualPickerCard:hover,
+.visualPickerCard:focus-visible {
+  border-color: #7c603a;
+  background: #15100e;
+}
+
+.visualPickerSelected {
+  border-color: #d0a347;
+  background: #1b140d;
+  box-shadow:
+    inset 0 0 20px #b47a191a,
+    0 0 0 1px #d0a34724;
+}
+
+.avatarPickerArt,
+.framePickerArt {
+  position: relative;
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+}
+
+.avatarPickerArt {
+  overflow: hidden;
+  border: 1px solid #ffffff12;
+  border-radius: 18px;
+  background: #070708;
+}
+
+.avatarPickerArt img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarPickerArt > svg {
+  width: 30px;
+  height: 30px;
+  color: #8d8178;
+}
+
+.framePickerArt {
+  overflow: visible;
+}
+
+.noFrameArt {
+  border: 1px dashed #6d625b;
+  border-radius: 50%;
+  color: #8b817b;
+  background: #090809;
+}
+
+.noFrameArt > svg {
+  width: 28px;
+  height: 28px;
+}
+
+.visualSelectedMark {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 2px solid #0c0a0b;
+  border-radius: 50%;
+  color: #100c08;
+  background: #d9ae58;
+  box-shadow: 0 3px 10px #0009;
+}
+
+.visualSelectedMark svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
+
+.visualPickerCard strong {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  color: #d9d0c9;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.visualEmpty {
+  margin: 30px 0;
+  color: #8e847d;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.visualDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #ffffff0f;
 }
 
 .medalDialog {
@@ -974,6 +1281,42 @@
 }
 
 @media (max-width: 760px) {
+  .visualDialog {
+    padding: 16px;
+  }
+
+  .visualActionGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .visualActionCard {
+    min-height: 166px;
+    grid-template-rows: 94px auto;
+    padding: 11px 9px;
+  }
+
+  .visualActionCard small {
+    display: none;
+  }
+
+  .visualPickerGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .visualPickerCard {
+    min-height: 116px;
+    padding: 8px 5px;
+  }
+
+  .avatarPickerArt,
+  .framePickerArt {
+    width: clamp(68px, 20vw, 82px);
+    height: clamp(68px, 20vw, 82px);
+  }
+
+
   .medalDialog {
     padding: 16px;
   }
