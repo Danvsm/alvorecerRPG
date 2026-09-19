@@ -733,6 +733,49 @@
   line-height: 1.4;
 }
 
+
+
+.archiveSection {
+  display: grid;
+  gap: 14px;
+}
+
+.archiveSectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.archiveSectionHeading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f0d3a0;
+}
+
+.archiveSectionHeading > span svg {
+  width: 18px;
+  height: 18px;
+  color: #d1a35f;
+}
+
+.archiveSectionHeading strong {
+  font-size: 1rem;
+}
+
+.archiveSectionHeading > small {
+  padding: 5px 9px;
+  border: 1px solid #5c432d;
+  border-radius: 999px;
+  color: #d9ae6b;
+  background: #120d0a;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .archiveGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

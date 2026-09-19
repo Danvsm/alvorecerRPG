@@ -507,22 +507,10 @@ Deno.serve(async (req: Request) => {
           }
 
           if (message.media_id) {
-            const { data: media } = await db
+            await db
               .from("chat_media")
-              .select("id,storage_path")
-              .eq("id", message.media_id)
-              .maybeSingle();
-
-            if (media) {
-              await db
-                .from("chat_media")
-                .update({ deleted_at: deletedAt })
-                .eq("id", media.id);
-
-              await db.storage
-                .from("chat-media")
-                .remove([String(media.storage_path)]);
-            }
+              .update({ removed_from_chat_at: deletedAt })
+              .eq("id", message.media_id);
           }
 
           await db.rpc("record_event", {

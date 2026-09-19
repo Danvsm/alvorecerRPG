@@ -12,10 +12,10 @@ export async function cleanup(req: Request) {
   const now = new Date().toISOString();
   const expiredChat = await db
     .from("chat_media")
-    .select("id,storage_path")
+    .select("id,storage_path,archive_expires_at")
     .is("deleted_at", null)
-    .lte("expires_at", now)
-    .order("expires_at")
+    .lte("archive_expires_at", now)
+    .order("archive_expires_at")
     .limit(100);
   if (expiredChat.error) throw new Error("Falha ao listar imagens expiradas");
 
