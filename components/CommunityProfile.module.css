@@ -470,7 +470,7 @@
   text-align: center;
 }
 
-.principalMedals > div > span {
+.medalSlotButton {
   display: grid;
   width: 58px;
   height: 58px;
@@ -488,6 +488,245 @@
   width: 31px;
   height: 31px;
   stroke-width: 1.6;
+}
+
+.medalSlotButton {
+  padding: 0;
+  cursor: pointer;
+}
+
+.medalSlotButton:not(:disabled):hover,
+.medalSlotButton:not(:disabled):focus-visible {
+  border-color: #dfb451;
+  box-shadow:
+    inset 0 0 0 4px #080708,
+    inset 0 0 20px #8a5a0b66,
+    0 0 0 2px #d5a82f2c;
+}
+
+.medalSlotButton:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.medalSlotButton img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+.medalDialog {
+  width: min(540px, calc(100vw - 28px));
+  padding: 20px;
+  border-color: #4c3b28;
+  background:
+    radial-gradient(circle at 50% 0%, #6d4a171c, transparent 230px),
+    #100e10;
+}
+
+.medalDialogHeader,
+.medalInfoHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.medalDialogHeader small,
+.medalInfoHeader small {
+  color: #b78d50;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.medalDialogHeader h2,
+.medalInfoHeader h2 {
+  margin: 3px 0 5px;
+  color: #eee4db;
+  font-size: 1.12rem;
+}
+
+.medalDialogHeader p {
+  margin: 0;
+  color: #948a82;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.medalDialogHeader > button,
+.medalInfoHeader > button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  border-color: #ffffff12;
+  background: #090809;
+}
+
+.medalChoiceList {
+  display: grid;
+  gap: 8px;
+  max-height: min(420px, 52dvh);
+  margin: 18px 0;
+  overflow-y: auto;
+}
+
+.medalChoice {
+  display: grid;
+  width: 100%;
+  min-height: 76px;
+  grid-template-columns: 58px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  border: 1px solid #ffffff12;
+  border-radius: 12px;
+  color: #eee5dc;
+  background: #0b0a0c;
+  text-align: left;
+}
+
+.medalChoice:hover,
+.medalChoice:focus-visible,
+.medalChoiceSelected {
+  border-color: #8b6830;
+  background: #17120d;
+}
+
+.medalChoiceArt {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+}
+
+.medalChoiceArt img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.medalChoiceArt svg {
+  width: 31px;
+  height: 31px;
+  color: #d5a82f;
+}
+
+.medalChoiceCopy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.medalChoiceCopy strong {
+  overflow: hidden;
+  color: #eee4db;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medalChoiceCopy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #8f867f;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.medalChoiceCheck {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  color: #0d0b08;
+  background: #d5a82f;
+}
+
+.medalChoiceCheck:empty {
+  background: transparent;
+}
+
+.medalChoiceCheck svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 3;
+}
+
+.medalChoiceEmpty {
+  margin: 24px 0;
+  color: #8f867f;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.medalDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid #ffffff10;
+}
+
+.medalInfoHeader {
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.medalInfoArt {
+  display: grid;
+  width: 74px;
+  height: 74px;
+  place-items: center;
+}
+
+.medalInfoArt img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.medalInfoArt svg {
+  width: 38px;
+  height: 38px;
+  color: #d5a82f;
+}
+
+.medalInfoHeader > div {
+  min-width: 0;
+}
+
+.medalInfoHeader > div > span {
+  color: #b78d50;
+  font-size: 0.7rem;
+}
+
+.medalInfoBody {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #ffffff0e;
+  border-radius: 12px;
+  background: #0a090a;
+}
+
+.medalInfoBody h3 {
+  margin: 0 0 7px;
+  color: #d9c8b6;
+  font-size: 0.78rem;
+}
+
+.medalInfoBody p {
+  margin: 0;
+  color: #a89d94;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .postList {
@@ -707,6 +946,30 @@
 }
 
 @media (max-width: 760px) {
+  .medalDialog {
+    padding: 16px;
+  }
+
+  .medalChoice {
+    grid-template-columns: 50px minmax(0, 1fr) 26px;
+    min-height: 68px;
+    padding: 8px 9px;
+  }
+
+  .medalChoiceArt {
+    width: 48px;
+    height: 48px;
+  }
+
+  .medalInfoHeader {
+    grid-template-columns: 62px minmax(0, 1fr) auto;
+  }
+
+  .medalInfoArt {
+    width: 60px;
+    height: 60px;
+  }
+
   .profile {
     width: 100%;
   }
@@ -862,7 +1125,7 @@
     gap: 5px;
   }
 
-  .principalMedals > div > span {
+  .medalSlotButton {
     width: clamp(36px, 10vw, 44px);
     height: clamp(36px, 10vw, 44px);
   }
@@ -937,7 +1200,7 @@
     text-align: center;
   }
 
-  .principalMedals > div > span {
+  .medalSlotButton {
     width: 34px;
     height: 34px;
   }
