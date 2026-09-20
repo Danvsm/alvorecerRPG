@@ -4908,3 +4908,80 @@ dialog.commentsSheet {
     height: 17px;
   }
 }
+
+
+/* Mobile polish after visual verification on Explore. */
+.community .exploreHeader + .searchDock .search {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 11px;
+  min-height: 52px;
+  padding: 0 14px;
+}
+
+.community .exploreHeader + .searchDock .search > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin: 0;
+}
+
+.community .exploreHeader + .searchDock .search input {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  min-height: 50px;
+  margin: 0;
+  padding: 0;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  line-height: 50px;
+}
+
+@media (max-width: 430px) {
+  .community .exploreHeader + .searchDock {
+    max-height: 72px;
+    padding: 7px 13px 0;
+  }
+
+  .community .exploreHeader + .searchDock .search {
+    min-height: 50px;
+    border-radius: 15px;
+  }
+
+  .community .exploreHeader + .searchDock .search input {
+    min-height: 48px;
+    line-height: 48px;
+    font-size: 0.86rem;
+  }
+
+  .exploreDirectory {
+    padding-top: 10px;
+  }
+
+  .exploreCategories {
+    gap: 4px;
+  }
+
+  .exploreCategoryCard {
+    min-height: 144px;
+    padding: 9px 7px 10px;
+  }
+
+  .exploreCategoryCopy strong {
+    font-size: clamp(0.78rem, 3.45vw, 0.94rem);
+    line-height: 1.02;
+  }
+
+  .exploreCategoryCopy small {
+    font-size: clamp(0.45rem, 1.9vw, 0.54rem);
+    line-height: 1.2;
+  }
+
+  .exploreLoreBanner {
+    margin-top: 10px;
+  }
+}
