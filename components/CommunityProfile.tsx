@@ -22,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { avatarSelectableFor } from "@/lib/avatar";
+import { versionedImageUrl } from "@/lib/image-cache";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import AvatarFrame from "./AvatarFrame";
@@ -296,7 +297,10 @@ export default function CommunityProfile({
     return Object.fromEntries(
       media.map((post, index) => [
         post.id,
-        signed.data?.[index]?.signedUrl || "",
+        versionedImageUrl(
+          signed.data?.[index]?.signedUrl || "",
+          post.image_path,
+        ),
       ]),
     );
   }, []);
@@ -406,20 +410,35 @@ export default function CommunityProfile({
         const loadedPosts = (postsResponse.data || []).map(normalizedPost);
         const loadedWallpapers = (wallpaperResponse.data || []) as Row[];
         const signed = await signPostMedia(loadedPosts);
-        const wallpaperPaths = loadedWallpapers
-          .map((wallpaper) => String(wallpaper.storage_path || ""))
-          .filter(Boolean);
+        const wallpaperAssets = loadedWallpapers.filter((wallpaper) =>
+          Boolean(wallpaper.storage_path),
+        );
+        const wallpaperPaths = wallpaperAssets.map((wallpaper) =>
+          String(wallpaper.storage_path),
+        );
         const wallpaperSigned = wallpaperPaths.length
           ? await browserDb()
               .storage.from("profile-wallpapers")
               .createSignedUrls(wallpaperPaths, 3600)
           : { data: [], error: null };
         if (wallpaperSigned.error) throw wallpaperSigned.error;
-        const loadedWallpaperUrls = Object.fromEntries(
-          loadedWallpapers.map((wallpaper, index) => [
-            String(wallpaper.id),
+        const wallpaperSignedByPath = new Map(
+          wallpaperAssets.map((wallpaper, index) => [
+            String(wallpaper.storage_path),
             wallpaperSigned.data?.[index]?.signedUrl || "",
           ]),
+        );
+        const loadedWallpaperUrls = Object.fromEntries(
+          loadedWallpapers.map((wallpaper) => {
+            const path = String(wallpaper.storage_path || "");
+            return [
+              String(wallpaper.id),
+              versionedImageUrl(
+                wallpaperSignedByPath.get(path) || "",
+                wallpaper.updated_at || wallpaper.created_at || path,
+              ),
+            ];
+          }),
         );
         if (generation !== generationRef.current) return;
         setSummary(loadedSummary);
