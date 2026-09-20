@@ -22,8 +22,8 @@
   padding: 104px 32px 30px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, #0504053b 0%, #08070884 58%, #080708 100%),
-    url("/community/community-wallpaper.webp") 58% 26% / cover no-repeat;
+    linear-gradient(180deg, #05040514 0%, #08070824 58%, #080708a8 100%),
+    url("/community/community-wallpaper.webp") 58% 24% / cover no-repeat;
   isolation: isolate;
 }
 
@@ -32,9 +32,21 @@
   z-index: -1;
   inset: 0;
   background:
-    radial-gradient(circle at 72% 14%, #8b111a28, transparent 19rem),
-    linear-gradient(90deg, #070607f0 0%, #090708b8 48%, #0d0607a6 100%),
-    linear-gradient(0deg, #080708 0%, #080708d6 16%, transparent 68%);
+    radial-gradient(
+      ellipse at 34% 45%,
+      #050405c2 0%,
+      #0504058c 28%,
+      #0504053d 48%,
+      transparent 68%
+    ),
+    linear-gradient(
+      90deg,
+      #05040578 0%,
+      #05040552 34%,
+      #05040520 62%,
+      transparent 88%
+    ),
+    linear-gradient(0deg, #080708f2 0%, #080708a8 14%, transparent 54%);
 }
 
 .identityBlock {
@@ -1517,6 +1529,26 @@
   .hero {
     min-height: 0;
     padding: 96px 14px 0;
+    background-position: 60% 22%;
+  }
+
+  .heroShade {
+    background:
+      radial-gradient(
+        ellipse at 38% 43%,
+        #050405b5 0%,
+        #0504057d 30%,
+        #05040531 50%,
+        transparent 70%
+      ),
+      linear-gradient(
+        90deg,
+        #05040568 0%,
+        #05040542 38%,
+        #05040516 66%,
+        transparent 92%
+      ),
+      linear-gradient(0deg, #080708f5 0%, #080708b0 15%, transparent 56%);
   }
 
   .identityBlock {
