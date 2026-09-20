@@ -46,12 +46,12 @@ const exploreCategories = [
   {
     title: "Jogadores",
     eyebrow: "Conheça aventureiros",
-    image: "/community/community-wallpaper.webp",
+    image: "/community/jogadores.webp",
   },
   {
     title: "Histórias dos personagens",
     eyebrow: "Leia e compartilhe",
-    image: "/community/feed-composer-background.webp",
+    image: "/community/historias-dos-personagens.webp",
   },
 ] as const;
 

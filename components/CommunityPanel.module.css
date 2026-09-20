@@ -4395,11 +4395,11 @@ dialog.commentsSheet {
 }
 
 .exploreCategoryCard:nth-child(2) {
-  background-position: 61% 28%;
+  background-position: 50% 54%;
 }
 
 .exploreCategoryCard:nth-child(3) {
-  background-position: 67% 44%;
+  background-position: 57% 49%;
 }
 
 .exploreCategoryCard::before,
