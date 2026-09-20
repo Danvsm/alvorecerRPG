@@ -211,8 +211,16 @@ export default function CommunityProfile({
   >(null);
   const [selectedAvatarId, setSelectedAvatarId] = useState("");
   const [selectedFrameId, setSelectedFrameId] = useState("");
+  const [wallpapers, setWallpapers] = useState<Row[]>([]);
+  const [wallpaperUrls, setWallpaperUrls] = useState<Record<string, string>>({});
+  const [activeWallpaperId, setActiveWallpaperId] = useState(
+    String(identity.wallpaper_id || ""),
+  );
+  const [selectedWallpaperId, setSelectedWallpaperId] = useState("");
+  const [wallpaperDialog, setWallpaperDialog] = useState(false);
   const medalDialogRef = useRef<HTMLDialogElement>(null);
   const visualDialogRef = useRef<HTMLDialogElement>(null);
+  const wallpaperDialogRef = useRef<HTMLDialogElement>(null);
   const cursorRef = useRef<{ createdAt: string; id: string } | undefined>(
     undefined,
   );
@@ -232,6 +240,19 @@ export default function CommunityProfile({
     if (!visualDialog) return;
     if (!visualDialogRef.current?.open) visualDialogRef.current?.showModal();
   }, [visualDialog]);
+
+  useEffect(() => {
+    if (!wallpaperDialog) return;
+    if (!wallpaperDialogRef.current?.open)
+      wallpaperDialogRef.current?.showModal();
+  }, [wallpaperDialog]);
+
+  const closeWallpaperDialog = () => {
+    if (busyAction === "wallpaper") return;
+    wallpaperDialogRef.current?.close();
+    setWallpaperDialog(false);
+    setSelectedWallpaperId("");
+  };
 
   const closeVisualDialog = () => {
     if (busyAction === "profile-visual") return;
@@ -313,12 +334,21 @@ export default function CommunityProfile({
     setVisualDialog(null);
     setSelectedAvatarId("");
     setSelectedFrameId("");
+    setWallpaperDialog(false);
+    setSelectedWallpaperId("");
+    setWallpapers([]);
+    setWallpaperUrls({});
+    setActiveWallpaperId(String(identity.wallpaper_id || ""));
     cursorRef.current = undefined;
 
     void (async () => {
       try {
-        const [summaryResponse, collectionResponse, postsResponse] =
-          await Promise.all([
+        const [
+          summaryResponse,
+          collectionResponse,
+          postsResponse,
+          wallpaperResponse,
+        ] = await Promise.all([
             retryNetworkRead(() =>
               browserDb().rpc("community_profile", {
                 c: campaign,
@@ -343,15 +373,37 @@ export default function CommunityProfile({
                 page_size: PROFILE_PAGE_SIZE,
               }),
             ),
+            retryNetworkRead(() =>
+              browserDb().rpc("profile_wallpaper_catalog", {
+                c: campaign,
+              }),
+            ),
           ]);
         if (summaryResponse.error) throw summaryResponse.error;
         if (collectionResponse.error) throw collectionResponse.error;
         if (postsResponse.error) throw postsResponse.error;
+        if (wallpaperResponse.error) throw wallpaperResponse.error;
         const loadedSummary = normalizedSummary(
           summaryResponse.data?.[0] || {},
         );
         const loadedPosts = (postsResponse.data || []).map(normalizedPost);
+        const loadedWallpapers = (wallpaperResponse.data || []) as Row[];
         const signed = await signPostMedia(loadedPosts);
+        const wallpaperPaths = loadedWallpapers
+          .map((wallpaper) => String(wallpaper.storage_path || ""))
+          .filter(Boolean);
+        const wallpaperSigned = wallpaperPaths.length
+          ? await browserDb()
+              .storage.from("profile-wallpapers")
+              .createSignedUrls(wallpaperPaths, 3600)
+          : { data: [], error: null };
+        if (wallpaperSigned.error) throw wallpaperSigned.error;
+        const loadedWallpaperUrls = Object.fromEntries(
+          loadedWallpapers.map((wallpaper, index) => [
+            String(wallpaper.id),
+            wallpaperSigned.data?.[index]?.signedUrl || "",
+          ]),
+        );
         if (generation !== generationRef.current) return;
         setSummary(loadedSummary);
         onFollowState({
@@ -372,6 +424,9 @@ export default function CommunityProfile({
         );
         setPosts(loadedPosts);
         setPostUrls(signed);
+        setWallpapers(loadedWallpapers);
+        setWallpaperUrls(loadedWallpaperUrls);
+        setActiveWallpaperId(String(identity.wallpaper_id || ""));
         setHasMore(loadedPosts.length === PROFILE_PAGE_SIZE);
         const last = loadedPosts.at(-1);
         cursorRef.current = last
@@ -384,7 +439,14 @@ export default function CommunityProfile({
         if (generation === generationRef.current) setLoading(false);
       }
     })();
-  }, [actor, campaign, identity.id, onFollowState, signPostMedia]);
+  }, [
+    actor,
+    campaign,
+    identity.id,
+    identity.wallpaper_id,
+    onFollowState,
+    signPostMedia,
+  ]);
 
   const saveBio = async () => {
     if (!summary) return;
@@ -498,6 +560,33 @@ export default function CommunityProfile({
       setVisualDialog(null);
       setSelectedAvatarId("");
       setSelectedFrameId("");
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
+  const saveWallpaper = async () => {
+    if (!summary?.can_edit) return;
+    setBusyAction("wallpaper");
+    setError("");
+    try {
+      const response = await browserDb().rpc("profile_wallpaper_action", {
+        c: campaign,
+        op: "select",
+        d: {
+          actor_id: actor,
+          wallpaper_id: selectedWallpaperId,
+        },
+      });
+      if (response.error) throw response.error;
+
+      setActiveWallpaperId(selectedWallpaperId);
+      await onVisualChange();
+      wallpaperDialogRef.current?.close();
+      setWallpaperDialog(false);
+      setSelectedWallpaperId("");
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -640,6 +729,13 @@ export default function CommunityProfile({
   const displayedTitles = titles.slice(0, 2);
   const bio = summary?.bio || DEFAULT_BIO;
 
+  const activeWallpaperUrl = activeWallpaperId
+    ? wallpaperUrls[activeWallpaperId]
+    : "";
+  const availableWallpapers = wallpapers.filter(
+    (wallpaper) => wallpaper.active && !wallpaper.archived_at,
+  );
+
   const tabs: Array<{ id: ProfileTab; label: string; Icon: typeof Award }> = [
     { id: "wall", label: "Mural", Icon: MessageCircle },
     { id: "achievements", label: "Conquistas", Icon: Trophy },
@@ -678,12 +774,17 @@ export default function CommunityProfile({
                   <Pencil aria-hidden="true" />
                   Editar perfil
                 </button>
-                <button type="button" role="menuitem" disabled>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    closeActions();
+                    setSelectedWallpaperId(activeWallpaperId);
+                    setWallpaperDialog(true);
+                  }}
+                >
                   <ImageIcon aria-hidden="true" />
-                  <span>
-                    Alterar wallpaper
-                    <small>Indisponível no momento</small>
-                  </span>
+                  Alterar wallpaper
                 </button>
               </>
             ) : (
@@ -708,7 +809,16 @@ export default function CommunityProfile({
         </>
       )}
 
-      <div className={styles.hero}>
+      <div
+        className={styles.hero}
+        style={
+          activeWallpaperUrl
+            ? {
+                backgroundImage: `linear-gradient(180deg, #0504053b 0%, #08070884 58%, #080708 100%), url("${activeWallpaperUrl}")`,
+              }
+            : undefined
+        }
+      >
         <div className={styles.heroShade} />
         <div className={styles.identityBlock}>
           <span className={styles.avatarShell}>
@@ -1102,6 +1212,126 @@ export default function CommunityProfile({
             </div>
           )}
         </div>
+      )}
+
+      {wallpaperDialog && (
+        <dialog
+          ref={wallpaperDialogRef}
+          className={styles.wallpaperDialog}
+          onCancel={(event) => {
+            event.preventDefault();
+            closeWallpaperDialog();
+          }}
+        >
+          <div className={styles.wallpaperDialogHeader}>
+            <div>
+              <small>Perfil</small>
+              <h2>Alterar wallpaper</h2>
+              <p>Escolha o fundo que aparecerá no topo do seu perfil.</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Fechar"
+              disabled={busyAction === "wallpaper"}
+              onClick={closeWallpaperDialog}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={styles.wallpaperPickerGrid}>
+            <button
+              type="button"
+              className={
+                selectedWallpaperId
+                  ? styles.wallpaperPickerCard
+                  : `${styles.wallpaperPickerCard} ${styles.wallpaperPickerSelected}`
+              }
+              aria-pressed={!selectedWallpaperId}
+              disabled={busyAction === "wallpaper"}
+              onClick={() => setSelectedWallpaperId("")}
+            >
+              <span
+                className={styles.wallpaperPreview}
+                style={{
+                  backgroundImage:
+                    'url("/community/community-wallpaper.webp")',
+                }}
+              >
+                {!selectedWallpaperId && (
+                  <i className={styles.wallpaperSelectedMark}>
+                    <Check aria-hidden="true" />
+                  </i>
+                )}
+              </span>
+              <strong>Padrão do Alvorecer</strong>
+            </button>
+
+            {availableWallpapers.map((wallpaper) => {
+              const wallpaperId = String(wallpaper.id);
+              const selected = selectedWallpaperId === wallpaperId;
+              return (
+                <button
+                  type="button"
+                  key={wallpaperId}
+                  className={
+                    selected
+                      ? `${styles.wallpaperPickerCard} ${styles.wallpaperPickerSelected}`
+                      : styles.wallpaperPickerCard
+                  }
+                  aria-pressed={selected}
+                  disabled={
+                    busyAction === "wallpaper" ||
+                    !wallpaperUrls[wallpaperId]
+                  }
+                  onClick={() => setSelectedWallpaperId(wallpaperId)}
+                >
+                  <span
+                    className={styles.wallpaperPreview}
+                    style={
+                      wallpaperUrls[wallpaperId]
+                        ? {
+                            backgroundImage: `url("${wallpaperUrls[wallpaperId]}")`,
+                          }
+                        : undefined
+                    }
+                  >
+                    {selected && (
+                      <i className={styles.wallpaperSelectedMark}>
+                        <Check aria-hidden="true" />
+                      </i>
+                    )}
+                  </span>
+                  <strong>{wallpaper.name}</strong>
+                </button>
+              );
+            })}
+          </div>
+
+          {!availableWallpapers.length && (
+            <p className={styles.wallpaperEmpty}>
+              Ainda não existem wallpapers extras disponíveis.
+            </p>
+          )}
+
+          <div className={styles.wallpaperDialogActions}>
+            <button
+              type="button"
+              disabled={busyAction === "wallpaper"}
+              onClick={closeWallpaperDialog}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="primary"
+              disabled={busyAction === "wallpaper"}
+              onClick={() => void saveWallpaper()}
+            >
+              {busyAction === "wallpaper" ? "Salvando..." : "Confirmar"}
+            </button>
+          </div>
+        </dialog>
       )}
 
       {visualDialog && (
