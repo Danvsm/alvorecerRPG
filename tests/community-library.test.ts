@@ -70,6 +70,19 @@ test("the editorial experience lets players write only in their collection", asy
   assert.doesNotMatch(library, /styles\.cardActions/);
 });
 
+test("editorial previews stay inside narrow mobile viewports", async () => {
+  const styles = await readFile(
+    new URL("../components/CommunityLibrary.module.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(styles, /\.storyCard > button \{[\s\S]*?display: block/);
+  assert.match(styles, /\.storyCard > button \{[\s\S]*?min-width: 0/);
+  assert.match(styles, /\.cardCopy \{[\s\S]*?min-width: 0/);
+  assert.match(styles, /\.cardCopy strong \{[\s\S]*?overflow-wrap: anywhere/);
+  assert.match(styles, /\.cardCopy > span \{[\s\S]*?overflow-wrap: anywhere/);
+});
+
 test("editorial tables, RPC and media are protected in Supabase", async () => {
   const [, , migration, playerMigration] = await files();
 

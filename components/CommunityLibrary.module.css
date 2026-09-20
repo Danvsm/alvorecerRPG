@@ -1,8 +1,11 @@
 .library,
 .reader {
   width: min(100%, 900px);
+  min-width: 0;
+  max-width: 100%;
   margin: 0 auto;
   padding: 28px 22px 116px;
+  overflow-x: clip;
   color: #f5f1e8;
   font-family: var(--font-ui);
 }
@@ -93,6 +96,8 @@
 .articleGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  max-width: 100%;
   gap: 18px;
   padding-top: 24px;
 }
@@ -119,7 +124,11 @@
 }
 
 .storyCard > button {
+  display: block;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0;
   color: inherit;
   text-align: left;
@@ -165,6 +174,9 @@
 
 .cardCopy {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 192px;
   flex-direction: column;
   align-items: flex-start;
@@ -172,6 +184,8 @@
 }
 
 .cardCopy small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: #bf9957;
   font-size: 0.7rem;
   font-weight: 750;
@@ -181,8 +195,11 @@
 
 .cardCopy strong {
   display: -webkit-box;
+  width: 100%;
+  max-width: 100%;
   margin-top: 7px;
   overflow: hidden;
+  overflow-wrap: anywhere;
   font: 700 1.23rem/1.25 var(--font-display);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -190,8 +207,11 @@
 
 .cardCopy > span {
   display: -webkit-box;
+  width: 100%;
+  max-width: 100%;
   margin-top: 8px;
   overflow: hidden;
+  overflow-wrap: anywhere;
   color: #aaa5a2;
   font-size: 0.88rem;
   line-height: 1.5;
