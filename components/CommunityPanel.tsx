@@ -49,11 +49,6 @@ const exploreCategories = [
     image: "/community/community-wallpaper.webp",
   },
   {
-    title: "Clãs",
-    eyebrow: "Encontre sua guilda",
-    image: "/community/story-composer-arch.webp",
-  },
-  {
     title: "Histórias dos personagens",
     eyebrow: "Leia e compartilhe",
     image: "/community/feed-composer-background.webp",
