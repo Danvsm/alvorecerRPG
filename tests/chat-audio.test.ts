@@ -113,6 +113,9 @@ test("voice media uses a private bucket and server-only finalization", async () 
   assert.match(migration, /interval '7 days'/);
   assert.match(recorder, /MediaRecorder/);
   assert.match(recorder, /MAX_CHAT_AUDIO_MS/);
+  assert.match(recorder, /voice-stop-button/);
+  assert.match(recorder, /voice-preview-wave/);
+  assert.doesNotMatch(recorder, /holding:/);
   assert.match(player, /preload="none"/);
   assert.match(edge, /inspectAudioDuration/);
   assert.match(edge, /finalize_chat_audio/);

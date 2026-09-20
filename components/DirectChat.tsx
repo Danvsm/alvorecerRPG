@@ -99,7 +99,6 @@ export default function DirectChat({
     } | null>(null),
     [messageReportReason, setMessageReportReason] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [voiceHolding, setVoiceHolding] = useState(false);
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -114,15 +113,6 @@ export default function DirectChat({
     moved: boolean;
   } | null>(null);
 
-  useEffect(() => {
-    const releaseVoice = () => setVoiceHolding(false);
-    window.addEventListener("pointerup", releaseVoice);
-    window.addEventListener("pointercancel", releaseVoice);
-    return () => {
-      window.removeEventListener("pointerup", releaseVoice);
-      window.removeEventListener("pointercancel", releaseVoice);
-    };
-  }, []);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -1177,8 +1167,14 @@ export default function DirectChat({
                 }
               }}
             >
-              <div className="chat-attachment-actions">
-                {!voiceOpen && (
+              {voiceOpen ? (
+                <VoiceRecorder
+                  disabled={busy}
+                  onClose={() => setVoiceOpen(false)}
+                  onSend={sendVoice}
+                />
+              ) : (
+                <>
                   <label
                     className="chat-image-button"
                     aria-label="Enviar imagem"
@@ -1230,38 +1226,6 @@ export default function DirectChat({
                       }}
                     />
                   </label>
-                )}
-                <button
-                  type="button"
-                  className={`chat-voice-button${voiceOpen ? " active" : ""}`}
-                  onPointerDown={(event) => {
-                    if (voiceOpen) return;
-                    if (event.pointerType === "mouse" && event.button !== 0)
-                      return;
-                    event.preventDefault();
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                    setVoiceHolding(true);
-                    setVoiceOpen(true);
-                  }}
-                  disabled={busy}
-                  aria-label="Segure para gravar mensagem de voz"
-                  aria-pressed={voiceOpen}
-                >
-                  <Mic aria-hidden="true" />
-                </button>
-              </div>
-              {voiceOpen ? (
-                <VoiceRecorder
-                  disabled={busy}
-                  holding={voiceHolding}
-                  onClose={() => {
-                    setVoiceHolding(false);
-                    setVoiceOpen(false);
-                  }}
-                  onSend={sendVoice}
-                />
-              ) : (
-                <>
                   <label className="chat-text-field">
                     <span className="visually-hidden">Mensagem</span>
                     <textarea
@@ -1274,12 +1238,21 @@ export default function DirectChat({
                     />
                   </label>
                   <button
-                    type="submit"
-                    className="chat-send-button"
-                    disabled={busy || !body.trim()}
-                    aria-label="Enviar mensagem"
+                    type={body.trim() ? "submit" : "button"}
+                    className={
+                      body.trim() ? "chat-send-button" : "chat-voice-button"
+                    }
+                    disabled={busy}
+                    aria-label={
+                      body.trim() ? "Enviar mensagem" : "Gravar mensagem de voz"
+                    }
+                    onClick={body.trim() ? undefined : () => setVoiceOpen(true)}
                   >
-                    <Send aria-hidden="true" />
+                    {body.trim() ? (
+                      <Send aria-hidden="true" />
+                    ) : (
+                      <Mic aria-hidden="true" />
+                    )}
                   </button>
                 </>
               )}

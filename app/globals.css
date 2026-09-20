@@ -2708,33 +2708,8 @@ dialog::backdrop {
   cursor: pointer;
 }
 
-.chat-attachment-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.chat-attachment-actions .chat-image-button,
-.chat-attachment-actions .chat-voice-button {
-  width: 40px;
-  height: 40px;
-  align-self: center;
-}
-
 .chat-voice-button {
   cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.chat-voice-button.active {
-  color: #fff5ed;
-  border-color: #d84a59;
-  background: linear-gradient(145deg, #bd263d, #761426);
-  box-shadow:
-    0 0 0 5px #d02a4324,
-    0 0 18px #d02a435c;
-  transform: scale(1.04);
 }
 
 .chat-composer.voice-active {
@@ -2742,7 +2717,7 @@ dialog::backdrop {
 }
 
 .chat-composer.voice-active .voice-recorder {
-  grid-column: 2 / 4;
+  grid-column: 1 / -1;
 }
 
 .chat-image-button input {
@@ -2800,6 +2775,7 @@ dialog::backdrop {
 .voice-recorder {
   position: relative;
   min-width: 0;
+  width: 100%;
 }
 
 .voice-requesting-row,
@@ -2812,11 +2788,12 @@ dialog::backdrop {
 }
 
 .voice-recorder button {
-  min-height: 38px;
-  border: 1px solid #5a3d29;
+  min-height: 40px;
+  border: 1px solid #3f3430;
   border-radius: 999px;
-  color: #e8d7c1;
-  background: #181112;
+  color: #e6ddd6;
+  background: #151214;
+  box-shadow: none;
 }
 
 .voice-recorder button svg {
@@ -2836,11 +2813,12 @@ dialog::backdrop {
 }
 
 .voice-preview-row .primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding-inline: 14px;
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
 }
 
 .voice-requesting-row {
@@ -2858,28 +2836,20 @@ dialog::backdrop {
 
 .voice-recorder button.primary {
   color: #fff4e5;
-  border-color: #c44748;
-  background: linear-gradient(135deg, #a81f34, #711526);
+  border-color: #d33d54;
+  background: linear-gradient(145deg, #c22943, #8e1930);
+  box-shadow: 0 5px 16px #9e1b3242;
 }
 
 .voice-recording-row {
   overflow: hidden;
-  border: 1px solid #3a312c;
-  border-radius: 24px;
-  padding: 2px 4px;
-  background: #151214;
+  padding: 0;
 }
 
 .voice-recording-row > strong {
   min-width: 42px;
   color: #fff3e7;
   font-variant-numeric: tabular-nums;
-}
-
-.voice-release-hint {
-  flex: 0 0 auto;
-  color: #9f9187;
-  font-size: 0.73rem;
 }
 
 .voice-recording-dot {
@@ -2898,11 +2868,64 @@ dialog::backdrop {
   display: flex;
   flex: 1;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 2px;
   min-width: 30px;
   height: 28px;
   overflow: hidden;
+}
+
+.voice-stop-button {
+  color: #fff !important;
+  border-color: #d33d54 !important;
+  background: #a61f35 !important;
+  box-shadow: 0 0 0 5px #d02a431a !important;
+}
+
+.voice-stop-button svg {
+  width: 15px !important;
+  height: 15px !important;
+  fill: currentColor;
+}
+
+.voice-preview-row {
+  padding: 0;
+}
+
+.voice-preview-row audio {
+  display: none;
+}
+
+.voice-preview-play {
+  color: #f3d5ad !important;
+  border-color: #68503b !important;
+}
+
+.voice-preview-play svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+.voice-preview-wave {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 28px;
+  height: 30px;
+  overflow: hidden;
+}
+
+.voice-preview-wave i {
+  width: 2px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: #62554c;
+  transition: background-color 120ms ease;
+}
+
+.voice-preview-wave i.played {
+  background: #d6a15c;
 }
 
 .voice-recording-wave i {
@@ -2938,13 +2961,6 @@ dialog::backdrop {
     opacity: 0.42;
     transform: scale(0.82);
   }
-}
-
-.voice-preview-row audio {
-  min-width: 0;
-  flex: 1;
-  width: 0;
-  height: 38px;
 }
 
 .voice-preview-row > small {
@@ -3026,22 +3042,13 @@ dialog::backdrop {
 }
 
 @media (max-width: 390px) {
-  .chat-attachment-actions {
-    gap: 4px;
-  }
-
-  .chat-attachment-actions .chat-image-button,
-  .chat-attachment-actions .chat-voice-button {
-    width: 37px;
-    height: 37px;
-  }
-
-  .voice-release-hint {
-    display: none;
-  }
-
   .voice-preview-row .primary {
-    padding-inline: 12px;
+    width: 40px;
+    min-width: 40px;
+  }
+
+  .voice-preview-wave i:nth-child(even) {
+    display: none;
   }
 }
 

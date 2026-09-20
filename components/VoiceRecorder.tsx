@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, Trash2 } from "lucide-react";
+import { Mic, Pause, Play, Send, Square, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   CHAT_AUDIO_BITRATE,
@@ -10,18 +10,15 @@ import {
   MAX_CHAT_AUDIO_MS,
   selectChatAudioFormat,
   type ChatAudioPayload,
-  type ChatAudioFormat,
 } from "@/lib/chat-audio";
 import { readableErrorMessage } from "@/lib/network";
 
 export default function VoiceRecorder({
   disabled,
-  holding,
   onClose,
   onSend,
 }: {
   disabled?: boolean;
-  holding: boolean;
   onClose: () => void;
   onSend: (payload: ChatAudioPayload) => Promise<void>;
 }) {
@@ -31,18 +28,19 @@ export default function VoiceRecorder({
   const [elapsed, setElapsed] = useState(0);
   const [previewUrl, setPreviewUrl] = useState("");
   const [error, setError] = useState("");
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
   const chunksRef = useRef<Blob[]>([]);
   const samplesRef = useRef<number[]>([]);
   const payloadRef = useRef<ChatAudioPayload | null>(null);
-  const formatRef = useRef<ChatAudioFormat | null>(null);
   const cancelledRef = useRef(false);
-  const releasedRef = useRef(false);
   const startedRef = useRef(false);
 
   const releaseInput = () => {
@@ -61,6 +59,8 @@ export default function VoiceRecorder({
     setPreviewUrl("");
     payloadRef.current = null;
     setElapsed(0);
+    setPreviewPlaying(false);
+    setPreviewProgress(0);
     setError("");
   };
 
@@ -114,7 +114,6 @@ export default function VoiceRecorder({
         },
       });
       streamRef.current = stream;
-      formatRef.current = format;
       chunksRef.current = [];
       samplesRef.current = [];
       cancelledRef.current = false;
@@ -179,9 +178,6 @@ export default function VoiceRecorder({
       startedAtRef.current = Date.now();
       setElapsed(0);
       setState("recording");
-      if (releasedRef.current || !holding) {
-        window.setTimeout(() => stopRecording(false), 0);
-      }
       intervalRef.current = window.setInterval(() => {
         const next = Math.min(
           MAX_CHAT_AUDIO_MS,
@@ -218,12 +214,6 @@ export default function VoiceRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (holding) return;
-    releasedRef.current = true;
-    if (state === "recording") stopRecording(false);
-  }, [holding, state]);
-
   const send = async () => {
     const payload = payloadRef.current;
     if (!payload || state !== "preview") return;
@@ -239,19 +229,26 @@ export default function VoiceRecorder({
     }
   };
 
+  const togglePreview = async () => {
+    const audio = previewAudioRef.current;
+    if (!audio) return;
+    if (audio.paused) await audio.play();
+    else audio.pause();
+  };
+
   return (
     <section className="voice-recorder" aria-label="Gravar mensagem de voz">
       {state === "ready" || state === "requesting" ? (
         <div className="voice-requesting-row" aria-live="polite">
+          <button type="button" onClick={onClose} aria-label="Cancelar áudio">
+            <X />
+          </button>
           <Mic />
           <span>
             {state === "requesting"
               ? "Abrindo microfone..."
               : "Preparando áudio..."}
           </span>
-          <button type="button" onClick={onClose} aria-label="Cancelar áudio">
-            <Trash2 />
-          </button>
         </div>
       ) : state === "recording" ? (
         <div className="voice-recording-row">
@@ -263,7 +260,7 @@ export default function VoiceRecorder({
             }}
             aria-label="Cancelar gravação"
           >
-            <Trash2 />
+            <X />
           </button>
           <span className="voice-recording-dot" aria-hidden="true" />
           <strong>{formatAudioDuration(elapsed)}</strong>
@@ -272,10 +269,34 @@ export default function VoiceRecorder({
               <i key={index} />
             ))}
           </span>
-          <span className="voice-release-hint">Solte para concluir</span>
+          <button
+            type="button"
+            className="voice-stop-button"
+            onClick={() => stopRecording(false)}
+            aria-label="Parar gravação"
+          >
+            <Square />
+          </button>
         </div>
       ) : (
         <div className="voice-preview-row">
+          <audio
+            ref={previewAudioRef}
+            src={previewUrl}
+            preload="metadata"
+            onPlay={() => setPreviewPlaying(true)}
+            onPause={() => setPreviewPlaying(false)}
+            onEnded={() => {
+              setPreviewPlaying(false);
+              setPreviewProgress(0);
+            }}
+            onTimeUpdate={(event) => {
+              const audio = event.currentTarget;
+              setPreviewProgress(
+                audio.duration > 0 ? audio.currentTime / audio.duration : 0,
+              );
+            }}
+          />
           <button
             type="button"
             onClick={() => {
@@ -287,7 +308,32 @@ export default function VoiceRecorder({
           >
             <Trash2 />
           </button>
-          <audio src={previewUrl} controls preload="metadata" />
+          <button
+            type="button"
+            className="voice-preview-play"
+            onClick={togglePreview}
+            disabled={state === "uploading"}
+            aria-label={previewPlaying ? "Pausar áudio" : "Ouvir áudio"}
+          >
+            {previewPlaying ? <Pause /> : <Play />}
+          </button>
+          <span className="voice-preview-wave" aria-hidden="true">
+            {(payloadRef.current?.waveform || [])
+              .slice(0, 28)
+              .map((height, index, points) => (
+                <i
+                  key={index}
+                  className={
+                    index / Math.max(1, points.length - 1) <= previewProgress
+                      ? "played"
+                      : ""
+                  }
+                  style={{
+                    height: `${Math.max(5, Math.round(height * 0.24))}px`,
+                  }}
+                />
+              ))}
+          </span>
           <small>{formatAudioDuration(elapsed)}</small>
           <button
             type="button"
@@ -295,7 +341,10 @@ export default function VoiceRecorder({
             onClick={send}
             disabled={state === "uploading"}
           >
-            {state === "uploading" ? "Enviando..." : "Enviar"}
+            <Send />
+            <span className="visually-hidden">
+              {state === "uploading" ? "Enviando áudio" : "Enviar áudio"}
+            </span>
           </button>
         </div>
       )}
