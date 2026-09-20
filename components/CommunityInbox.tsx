@@ -8,6 +8,12 @@ import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import styles from "./CommunityPanel.module.css";
 
+function inboxMediaType(message?: Row) {
+  const relation = message?.chat_media;
+  const media = Array.isArray(relation) ? relation[0] : relation;
+  return media?.media_type === "audio" ? "audio" : "image";
+}
+
 function conversationTime(value?: string) {
   if (!value) return "";
   const date = new Date(value);
@@ -93,7 +99,7 @@ export default function CommunityInbox({
     const messageResult = await retryNetworkRead(() =>
       browserDb()
         .from("direct_messages")
-        .select("id,conversation_id,sender_id,body,media_id,created_at")
+        .select("id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)")
         .in("conversation_id", ids)
         .order("created_at", { ascending: false }),
     );
@@ -222,9 +228,13 @@ export default function CommunityInbox({
       <div className={styles.inboxList}>
         {contacts.map(({ identity, conversation, latest, activityAt, online }) => {
           const lastMessage = latest?.media_id
-            ? latest.sender_id === actor
-              ? "Você enviou uma imagem"
-              : "Enviou uma imagem"
+            ? inboxMediaType(latest) === "audio"
+              ? latest.sender_id === actor
+                ? "Você enviou um áudio"
+                : "Enviou um áudio"
+              : latest.sender_id === actor
+                ? "Você enviou uma imagem"
+                : "Enviou uma imagem"
             : latest?.body
               ? latest.sender_id === actor
                 ? `Você: ${latest.body}`

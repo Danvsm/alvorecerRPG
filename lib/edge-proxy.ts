@@ -1,7 +1,7 @@
 import "server-only";
 export async function edgeProxy(
   req: Request,
-  route: "auth" | "admin" | "push",
+  route: "auth" | "admin" | "push" | "chat-audio-finalize",
 ) {
   try {
     const origin = req.headers.get("origin");

@@ -97,8 +97,10 @@ function createWorkerHarness(
   async function dispatchFetch(url: string) {
     const waits: Promise<unknown>[] = [];
     let responsePromise: Promise<Response> | undefined;
+    const request = new Request(url, { method: "GET" });
+    Object.defineProperty(request, "destination", { value: "image" });
     listeners.get("fetch")?.({
-      request: { method: "GET", destination: "image", url },
+      request,
       respondWith(promise: Promise<Response>) {
         responsePromise = Promise.resolve(promise);
       },

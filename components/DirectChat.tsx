@@ -1,12 +1,21 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, ChevronLeft, Flag, ImagePlus, MessageCircle, Send, Trash2, X } from "lucide-react";
+import { Bell, BellOff, ChevronLeft, Flag, ImagePlus, MessageCircle, Mic, Send, Trash2, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import ChatImage from "./ChatImage";
+import ChatAudio from "./ChatAudio";
 import IdentityAvatar from "./IdentityAvatar";
+import VoiceRecorder from "./VoiceRecorder";
 import { optimizedWebp } from "@/lib/media";
+import type { ChatAudioPayload } from "@/lib/chat-audio";
+
+function mediaType(message: Row) {
+  const relation = message.chat_media;
+  const media = Array.isArray(relation) ? relation[0] : relation;
+  return media?.media_type === "audio" ? "audio" : "image";
+}
 
 export default function DirectChat({
   campaign,
@@ -74,6 +83,7 @@ export default function DirectChat({
       message: Row;
     } | null>(null),
     [messageReportReason, setMessageReportReason] = useState("");
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -119,6 +129,62 @@ export default function DirectChat({
       });
     } catch {
       // A mensagem continua enviada mesmo se o aviso push falhar.
+    }
+  };
+
+  const sendVoice = async (payload: ChatAudioPayload) => {
+    if (busy || !selected) throw new Error("Abra uma conversa para enviar o áudio.");
+    setBusy(true);
+    setError("");
+    try {
+      const db = browserDb();
+      const sessionResult = await db.auth.getSession();
+      const token = sessionResult.data.session?.access_token;
+      if (!token) throw new Error("Entre novamente.");
+
+      const reservation = await db.rpc("chat_audio_reserve", {
+        c: campaign,
+        actor_id: actor,
+        conversation_id: selected,
+        requested_mime: payload.mimeType,
+      });
+      if (reservation.error) throw reservation.error;
+
+      const upload = await db.storage
+        .from("chat-audio")
+        .upload(reservation.data.path, payload.blob, {
+          contentType: payload.mimeType,
+          cacheControl: "3600",
+          upsert: false,
+        });
+      if (upload.error) throw upload.error;
+
+      const response = await fetch("/api/chat-audio/finalize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          campaign,
+          actorId: actor,
+          mediaId: reservation.data.id,
+          durationMs: payload.durationMs,
+          waveform: payload.waveform,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Não foi possível enviar o áudio.");
+      }
+
+      void pushReceivedMessage(selected);
+      setRefresh((value) => value + 1);
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:chat-updated", { detail: { campaign } }),
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -293,7 +359,7 @@ export default function DirectChat({
           detail: { campaign },
         }),
       );
-      showFeedback(target.media_id ? "Foto excluída." : "Mensagem excluída.");
+      showFeedback(target.media_id ? "Anexo excluído." : "Mensagem excluída.");
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -423,7 +489,7 @@ export default function DirectChat({
       const latestResult = await retryNetworkRead(() =>
         browserDb()
           .from("direct_messages")
-          .select("id,conversation_id,sender_id,body,media_id,created_at")
+          .select("id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)")
           .in("conversation_id", ids)
           .order("created_at", { ascending: false }),
       );
@@ -451,7 +517,7 @@ export default function DirectChat({
     let valid = true;
     browserDb()
       .from("direct_messages")
-      .select("*")
+      .select("*,chat_media(media_type)")
       .eq("conversation_id", selected)
       .order("created_at", { ascending: false })
       .limit(limit)
@@ -570,6 +636,7 @@ export default function DirectChat({
       const conversation = await action("conversation", {
         recipient_id: identityId,
       });
+      setVoiceOpen(false);
       setSelected(conversation.id);
       setLimit(50);
       setRefresh((value) => value + 1);
@@ -655,6 +722,7 @@ export default function DirectChat({
     setMessages([]);
     setLimit(50);
     setError("");
+    setVoiceOpen(false);
     setOpen(true);
   };
 
@@ -668,6 +736,7 @@ export default function DirectChat({
     setSelected("");
     setMessages([]);
     setLimit(50);
+    setVoiceOpen(false);
     setOpen(false);
   };
 
@@ -766,6 +835,7 @@ export default function DirectChat({
               onClick={() => {
                 if (selected) {
                   lockContactList();
+                  setVoiceOpen(false);
                   setSelected("");
                   setMessages([]);
                   setLimit(50);
@@ -818,9 +888,13 @@ export default function DirectChat({
               {contactRows.map(
                 ({ identity, conversation, latest, activityAt, online }) => {
                   const lastMessage = latest?.media_id
-                    ? latest.sender_id === actor
-                      ? "Você enviou uma imagem"
-                      : "Enviou uma imagem"
+                    ? mediaType(latest) === "audio"
+                      ? latest.sender_id === actor
+                        ? "Você enviou um áudio"
+                        : "Enviou um áudio"
+                      : latest.sender_id === actor
+                        ? "Você enviou uma imagem"
+                        : "Enviou uma imagem"
                     : latest?.body
                       ? latest.sender_id === actor
                         ? `Você: ${latest.body}`
@@ -1008,7 +1082,15 @@ export default function DirectChat({
                     />
                     <small>{sender?.name || "Perfil indisponível"}</small>
                   </div>
-                  {m.media_id ? <ChatImage id={m.media_id} /> : <p>{m.body}</p>}
+                  {m.media_id ? (
+                    mediaType(m) === "audio" ? (
+                      <ChatAudio id={m.media_id} />
+                    ) : (
+                      <ChatImage id={m.media_id} />
+                    )
+                  ) : (
+                    <p>{m.body}</p>
+                  )}
                   <small>
                     {new Date(m.created_at).toLocaleTimeString("pt-BR", {
                       hour: "2-digit",
@@ -1020,7 +1102,14 @@ export default function DirectChat({
             })}
             <div ref={messagesEndRef} />
           </div>}
-          {canSend && (
+          {canSend && voiceOpen && (
+            <VoiceRecorder
+              disabled={busy}
+              onClose={() => setVoiceOpen(false)}
+              onSend={sendVoice}
+            />
+          )}
+          {canSend && !voiceOpen && (
             <form
               className="chat-composer"
               onSubmit={async (e) => {
@@ -1048,54 +1137,65 @@ export default function DirectChat({
                 }
               }}
             >
-              <label className="chat-image-button" aria-label="Enviar imagem">
-                <ImagePlus aria-hidden="true" />
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={busy}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!file || busy) return;
-                    setBusy(true);
-                    setError("");
-                    try {
-                      const blob = await optimizedWebp(file, 800);
-                      const db = browserDb();
-                      const r = await db.rpc("chat_media_action", {
-                        c: campaign,
-                        op: "reserve",
-                        d: { actor_id: actor, conversation_id: selected },
-                      });
-                      if (r.error) throw r.error;
-                      const upload = await db.storage
-                        .from("chat-media")
-                        .upload(r.data.path, blob, {
-                          contentType: "image/webp",
+              <div className="chat-attachment-actions">
+                <label className="chat-image-button" aria-label="Enviar imagem">
+                  <ImagePlus aria-hidden="true" />
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={busy}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file || busy) return;
+                      setBusy(true);
+                      setError("");
+                      try {
+                        const blob = await optimizedWebp(file, 800);
+                        const db = browserDb();
+                        const r = await db.rpc("chat_media_action", {
+                          c: campaign,
+                          op: "reserve",
+                          d: { actor_id: actor, conversation_id: selected },
                         });
-                      if (upload.error) throw upload.error;
-                      const sent = await db.rpc("chat_media_action", {
-                        c: campaign,
-                        op: "send",
-                        d: { actor_id: actor, media_id: r.data.id },
-                      });
-                      if (sent.error) throw sent.error;
-                      void pushReceivedMessage(selected);
-                      setRefresh((v) => v + 1);
-                      window.dispatchEvent(
-                        new CustomEvent("alvorecer:chat-updated", {
-                          detail: { campaign },
-                        }),
-                      );
-                    } catch (e) {
-                      setError(readableErrorMessage(e));
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                />
-              </label>
+                        if (r.error) throw r.error;
+                        const upload = await db.storage
+                          .from("chat-media")
+                          .upload(r.data.path, blob, {
+                            contentType: "image/webp",
+                          });
+                        if (upload.error) throw upload.error;
+                        const sent = await db.rpc("chat_media_action", {
+                          c: campaign,
+                          op: "send",
+                          d: { actor_id: actor, media_id: r.data.id },
+                        });
+                        if (sent.error) throw sent.error;
+                        void pushReceivedMessage(selected);
+                        setRefresh((v) => v + 1);
+                        window.dispatchEvent(
+                          new CustomEvent("alvorecer:chat-updated", {
+                            detail: { campaign },
+                          }),
+                        );
+                      } catch (e) {
+                        setError(readableErrorMessage(e));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="chat-voice-button"
+                  onClick={() => setVoiceOpen(true)}
+                  disabled={busy}
+                  aria-label="Gravar mensagem de voz"
+                >
+                  <Mic aria-hidden="true" />
+                </button>
+              </div>
               <label className="chat-text-field">
                 <span className="visually-hidden">Mensagem</span>
                 <textarea
@@ -1251,7 +1351,7 @@ export default function DirectChat({
                 </div>
                 <h3 id="chat-delete-message-title">
                   {messageDialog.message.media_id
-                    ? "Excluir foto?"
+                    ? "Excluir anexo?"
                     : "Excluir mensagem?"}
                 </h3>
                 <p>

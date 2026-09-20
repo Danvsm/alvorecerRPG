@@ -10,9 +10,34 @@ export async function cleanup(req: Request) {
     return Response.json({ error: "Não autorizado" }, { status: 401 });
 
   const now = new Date().toISOString();
+  const abandonedChat = await db
+    .from("chat_media")
+    .select("id,storage_path,media_type")
+    .eq("consumed", false)
+    .is("deleted_at", null)
+    .lte("upload_expires_at", now)
+    .order("upload_expires_at")
+    .limit(100);
+  if (abandonedChat.error)
+    throw new Error("Falha ao listar anexos abandonados");
+
+  let removedAbandonedChat = 0;
+  for (const media of abandonedChat.data || []) {
+    const bucket = media.media_type === "audio" ? "chat-audio" : "chat-media";
+    const deletion = await db.storage.from(bucket).remove([media.storage_path]);
+    if (deletion.error) continue;
+    const saved = await db
+      .from("chat_media")
+      .update({ deleted_at: now })
+      .eq("id", media.id)
+      .eq("consumed", false);
+    if (!saved.error) removedAbandonedChat++;
+  }
+
   const expiredChat = await db
     .from("chat_media")
-    .select("id,storage_path,archive_expires_at")
+    .select("id,storage_path,archive_expires_at,media_type")
+    .eq("consumed", true)
     .is("deleted_at", null)
     .lte("archive_expires_at", now)
     .order("archive_expires_at")
@@ -21,8 +46,9 @@ export async function cleanup(req: Request) {
 
   let removedChat = 0;
   for (const media of expiredChat.data || []) {
+    const bucket = media.media_type === "audio" ? "chat-audio" : "chat-media";
     const deletion = await db.storage
-      .from("chat-media")
+      .from(bucket)
       .remove([media.storage_path]);
     if (deletion.error) continue;
     const saved = await db
@@ -129,7 +155,11 @@ export async function cleanup(req: Request) {
     if (!saved.error) removedQueuedPosts++;
   }
 
-  const pendingChat = (expiredChat.data || []).length - removedChat;
+  const pendingChat =
+    (expiredChat.data || []).length -
+    removedChat +
+    (abandonedChat.data || []).length -
+    removedAbandonedChat;
   const pendingStories =
     (expiredStories.data || []).length -
     removedStories +
@@ -143,12 +173,17 @@ export async function cleanup(req: Request) {
   return Response.json({
     removed:
       removedChat +
+      removedAbandonedChat +
       removedStories +
       removedQueuedStories +
       removedPosts +
       removedQueuedPosts,
     pending: pendingChat + pendingStories + pendingPosts,
-    chat: { removed: removedChat, pending: pendingChat },
+    chat: {
+      expired: removedChat,
+      abandoned: removedAbandonedChat,
+      pending: pendingChat,
+    },
     stories: {
       expired: removedStories,
       queued: removedQueuedStories,

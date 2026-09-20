@@ -7,6 +7,10 @@ import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 
+function monitorMediaType(message?: Row) {
+  return message?.media_type === "audio" ? "audio" : "image";
+}
+
 function shortTime(value?: string) {
   if (!value) return "";
   const date = new Date(value);
@@ -93,8 +97,26 @@ export default function ConversationMonitor({
 
       if (latestResult.error) throw latestResult.error;
 
+      const mediaIds = (latestResult.data || [])
+        .map((message: Row) => message.media_id)
+        .filter(Boolean);
+      const mediaTypes = new Map<string, string>();
+      if (mediaIds.length) {
+        const mediaResult = await browserDb()
+          .from("chat_media")
+          .select("id,media_type")
+          .in("id", mediaIds);
+        for (const media of mediaResult.data || []) {
+          mediaTypes.set(media.id, media.media_type);
+        }
+      }
+
       const latest: Record<string, Row> = {};
-      for (const message of latestResult.data || []) {
+      for (const source of latestResult.data || []) {
+        const message = {
+          ...source,
+          media_type: source.media_id ? mediaTypes.get(source.media_id) : null,
+        };
         if (!latest[message.conversation_id]) {
           latest[message.conversation_id] = message;
         }
@@ -153,7 +175,30 @@ export default function ConversationMonitor({
       );
 
       if (result.error) throw result.error;
-      setMessages([...(result.data || [])].reverse());
+      const sourceMessages = result.data || [];
+      const mediaIds = sourceMessages
+        .map((message: Row) => message.media_id)
+        .filter(Boolean);
+      const mediaTypes = new Map<string, string>();
+      if (mediaIds.length) {
+        const mediaResult = await browserDb()
+          .from("chat_media")
+          .select("id,media_type")
+          .in("id", mediaIds);
+        for (const media of mediaResult.data || []) {
+          mediaTypes.set(media.id, media.media_type);
+        }
+      }
+      setMessages(
+        sourceMessages
+          .map((message: Row) => ({
+            ...message,
+            media_type: message.media_id
+              ? mediaTypes.get(message.media_id)
+              : null,
+          }))
+          .reverse(),
+      );
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -414,7 +459,9 @@ export default function ConversationMonitor({
                   </strong>
                   <small>
                     {latest?.media_id
-                      ? "Imagem enviada"
+                      ? monitorMediaType(latest) === "audio"
+                        ? "Áudio enviado"
+                        : "Imagem enviada"
                       : latest?.body || "Conversa sem mensagens"}
                   </small>
                 </span>
@@ -492,7 +539,9 @@ export default function ConversationMonitor({
                           {message.body && <p>{message.body}</p>}
                           {message.media_id && (
                             <span className="monitor-media-note">
-                              Imagem removida pelo autor
+                              {monitorMediaType(message) === "audio"
+                                ? "Áudio removido pelo autor"
+                                : "Imagem removida pelo autor"}
                             </span>
                           )}
                         </>
@@ -501,7 +550,9 @@ export default function ConversationMonitor({
                           {message.body && <p>{message.body}</p>}
                           {message.media_id && (
                             <span className="monitor-media-note">
-                              Imagem anexada à mensagem
+                              {monitorMediaType(message) === "audio"
+                                ? "Áudio anexado à mensagem"
+                                : "Imagem anexada à mensagem"}
                             </span>
                           )}
                         </>
