@@ -210,6 +210,30 @@ export default function CommunityFeed({
     [setPostCommentCount],
   );
 
+  const setPostLikeCount = useCallback((postId: string, count: number) => {
+    const safeCount = Math.max(0, count);
+    setPosts((current) =>
+      current.map((post) =>
+        post.id === postId ? { ...post, like_count: safeCount } : post,
+      ),
+    );
+    setCommentsPost((current) =>
+      current?.id === postId ? { ...current, like_count: safeCount } : current,
+    );
+  }, []);
+
+  const refreshPostLikeCount = useCallback(
+    async (postId: string) => {
+      const response = await browserDb()
+        .from("community_post_likes")
+        .select("identity_id", { count: "exact", head: true })
+        .eq("post_id", postId);
+      if (response.error || response.count == null) return;
+      setPostLikeCount(postId, response.count);
+    },
+    [setPostLikeCount],
+  );
+
   useEffect(() => {
     void loadPosts(true);
   }, [loadPosts]);
@@ -235,6 +259,11 @@ export default function CommunityFeed({
 
           const kind = String(event.event_kind || "");
           const entityId = String(event.entity_id || "");
+          if (entityId && kind === "post_like") {
+            void refreshPostLikeCount(entityId);
+            return;
+          }
+
           if (
             entityId &&
             (kind === "comment" || kind === "delete_comment")
@@ -253,7 +282,13 @@ export default function CommunityFeed({
     return () => {
       void browserDb().removeChannel(channel);
     };
-  }, [actor, campaign, loadPosts, refreshPostCommentCount]);
+  }, [
+    actor,
+    campaign,
+    loadPosts,
+    refreshPostCommentCount,
+    refreshPostLikeCount,
+  ]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -1048,6 +1083,22 @@ function CommentsSheet({
     return loaded.length;
   }, [actor, campaign, post.id]);
 
+  const refreshCommentLikeCount = useCallback(async (commentId: string) => {
+    const response = await browserDb()
+      .from("community_comment_likes")
+      .select("identity_id", { count: "exact", head: true })
+      .eq("comment_id", commentId);
+    if (response.error || response.count == null) return;
+    const safeCount = Math.max(0, response.count);
+    setComments((current) =>
+      current.map((comment) =>
+        comment.id === commentId
+          ? { ...comment, like_count: safeCount }
+          : comment,
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     ref.current?.showModal();
     void loadComments();
@@ -1069,14 +1120,23 @@ function CommentsSheet({
           const event = payload.new as Row;
           if (
             event.scope !== "feed" ||
-            !["comment", "delete_comment"].includes(
-              String(event.event_kind || ""),
-            ) ||
-            String(event.entity_id || "") !== post.id ||
             String(event.actor_id || "") === actor
           )
             return;
-          void loadComments();
+
+          const kind = String(event.event_kind || "");
+          const entityId = String(event.entity_id || "");
+          if (kind === "comment_like" && entityId) {
+            void refreshCommentLikeCount(entityId);
+            return;
+          }
+
+          if (
+            ["comment", "delete_comment"].includes(kind) &&
+            entityId === post.id
+          ) {
+            void loadComments();
+          }
         },
       )
       .subscribe();
@@ -1084,7 +1144,13 @@ function CommentsSheet({
     return () => {
       void browserDb().removeChannel(channel);
     };
-  }, [actor, campaign, loadComments, post.id]);
+  }, [
+    actor,
+    campaign,
+    loadComments,
+    post.id,
+    refreshCommentLikeCount,
+  ]);
 
   const roots = useMemo(
     () => comments.filter((comment) => !comment.parent_id),
