@@ -3,10 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Archive,
+  BookOpen,
+  Compass,
   Copy,
   Crown,
   Eye,
+  Feather,
   Flame,
+  Gem,
+  Heart,
+  KeyRound,
+  Leaf,
   Lock,
   Moon,
   Pencil,
@@ -14,6 +21,7 @@ import {
   Shield,
   Sparkles,
   Star,
+  Sun,
   Swords,
   Trash2,
   UserMinus,
@@ -62,6 +70,16 @@ const icons = {
   flame: Flame,
   moon: Moon,
   sword: Swords,
+  sparkles: Sparkles,
+  compass: Compass,
+  book: BookOpen,
+  eye: Eye,
+  heart: Heart,
+  leaf: Leaf,
+  sun: Sun,
+  gem: Gem,
+  feather: Feather,
+  key: KeyRound,
 };
 
 export function CosmeticIcon({
