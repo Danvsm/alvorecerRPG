@@ -41,7 +41,7 @@ const exploreCategories = [
   {
     title: "Lendas do Mundo",
     eyebrow: "Descubra o passado",
-    image: "/community/feed-composer-pages.webp",
+    image: "/community/lendas-do-mundo.webp",
   },
   {
     title: "Jogadores",
