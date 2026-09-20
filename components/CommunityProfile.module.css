@@ -228,7 +228,8 @@
   margin: 26px auto 0;
 }
 
-.titleRow > span {
+.titleRow > span,
+.titleRow > button {
   display: flex;
   min-height: 48px;
   align-items: center;
@@ -250,10 +251,26 @@
   text-align: center;
 }
 
-.titleRow > span:nth-child(2) {
+.titleRow > span:nth-child(2),
+.titleRow > button:nth-child(2) {
   border-color: #6d7074;
   color: #ddd8d2;
   background: #101012cf;
+}
+
+.titleRow > button {
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.titleRow > button:hover,
+.titleRow > button:focus-visible {
+  border-color: #d0a34a;
+  box-shadow:
+    inset 0 0 22px #6e3d142b,
+    0 0 0 2px #d0a34a1c;
+  transform: translateY(-1px);
 }
 
 .titleRow svg {
@@ -1074,6 +1091,22 @@
   background: #17120d;
 }
 
+.titleChoiceIcon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #8c672d66;
+  border-radius: 12px;
+  background: #110d0d;
+}
+
+.titleChoiceIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
 .medalChoiceArt {
   display: grid;
   width: 56px;
@@ -1584,7 +1617,8 @@
     margin-top: 24px;
   }
 
-  .titleRow > span {
+  .titleRow > span,
+  .titleRow > button {
     min-height: 46px;
     padding-inline: 9px;
     font-size: 0.75rem;
@@ -1722,7 +1756,8 @@
     grid-template-columns: 118px minmax(0, 1fr);
   }
 
-  .titleRow > span {
+  .titleRow > span,
+  .titleRow > button {
     font-size: 0.69rem;
   }
 
