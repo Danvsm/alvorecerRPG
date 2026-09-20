@@ -649,15 +649,19 @@ export default function Game({ invite }: { invite?: string }) {
               : "Conectando",
         );
       });
-    const refresh = () => load(campaign);
-    window.addEventListener("online", refresh);
-    window.addEventListener("focus", refresh);
+    let lastReconnectRefresh = Date.now();
+    const refreshAfterReconnect = () => {
+      const now = Date.now();
+      if (now - lastReconnectRefresh < 30_000) return;
+      lastReconnectRefresh = now;
+      void load(campaign);
+    };
+    window.addEventListener("online", refreshAfterReconnect);
     return () => {
       requestVersion.current++;
       clearTimeout(timer);
       browserDb().removeChannel(channel);
-      window.removeEventListener("online", refresh);
-      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refreshAfterReconnect);
     };
   }, [campaign, session?.user.id, load]);
   useEffect(() => {
