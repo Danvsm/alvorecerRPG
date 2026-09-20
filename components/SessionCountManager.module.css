@@ -1,0 +1,228 @@
+.manager {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #ffffff10;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0 0, #a56b2010, transparent 250px),
+    #0d0b0d;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.headingIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #9c783d5c;
+  border-radius: 11px;
+  color: #d5ae69;
+  background: #17110d;
+}
+
+.headingIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.heading h2 {
+  margin: 0;
+  color: #eee5dc;
+  font-size: 1rem;
+}
+
+.heading p {
+  max-width: 620px;
+  margin: 4px 0 0;
+  color: #938982;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.notice {
+  margin: 0;
+  color: #d2aa66;
+  font-size: 0.75rem;
+}
+
+.loading {
+  display: flex;
+  min-height: 80px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #8d847f;
+  font-size: 0.75rem;
+}
+
+.loading svg,
+.spin {
+  width: 17px;
+  height: 17px;
+  animation: sessionSpin 900ms linear infinite;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid #ffffff0d;
+  border-radius: 12px;
+  background: #090809;
+}
+
+.identity {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.identity strong {
+  overflow: hidden;
+  color: #ded5ce;
+  font-size: 0.79rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity span {
+  overflow: hidden;
+  color: #7f7772;
+  font-size: 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter {
+  display: grid;
+  grid-template-columns: 36px 70px 36px;
+  align-items: center;
+  gap: 5px;
+}
+
+.counter button {
+  display: grid;
+  width: 36px;
+  min-width: 0;
+  height: 36px;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  border-color: #ffffff10;
+  background: #111012;
+}
+
+.counter button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.counter input {
+  width: 70px;
+  height: 36px;
+  padding: 0 6px;
+  border: 1px solid #70583178;
+  border-radius: 9px;
+  color: #f2e8dd;
+  background: #070708;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: center;
+  appearance: textfield;
+}
+
+.counter input::-webkit-inner-spin-button,
+.counter input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.saveButton {
+  display: inline-flex;
+  min-width: 88px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-color: #8d672f;
+  color: #e3c38c;
+  background: #19110d;
+  font-size: 0.7rem;
+}
+
+.saveButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.saveButton:disabled {
+  opacity: 0.42;
+}
+
+.empty {
+  margin: 0;
+  padding: 14px;
+  color: #827a75;
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+@keyframes sessionSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 620px) {
+  .manager {
+    padding: 14px;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px 8px;
+  }
+
+  .identity {
+    grid-column: 1 / -1;
+  }
+
+  .counter {
+    grid-template-columns: 34px 66px 34px;
+  }
+
+  .counter button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .counter input {
+    width: 66px;
+    height: 34px;
+  }
+
+  .saveButton {
+    min-width: 82px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading svg,
+  .spin {
+    animation: none;
+  }
+}
