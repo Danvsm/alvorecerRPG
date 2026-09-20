@@ -1,0 +1,10 @@
+create index chest_gifts_recipient_user_fk_idx on public.chest_gifts(recipient_user_id);
+create index chest_openings_avatar_fk_idx on public.chest_openings(avatar_id) where avatar_id is not null;
+create index chest_openings_character_fk_idx on public.chest_openings(character_id) where character_id is not null;
+create index chest_openings_cosmetic_fk_idx on public.chest_openings(cosmetic_id) where cosmetic_id is not null;
+create index chest_openings_reward_fk_idx on public.chest_openings(reward_id) where reward_id is not null;
+create index chest_rewards_avatar_fk_idx on public.chest_rewards(avatar_id) where avatar_id is not null;
+create index chest_rewards_cosmetic_fk_idx on public.chest_rewards(cosmetic_id) where cosmetic_id is not null;
+create index chest_settings_updated_by_fk_idx on public.chest_settings(updated_by) where updated_by is not null;
+create index gem_transactions_actor_fk_idx on public.gem_transactions(actor_id);
+create index gem_transactions_user_fk_idx on public.gem_transactions(user_id);

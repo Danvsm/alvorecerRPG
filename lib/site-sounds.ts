@@ -1,6 +1,7 @@
 "use client";
 
 type AlvorecerSound = "message" | "notification";
+type ChestRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
 let audioContext: AudioContext | null = null;
 let unlocked = false;
@@ -102,5 +103,33 @@ export async function playAlvorecerSound(sound: AlvorecerSound) {
   tone(ctx, 523.25, now, 0.16, 0.05, "sine");
   tone(ctx, 659.25, now + 0.09, 0.18, 0.045, "sine");
   tone(ctx, 783.99, now + 0.18, 0.24, 0.04, "triangle");
+  return true;
+}
+
+export async function playChestReveal(rarity: ChestRarity) {
+  if (typeof window === "undefined") return false;
+  installAlvorecerSoundUnlock();
+  const ctx = context();
+  if (!ctx) return false;
+  if (!unlocked || ctx.state !== "running") await unlock();
+  if (!unlocked || ctx.state !== "running") return false;
+  const now = ctx.currentTime + 0.012;
+  const notes: Record<ChestRarity, number[]> = {
+    common: [392, 523.25],
+    uncommon: [392, 523.25, 659.25],
+    rare: [440, 587.33, 739.99],
+    epic: [440, 554.37, 659.25, 880],
+    legendary: [392, 523.25, 659.25, 783.99, 1046.5],
+  };
+  notes[rarity].forEach((frequency, index) =>
+    tone(
+      ctx,
+      frequency,
+      now + index * 0.09,
+      0.26,
+      0.045,
+      index === notes[rarity].length - 1 ? "triangle" : "sine",
+    ),
+  );
   return true;
 }

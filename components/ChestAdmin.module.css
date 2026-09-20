@@ -1,0 +1,88 @@
+.wrap {
+  display: grid;
+  gap: 16px;
+  margin-top: 14px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.card {
+  border: 1px solid rgba(218, 170, 80, 0.18);
+  border-radius: 16px;
+  background: rgba(8, 7, 7, 0.52);
+  padding: 14px;
+}
+.card h4 {
+  margin: 0 0 10px;
+  color: #e8c98f;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  margin: 9px 0;
+  color: #bdb1a2;
+  font-size: 0.82rem;
+}
+.field input,
+.field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(218, 170, 80, 0.28);
+  background: #090808;
+  color: #eee;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.button {
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(218, 170, 80, 0.35);
+  background: #211509;
+  color: #efcf92;
+  font-weight: 700;
+}
+.button:disabled {
+  opacity: 0.45;
+}
+.reward {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.reward:first-child {
+  border-top: 0;
+}
+.reward small {
+  display: block;
+  color: #948a7d;
+  margin-top: 3px;
+}
+.badge {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(218, 170, 80, 0.1);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+.odds {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+@media (max-width: 650px) {
+  .odds {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

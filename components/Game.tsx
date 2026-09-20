@@ -29,6 +29,7 @@ import {
   Archive,
   BellRing,
   Palette,
+  Gem,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -55,6 +56,8 @@ import ConversationMonitor from "./ConversationMonitor";
 import InteractionsPanel from "./InteractionsPanel";
 import NotificationBell from "./NotificationBell";
 import NotificationPermissionPrompt from "./NotificationPermissionPrompt";
+import TreasureChest from "./TreasureChest";
+import ChestAdmin from "./ChestAdmin";
 import RewardsPanel from "./RewardsPanel";
 import PlayerDataDetails, { ageFromDate } from "./PlayerDataDetails";
 import CharacterSheet from "./CharacterSheet";
@@ -223,6 +226,7 @@ const masterMenu = [
 ] as const;
 const playerMenu = [
   ["Início", LayoutDashboard],
+  ["Baú", Gem],
   ["Minha Ficha", Shield],
   ["Combate", Swords],
   ["Carteira", WalletCards],
@@ -242,10 +246,7 @@ function pageFromLocation() {
   return url.searchParams.get(PAGE_QUERY_KEY) || "Comunidade";
 }
 
-function syncPageLocation(
-  name: string,
-  mode: "push" | "replace" = "replace",
-) {
+function syncPageLocation(name: string, mode: "push" | "replace" = "replace") {
   if (typeof window === "undefined") return;
 
   const url = new URL(window.location.href);
@@ -342,7 +343,9 @@ export default function Game({ invite }: { invite?: string }) {
 
   useEffect(() => {
     if (!pageRestored || !campaign) return;
-    const membership = members.find((member) => member.campaign_id === campaign);
+    const membership = members.find(
+      (member) => member.campaign_id === campaign,
+    );
     if (!membership) return;
 
     const allowedMenu = membership.role === "master" ? masterMenu : playerMenu;
@@ -1464,7 +1467,10 @@ export default function Game({ invite }: { invite?: string }) {
       }
     >
       <ActivityTracker campaign={campaign} userId={session.user.id} />
-      <NotificationPermissionPrompt userId={session.user.id} campaign={campaign} />
+      <NotificationPermissionPrompt
+        userId={session.user.id}
+        campaign={campaign}
+      />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <Brand logo={currentCampaign?.theme?.logo} />
         <div className="campaign-switch">
@@ -3043,71 +3049,71 @@ export default function Game({ invite }: { invite?: string }) {
           )}
           {campaign &&
             (page === "Comunidade" || (page === "Arquivos" && isMaster)) && (
-            <CommunityPanel
-              key={page}
-              campaign={campaign}
-              identities={rows("social_identities")}
-              cosmetics={rows("cosmetics")}
-              equipment={rows("cosmetic_equipment")}
-              avatars={rows("campaign_avatars")}
-              urls={avatarUrls}
-              actor={socialActor}
-              currentUserId={session.user.id}
-              master={Boolean(isMaster)}
-              notifications={rows("notifications")}
-              openMenu={() => setMenu(true)}
-              saveNotification={saveNotification}
-              refreshVisuals={() => load(campaign, true)}
-              unreadMessages={unreadMessages}
-              message={(id) => setChatPeer({ id, nonce: Date.now() })}
-              changeActor={isMaster ? setSpeakingAs : undefined}
-              createWorldCharacter={
-                isMaster
-                  ? () =>
-                      setForm({
-                        title: "Personagem do Mundo",
-                        fields: [
-                          { key: "name", label: "Nome", required: true },
-                          { key: "subtitle", label: "Função / título" },
-                          {
-                            key: "avatar_id",
-                            label: "Avatar",
-                            options: rows("campaign_avatars").filter(
-                              (avatar) => avatar.active,
-                            ),
-                          },
-                        ],
-                        submit: async (details) => {
-                          const response = await browserDb().rpc(
-                            "identity_action",
+              <CommunityPanel
+                key={page}
+                campaign={campaign}
+                identities={rows("social_identities")}
+                cosmetics={rows("cosmetics")}
+                equipment={rows("cosmetic_equipment")}
+                avatars={rows("campaign_avatars")}
+                urls={avatarUrls}
+                actor={socialActor}
+                currentUserId={session.user.id}
+                master={Boolean(isMaster)}
+                notifications={rows("notifications")}
+                openMenu={() => setMenu(true)}
+                saveNotification={saveNotification}
+                refreshVisuals={() => load(campaign, true)}
+                unreadMessages={unreadMessages}
+                message={(id) => setChatPeer({ id, nonce: Date.now() })}
+                changeActor={isMaster ? setSpeakingAs : undefined}
+                createWorldCharacter={
+                  isMaster
+                    ? () =>
+                        setForm({
+                          title: "Personagem do Mundo",
+                          fields: [
+                            { key: "name", label: "Nome", required: true },
+                            { key: "subtitle", label: "Função / título" },
                             {
-                              c: campaign,
-                              op: "npc",
-                              d: details,
+                              key: "avatar_id",
+                              label: "Avatar",
+                              options: rows("campaign_avatars").filter(
+                                (avatar) => avatar.active,
+                              ),
                             },
-                          );
-                          if (response.error)
-                            throw new Error(response.error.message);
-                          await load(campaign, true);
-                          setForm(null);
-                        },
-                      })
-                  : undefined
-              }
-              deleteWorldCharacter={
-                isMaster
-                  ? async (id) => {
-                      await admin("delete_world_character", {
-                        identityId: id,
-                      });
-                      await load(campaign, true);
-                      setMessage("Personagem do Mundo excluído");
-                    }
-                  : undefined
-              }
-              initialView={page === "Arquivos" ? "archives" : "home"}
-            />
-          )}
+                          ],
+                          submit: async (details) => {
+                            const response = await browserDb().rpc(
+                              "identity_action",
+                              {
+                                c: campaign,
+                                op: "npc",
+                                d: details,
+                              },
+                            );
+                            if (response.error)
+                              throw new Error(response.error.message);
+                            await load(campaign, true);
+                            setForm(null);
+                          },
+                        })
+                    : undefined
+                }
+                deleteWorldCharacter={
+                  isMaster
+                    ? async (id) => {
+                        await admin("delete_world_character", {
+                          identityId: id,
+                        });
+                        await load(campaign, true);
+                        setMessage("Personagem do Mundo excluído");
+                      }
+                    : undefined
+                }
+                initialView={page === "Arquivos" ? "archives" : "home"}
+              />
+            )}
           {page === "Convites" && isMaster && (
             <>
               <div className="toolbar">
@@ -3251,96 +3257,102 @@ export default function Game({ invite }: { invite?: string }) {
                 <summary>
                   <span>
                     <strong>Galeria de avatares</strong>
-                    <small>Cadastre, visualize e administre os avatares da campanha.</small>
+                    <small>
+                      Cadastre, visualize e administre os avatares da campanha.
+                    </small>
                   </span>
                   <ChevronRight aria-hidden="true" />
                 </summary>
-              <AvatarGallery
-                manager
-                compact
-                avatars={rows("campaign_avatars")}
-                urls={avatarUrls}
-                players={avatarPlayers}
-                busy={busy}
-                onUpload={(file, name) =>
-                  perform(async () => {
-                    const path = await uploadAvatarImage(file, campaign);
-                    try {
-                      await action("avatar", {
-                        name,
-                        storage_path: path,
-                      });
-                    } catch (caught) {
-                      const saved = await browserDb()
-                        .from("campaign_avatars")
-                        .select("id")
-                        .eq("storage_path", path)
-                        .maybeSingle();
-                      if (!saved.error && !saved.data)
-                        await browserDb()
-                          .storage.from("portraits")
-                          .remove([path]);
-                      throw caught;
-                    }
-                  })
-                }
-                onRename={(avatar) =>
-                  setForm({
-                    title: "Editar nome do avatar",
-                    fields: [
-                      {
-                        key: "name",
-                        label: "Nome",
-                        required: true,
-                        value: avatar.name,
+                <AvatarGallery
+                  manager
+                  compact
+                  avatars={rows("campaign_avatars")}
+                  urls={avatarUrls}
+                  players={avatarPlayers}
+                  busy={busy}
+                  onUpload={(file, name) =>
+                    perform(async () => {
+                      const path = await uploadAvatarImage(file, campaign);
+                      try {
+                        await action("avatar", {
+                          name,
+                          storage_path: path,
+                        });
+                      } catch (caught) {
+                        const saved = await browserDb()
+                          .from("campaign_avatars")
+                          .select("id")
+                          .eq("storage_path", path)
+                          .maybeSingle();
+                        if (!saved.error && !saved.data)
+                          await browserDb()
+                            .storage.from("portraits")
+                            .remove([path]);
+                        throw caught;
+                      }
+                    })
+                  }
+                  onRename={(avatar) =>
+                    setForm({
+                      title: "Editar nome do avatar",
+                      fields: [
+                        {
+                          key: "name",
+                          label: "Nome",
+                          required: true,
+                          value: avatar.name,
+                        },
+                      ],
+                      submit: async (values) => {
+                        await action("avatar", {
+                          id: avatar.id,
+                          name: values.name,
+                        });
+                        setForm(null);
                       },
-                    ],
-                    submit: async (values) => {
-                      await action("avatar", {
+                    })
+                  }
+                  onArchive={(avatar) =>
+                    run(() =>
+                      action("avatar", {
                         id: avatar.id,
-                        name: values.name,
+                        active: !avatar.active,
+                      }),
+                    )
+                  }
+                  onDelete={(avatar) =>
+                    run(async () => {
+                      await admin("delete_avatar", { avatarId: avatar.id });
+                      await invalidateCachedImage(avatar.storage_path);
+                      await load(campaign, true);
+                      setMessage("Avatar excluído");
+                    })
+                  }
+                  onPolicy={(
+                    avatar,
+                    avatarOperation: AvatarPolicyOperation,
+                    exclusiveUserId,
+                  ) =>
+                    perform(async () => {
+                      await admin("avatar_policy", {
+                        avatarId: avatar.id,
+                        avatarOperation,
+                        exclusiveUserId,
                       });
-                      setForm(null);
-                    },
-                  })
-                }
-                onArchive={(avatar) =>
-                  run(() =>
-                    action("avatar", { id: avatar.id, active: !avatar.active }),
-                  )
-                }
-                onDelete={(avatar) =>
-                  run(async () => {
-                    await admin("delete_avatar", { avatarId: avatar.id });
-                    await invalidateCachedImage(avatar.storage_path);
-                    await load(campaign, true);
-                    setMessage("Avatar excluído");
-                  })
-                }
-                onPolicy={(
-                  avatar,
-                  avatarOperation: AvatarPolicyOperation,
-                  exclusiveUserId,
-                ) =>
-                  perform(async () => {
-                    await admin("avatar_policy", {
-                      avatarId: avatar.id,
-                      avatarOperation,
-                      exclusiveUserId,
-                    });
-                    await load(campaign, true);
-                    setMessage("Regra do avatar atualizada");
-                  })
-                }
-              />
-
+                      await load(campaign, true);
+                      setMessage("Regra do avatar atualizada");
+                    })
+                  }
+                />
               </details>
 
               <details className="panel cosmetics-section">
                 <summary>
                   <span>
                     <strong>Títulos</strong>
-                    <small>Crie títulos com ícones e entregue aos jogadores.</small>
+                    <small>
+                      Crie títulos com ícones e entregue aos jogadores.
+                    </small>
                   </span>
                   <ChevronRight aria-hidden="true" />
                 </summary>
@@ -3352,18 +3364,21 @@ export default function Game({ invite }: { invite?: string }) {
                   busy={busy}
                   create={({ name, description, icon }) =>
                     perform(async () => {
-                      const response = await browserDb().rpc("identity_action", {
-                        c: campaign,
-                        op: "cosmetic",
-                        d: {
-                          kind: "title",
-                          name,
-                          description,
-                          icon,
-                          color: "#D9B568",
-                          active: true,
+                      const response = await browserDb().rpc(
+                        "identity_action",
+                        {
+                          c: campaign,
+                          op: "cosmetic",
+                          d: {
+                            kind: "title",
+                            name,
+                            description,
+                            icon,
+                            color: "#D9B568",
+                            active: true,
+                          },
                         },
-                      });
+                      );
                       if (response.error)
                         throw new Error(response.error.message);
                       await load(campaign, true);
@@ -3372,16 +3387,19 @@ export default function Game({ invite }: { invite?: string }) {
                   }
                   send={({ titleId, identityId }) =>
                     perform(async () => {
-                      const response = await browserDb().rpc("identity_action", {
-                        c: campaign,
-                        op: "grant",
-                        d: {
-                          identity_id: identityId,
-                          cosmetic_id: titleId,
-                          origin: "gift",
-                          note: "Título enviado pelo mestre",
+                      const response = await browserDb().rpc(
+                        "identity_action",
+                        {
+                          c: campaign,
+                          op: "grant",
+                          d: {
+                            identity_id: identityId,
+                            cosmetic_id: titleId,
+                            origin: "gift",
+                            note: "Título enviado pelo mestre",
+                          },
                         },
-                      });
+                      );
                       if (response.error)
                         throw new Error(response.error.message);
                       await load(campaign, true);
@@ -3395,7 +3413,10 @@ export default function Game({ invite }: { invite?: string }) {
                 <summary>
                   <span>
                     <strong>Wallpapers do perfil</strong>
-                    <small>Cadastre os fundos que jogadores e Mestre podem usar no perfil.</small>
+                    <small>
+                      Cadastre os fundos que jogadores e Mestre podem usar no
+                      perfil.
+                    </small>
                   </span>
                   <ChevronRight aria-hidden="true" />
                 </summary>
@@ -3545,7 +3566,25 @@ export default function Game({ invite }: { invite?: string }) {
                   />
                 </div>
               </details>
+              <details className="panel cosmetics-section">
+                <summary>
+                  <span>
+                    <strong>Baú e Gemas</strong>
+                    <small>
+                      Controle custos, chances, prêmios e Gemas dos jogadores.
+                    </small>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </summary>
+                <ChestAdmin campaign={campaign} />
+              </details>
             </>
+          )}
+          {page === "Baú" && !isMaster && (
+            <TreasureChest
+              campaign={campaign}
+              onChanged={() => void load(campaign)}
+            />
           )}
           {page === "Configurações" && isMaster && (
             <>
