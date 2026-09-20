@@ -592,6 +592,154 @@
   line-height: 1.1;
 }
 
+.wallpaperDialog {
+  width: min(680px, calc(100vw - 28px));
+  max-height: min(760px, 88dvh);
+  padding: 20px;
+  overflow: hidden;
+  border-color: #5d472b;
+  background:
+    radial-gradient(circle at 50% -18%, #9b6b241b, transparent 330px),
+    linear-gradient(180deg, #151114, #0b090b 74%);
+}
+
+.wallpaperDialogHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.wallpaperDialogHeader small {
+  color: #c49c61;
+  font-size: 0.67rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.wallpaperDialogHeader h2 {
+  margin: 3px 0 4px;
+  color: #f3e8de;
+  font-size: 1.2rem;
+}
+
+.wallpaperDialogHeader p {
+  margin: 0;
+  color: #928780;
+  font-size: 0.78rem;
+}
+
+.wallpaperDialogHeader > button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  min-height: 0;
+  padding: 0;
+  place-items: center;
+  border-color: #ffffff12;
+  background: #090809;
+}
+
+.wallpaperPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: min(500px, 58dvh);
+  padding: 2px 3px 12px;
+  overflow-y: auto;
+}
+
+.wallpaperPickerCard {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 8px;
+  border-color: #ffffff10;
+  border-radius: 14px;
+  background: #0b090b;
+  text-align: left;
+}
+
+.wallpaperPickerCard:hover,
+.wallpaperPickerCard:focus-visible {
+  border-color: #806039;
+  background: #15100e;
+}
+
+.wallpaperPickerSelected {
+  border-color: #d0a347;
+  background: #1b140d;
+  box-shadow:
+    inset 0 0 20px #b47a1918,
+    0 0 0 1px #d0a34724;
+}
+
+.wallpaperPreview {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid #ffffff0f;
+  border-radius: 10px;
+  background:
+    linear-gradient(0deg, #0807084d, transparent),
+    #151012;
+  background-position: center;
+  background-size: cover;
+}
+
+.wallpaperSelectedMark {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 2px solid #0c0a0b;
+  border-radius: 50%;
+  color: #100c08;
+  background: #d9ae58;
+  box-shadow: 0 3px 10px #0009;
+}
+
+.wallpaperSelectedMark svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3;
+}
+
+.wallpaperPickerCard strong {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  padding-inline: 2px;
+  color: #ded4cc;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallpaperEmpty {
+  margin: 18px 0 4px;
+  color: #8e847d;
+  font-size: 0.77rem;
+  text-align: center;
+}
+
+.wallpaperDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #ffffff0f;
+}
+
 .visualDialog {
   width: min(620px, calc(100vw - 28px));
   max-height: min(760px, 86dvh);
@@ -1264,6 +1412,16 @@
 }
 
 @media (max-width: 760px) {
+  .wallpaperDialog {
+    padding: 16px;
+  }
+
+  .wallpaperPickerGrid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+
   .visualDialog {
     padding: 16px;
   }
