@@ -95,6 +95,7 @@ export default function TitleManager({
   const submitSend = async () => {
     if (!sendTitleId || !identityId) return;
     await send({ titleId: sendTitleId, identityId });
+    setSendTitleId("");
     setIdentityId("");
   };
 
