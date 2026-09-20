@@ -10,6 +10,8 @@ import styles from "./TreasureChest.module.css";
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 type Dashboard = {
   gems: number;
+  pending_xp: number;
+  pending_dracmas: number;
   cost_gems: number;
   enabled: boolean;
   odds: { rarity: Rarity; weight_bp: number }[];
@@ -33,6 +35,7 @@ type Opening = {
   created_at: string;
   gifted?: boolean;
   gems?: number;
+  pending?: boolean;
 };
 const rarityName: Record<Rarity, string> = {
   common: "Comum",
@@ -69,17 +72,13 @@ export default function TreasureChest({
     load().catch((e) => setError(readableErrorMessage(e)));
   }, [load]);
   const canOpen = Boolean(
-    data?.enabled &&
-    character &&
-    !busy &&
-    (data?.gems || 0) >= (data?.cost_gems || 30),
+    data?.enabled && !busy && (data?.gems || 0) >= (data?.cost_gems || 30),
   );
   const remaining = useMemo(
     () => Math.max(0, (data?.cost_gems || 30) - (data?.gems || 0)),
     [data],
   );
   async function openChest(giftId?: string) {
-    if (!character) return;
     setBusy(true);
     setError("");
     setResult(null);
@@ -89,7 +88,7 @@ export default function TreasureChest({
       const [response] = await Promise.all([
         browserDb().rpc("chest_open", {
           c: campaign,
-          selected_character: character,
+          selected_character: character || null,
           gift: giftId || null,
           request_id: requestId,
         }),
@@ -174,7 +173,11 @@ export default function TreasureChest({
                 {rarityName[result.rarity]}
               </span>
               <h3>{result.reward_label}</h3>
-              <p>O prêmio já foi entregue ao seu personagem.</p>
+              <p>
+                {result.pending
+                  ? "Prêmio guardado na sua conta até você possuir um personagem."
+                  : "O prêmio já foi entregue."}
+              </p>
             </div>
           )}
         </div>
@@ -217,9 +220,11 @@ export default function TreasureChest({
           </button>
         </div>
         <p className={styles.hint}>
-          {remaining > 0
-            ? `Faltam ${remaining} Gemas para a próxima abertura.`
-            : "Cada abertura entrega um prêmio imediatamente. Cosméticos não se repetem."}
+          {!data?.characters?.length
+            ? "Você pode abrir normalmente. XP e Dracmas ficarão guardados até você possuir um personagem."
+            : remaining > 0
+              ? `Faltam ${remaining} Gemas para a próxima abertura.`
+              : "Cada abertura entrega um prêmio imediatamente. Cosméticos não se repetem."}
         </p>
         {error && (
           <p role="alert" className="error">
@@ -227,6 +232,24 @@ export default function TreasureChest({
           </p>
         )}
       </section>
+      {Boolean(data?.pending_xp || data?.pending_dracmas) && (
+        <section className={styles.section}>
+          <h3>Prêmios guardados</h3>
+          <p className={styles.hint}>
+            {data?.pending_xp
+              ? `${data.pending_xp.toLocaleString("pt-BR")} XP`
+              : ""}
+            {data?.pending_xp && data?.pending_dracmas ? " · " : ""}
+            {data?.pending_dracmas
+              ? `${data.pending_dracmas.toLocaleString("pt-BR")} Dracmas`
+              : ""}
+          </p>
+          <p className={styles.hint}>
+            A entrega será automática quando um personagem for vinculado à sua
+            conta.
+          </p>
+        </section>
+      )}
       {!!data?.gifts?.length && (
         <section className={styles.section}>
           <h3>Presentes esperando por você</h3>
@@ -238,7 +261,7 @@ export default function TreasureChest({
               </div>
               <button
                 className={styles.small}
-                disabled={busy || !character}
+                disabled={busy}
                 onClick={() => openChest(g.id)}
               >
                 Abrir grátis

@@ -11,6 +11,14 @@ const migration = () =>
     ),
     "utf8",
   );
+const pendingRewardsMigration = () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260920233417_chest_pending_rewards.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
 
 test("chest rarity configuration totals exactly 100 percent", async () => {
   const sql = await migration();
@@ -109,6 +117,7 @@ test("chest opening and gifting debit once and deliver rewards atomically", asyn
       grant select on campaign_members,characters to authenticated;
     `);
     await db.exec(await migration());
+    await db.exec(await pendingRewardsMigration());
     const ids = [
       crypto.randomUUID(),
       crypto.randomUUID(),
@@ -205,6 +214,64 @@ test("chest opening and gifting debit once and deliver rewards atomically", asyn
         )
       ).rows[0].xp,
       10,
+    );
+
+    const waiting = crypto.randomUUID();
+    const waitingIdentity = crypto.randomUUID();
+    await db.exec("reset role");
+    await db.query("insert into profiles(id,username) values($1,'waiting')", [
+      waiting,
+    ]);
+    await db.query(
+      "insert into campaign_members(campaign_id,user_id,role) values($1,$2,'player')",
+      [campaign, waiting],
+    );
+    await db.query(
+      "insert into social_identities(id,campaign_id,user_id,kind,name) values($1,$2,$3,'player','Waiting')",
+      [waitingIdentity, campaign, waiting],
+    );
+    await asUser(master);
+    await db.query("select chest_admin_action($1,'adjust_gems',$2::jsonb)", [
+      campaign,
+      JSON.stringify({ user_id: waiting, delta: 30 }),
+    ]);
+    await asUser(waiting);
+    const pending = (
+      await db.query<{ value: any }>(
+        "select chest_open($1,null,null,$2) value",
+        [campaign, crypto.randomUUID()],
+      )
+    ).rows[0].value;
+    assert.equal(pending.pending, true);
+    const dashboard = (
+      await db.query<{ value: any }>("select chest_dashboard($1) value", [
+        campaign,
+      ])
+    ).rows[0].value;
+    assert.equal(dashboard.pending_xp, 10);
+    await db.exec("reset role");
+    const waitingCharacter = crypto.randomUUID();
+    await db.query(
+      "insert into characters(id,campaign_id,owner_id,name) values($1,$2,$3,'Waiting Hero')",
+      [waitingCharacter, campaign, waiting],
+    );
+    assert.equal(
+      (
+        await db.query<{ xp: number }>(
+          "select xp from characters where id=$1",
+          [waitingCharacter],
+        )
+      ).rows[0].xp,
+      10,
+    );
+    assert.equal(
+      (
+        await db.query<{ chest_pending_xp: number }>(
+          "select chest_pending_xp from campaign_members where campaign_id=$1 and user_id=$2",
+          [campaign, waiting],
+        )
+      ).rows[0].chest_pending_xp,
+      0,
     );
   } finally {
     await db.close();
