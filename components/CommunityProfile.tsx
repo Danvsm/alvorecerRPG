@@ -814,7 +814,7 @@ export default function CommunityProfile({
         style={
           activeWallpaperUrl
             ? {
-                backgroundImage: `linear-gradient(180deg, #0504053b 0%, #08070884 58%, #080708 100%), url("${activeWallpaperUrl}")`,
+                backgroundImage: `linear-gradient(180deg, #05040514 0%, #08070824 58%, #080708a8 100%), url("${activeWallpaperUrl}")`,
               }
             : undefined
         }
