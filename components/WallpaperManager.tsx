@@ -61,7 +61,9 @@ export default function WallpaperManager({
       return;
     }
 
-    const catalog = (response.data || []).map(normalizeWallpaper);
+    const catalog: Wallpaper[] = ((response.data || []) as Row[]).map(
+      normalizeWallpaper,
+    );
     setWallpapers(catalog);
 
     const paths = catalog.map((entry) => entry.storage_path).filter(Boolean);
