@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { uploadCommunityPostImage } from "@/lib/media";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
+import { versionedImageUrl } from "@/lib/image-cache";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import styles from "./CommunityPanel.module.css";
@@ -160,7 +161,10 @@ export default function CommunityFeed({
         const pageUrls = Object.fromEntries(
           mediaPosts.map((post, index) => [
             post.id,
-            signed.data?.[index]?.signedUrl || "",
+            versionedImageUrl(
+              signed.data?.[index]?.signedUrl || "",
+              post.image_path,
+            ),
           ]),
         );
         setPostUrls((current) =>
@@ -182,7 +186,35 @@ export default function CommunityFeed({
 
   useEffect(() => {
     void loadPosts(true);
-  }, [loadPosts, identities]);
+  }, [loadPosts]);
+
+  useEffect(() => {
+    const channel = browserDb()
+      .channel(`community-feed:${campaign}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_events",
+          filter: `campaign_id=eq.${campaign}`,
+        },
+        (payload) => {
+          const event = payload.new as Row;
+          if (
+            event.scope !== "feed" ||
+            String(event.actor_id || "") === actor
+          )
+            return;
+          void loadPosts(true);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void browserDb().removeChannel(channel);
+    };
+  }, [actor, campaign, loadPosts]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
