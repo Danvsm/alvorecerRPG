@@ -519,7 +519,6 @@
   justify-items: center;
   gap: 3px;
   padding-inline: 2px;
-  overflow: hidden;
   text-align: center;
 }
 
@@ -534,7 +533,7 @@
   aspect-ratio: 1 / 1;
   flex: 0 0 auto;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 1px solid transparent;
   border-radius: 50%;
   color: #d5a82f;
