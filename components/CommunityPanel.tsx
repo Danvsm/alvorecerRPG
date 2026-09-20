@@ -13,7 +13,6 @@ import {
   Plus,
   Search,
   Send,
-  SlidersHorizontal,
   Sparkles,
   Trophy,
   UserCheck,
@@ -475,6 +474,9 @@ export default function CommunityPanel({
                 : "Buscar jogador"
             }
           />
+          {view === "explore" && (
+            <Compass className={styles.exploreSearchMark} aria-hidden="true" />
+          )}
         </label>
       </div>}
 
@@ -631,7 +633,7 @@ export default function CommunityPanel({
               }}
             >
               <Clock3 aria-hidden="true" />
-              Online agora
+              Mais recentes
             </button>
             <button
               type="button"
@@ -639,27 +641,25 @@ export default function CommunityPanel({
               onClick={() => setRankingMode(true)}
             >
               <Trophy aria-hidden="true" />
-              Ranking
+              Mais populares
             </button>
-            <label className={styles.exploreSelectPill}>
-              <SlidersHorizontal aria-hidden="true" />
-              <select
-                value={filter}
-                onChange={(event) => {
-                  setRankingMode(false);
-                  setFilter(event.target.value as CommunityFilter);
-                }}
-              >
-                <option value="all">Todos</option>
-                <option value="players">Jogadores</option>
-                <option value="world">Do mundo</option>
-                <option value="online">Online</option>
-              </select>
-            </label>
+            <button
+              type="button"
+              className={!rankingMode && filter === "players" ? styles.explorePillActive : ""}
+              onClick={() => {
+                setRankingMode(false);
+                setFilter("players");
+              }}
+            >
+              <Crown aria-hidden="true" />
+              Por clã
+            </button>
           </div>
 
           <div className={`${styles.directoryGrid} ${styles.exploreDirectoryGrid}`}>
-            {directory.slice(0, visibleCount).map((identity, index) => {
+            {directory
+              .slice(0, visibleCount >= 999 ? directory.length : 4)
+              .map((identity, index) => {
               const rank = rankByIdentity.get(identity.id) || index + 1;
               return (
                 <article className={`${styles.profileRow} ${styles.exploreProfileRow}`} key={identity.id}>
@@ -700,15 +700,7 @@ export default function CommunityPanel({
           {!directory.length && (
             <p className={styles.empty}>Nenhum perfil encontrado.</p>
           )}
-          {visibleCount < directory.length && (
-            <button
-              type="button"
-              className={styles.loadMore}
-              onClick={() => setVisibleCount((count) => count + 12)}
-            >
-              Mostrar mais
-            </button>
-          )}
+
         </section>
       )}
 
