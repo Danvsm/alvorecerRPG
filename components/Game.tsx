@@ -67,6 +67,7 @@ import {
   FeedbackPrompt,
 } from "./SessionInsights";
 import CleanupPanel from "./CleanupPanel";
+import SessionCountManager from "./SessionCountManager";
 import CombatPanel from "./CombatPanel";
 import {
   uploadAvatarImage,
@@ -186,6 +187,7 @@ const historyActions: Row = {
   resource_config: "Regra de recurso alterada",
   campaign_rule: "Padrão de recurso alterado",
   session_feedback: "Feedback enviado",
+  profile_sessions_changed: "Sessões do perfil alteradas",
   notification_sent: "Notificação enviada",
   player_disabled: "Acesso de jogador desativado",
   player_enabled: "Acesso de jogador reativado",
@@ -3553,6 +3555,7 @@ export default function Game({ invite }: { invite?: string }) {
                 save={action}
                 busy={busy}
               />
+              <SessionCountManager campaign={campaign} />
               <section className="panel">
                 <div className="spread">
                   <h2>Atributos</h2>
