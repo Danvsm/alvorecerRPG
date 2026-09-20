@@ -6,7 +6,7 @@ import {
   LoaderCircle,
   RotateCcw,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { browserDb } from "@/lib/client";
 import { uploadProfileWallpaper } from "@/lib/media";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -92,7 +92,7 @@ export default function WallpaperManager({
     void load();
   }, [load]);
 
-  const createWallpaper = async (event: React.FormEvent<HTMLFormElement>) => {
+  const createWallpaper = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
 
