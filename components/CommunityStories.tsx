@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { uploadCommunityStoryImage } from "@/lib/media";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
+import { versionedImageUrl } from "@/lib/image-cache";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import styles from "./CommunityPanel.module.css";
@@ -138,7 +139,10 @@ export default function CommunityStories({
         Object.fromEntries(
           loaded.map((story, index) => [
             story.id,
-            signed.data?.[index]?.signedUrl || "",
+            versionedImageUrl(
+              signed.data?.[index]?.signedUrl || "",
+              story.image_path,
+            ),
           ]),
         ),
       );
@@ -147,7 +151,35 @@ export default function CommunityStories({
 
   useEffect(() => {
     void loadStories();
-  }, [loadStories, identities]);
+  }, [loadStories]);
+
+  useEffect(() => {
+    const channel = browserDb()
+      .channel(`community-stories:${campaign}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_events",
+          filter: `campaign_id=eq.${campaign}`,
+        },
+        (payload) => {
+          const event = payload.new as Row;
+          if (
+            event.scope !== "stories" ||
+            String(event.actor_id || "") === actor
+          )
+            return;
+          void loadStories();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void browserDb().removeChannel(channel);
+    };
+  }, [actor, campaign, loadStories]);
 
   useEffect(() => {
     if (!stories.length) return;
