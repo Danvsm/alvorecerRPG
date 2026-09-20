@@ -149,9 +149,10 @@ async function postImageWebp(file: File) {
 export async function uploadCommunityArticleImage(
   file: File,
   campaign: string,
+  userId: string,
 ) {
   const blob = await postImageWebp(file);
-  const path = `${campaign}/editorial/${crypto.randomUUID()}.webp`;
+  const path = `${campaign}/editorial/${userId}/${crypto.randomUUID()}.webp`;
   const { error } = await browserDb()
     .storage.from("community-articles")
     .upload(path, blob, {

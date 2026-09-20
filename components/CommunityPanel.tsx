@@ -123,6 +123,7 @@ export default function CommunityPanel({
   avatars,
   urls,
   actor,
+  currentUserId,
   master,
   notifications,
   openMenu,
@@ -142,6 +143,7 @@ export default function CommunityPanel({
   avatars: Row[];
   urls: Record<string, string>;
   actor: string;
+  currentUserId: string;
   master: boolean;
   notifications: Row[];
   openMenu: () => void;
@@ -618,6 +620,7 @@ export default function CommunityPanel({
         <CommunityLibrary
           campaign={campaign}
           category={selectedCategory}
+          currentUserId={currentUserId}
           master={master}
         />
       )}

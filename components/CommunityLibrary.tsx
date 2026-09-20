@@ -58,10 +58,12 @@ const limits = { title: 100, summary: 240, body: 20000 } as const;
 export default function CommunityLibrary({
   campaign,
   category,
+  currentUserId,
   master,
 }: {
   campaign: string;
   category: EditorialCategory;
+  currentUserId: string;
   master: boolean;
 }) {
   const [articles, setArticles] = useState<Row[]>([]);
@@ -72,6 +74,7 @@ export default function CommunityLibrary({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [playerArticleCount, setPlayerArticleCount] = useState(0);
   const coverObjectUrls = useRef<Record<string, string>>({});
   const holdTimer = useRef<number | null>(null);
   const holdStart = useRef({ x: 0, y: 0 });
@@ -86,7 +89,7 @@ export default function CommunityLibrary({
   };
 
   const startHold = (event: ReactPointerEvent, article: Row) => {
-    if (!master || event.button !== 0) return;
+    if (!canEditArticle(article) || event.button !== 0) return;
     cancelHold();
     holdTriggered.current = false;
     holdStart.current = { x: event.clientX, y: event.clientY };
@@ -115,24 +118,33 @@ export default function CommunityLibrary({
 
   const load = useCallback(async () => {
     setLoading(true);
-    const response = await retryNetworkRead(() => {
-      let query = browserDb()
-        .from("community_articles")
-        .select(
-          "id,campaign_id,category,title,summary,body,cover_path,published_at,updated_at,archived_at",
-        )
-        .eq("campaign_id", campaign)
-        .eq("category", category)
-        .order("published_at", { ascending: false });
-      if (!master) query = query.is("archived_at", null);
-      return query;
-    });
+    const [response, statusResponse] = await Promise.all([
+      retryNetworkRead(() => {
+        let query = browserDb()
+          .from("community_articles")
+          .select(
+            "id,campaign_id,category,title,summary,body,cover_path,created_by,published_at,updated_at,archived_at",
+          )
+          .eq("campaign_id", campaign)
+          .eq("category", category)
+          .order("published_at", { ascending: false });
+        if (!master) query = query.is("archived_at", null);
+        return query;
+      }),
+      category === "players" && !master
+        ? retryNetworkRead(() =>
+            browserDb().rpc("community_article_player_status", { c: campaign }),
+          )
+        : Promise.resolve(null),
+    ]);
 
-    if (response.error) {
-      setError(readableErrorMessage(response.error));
+    if (response.error || statusResponse?.error) {
+      setError(readableErrorMessage(response.error || statusResponse?.error));
       setLoading(false);
       return;
     }
+
+    setPlayerArticleCount(Number((statusResponse?.data as Row)?.count || 0));
 
     const next = response.data || [];
     setArticles(next);
@@ -202,6 +214,14 @@ export default function CommunityLibrary({
     () => articles.filter((article) => article.archived_at),
     [articles],
   );
+  const canEditArticle = useCallback(
+    (article: Row) =>
+      master ||
+      (category === "players" && article.created_by === currentUserId),
+    [category, currentUserId, master],
+  );
+  const playerLimitReached = !master && playerArticleCount >= 3;
+  const canWrite = master || (category === "players" && !playerLimitReached);
 
   const action = async (op: string, details: Row) => {
     const response = await browserDb().rpc("community_article_action", {
@@ -287,6 +307,7 @@ export default function CommunityLibrary({
             campaign={campaign}
             category={category}
             article={editing === "new" ? null : editing}
+            currentUserId={currentUserId}
             busy={busy}
             close={() => setEditing(null)}
             saved={async () => {
@@ -313,20 +334,33 @@ export default function CommunityLibrary({
           <h1>{info.title}</h1>
           <p>{info.description}</p>
         </div>
-        {master && (
+        {(master || category === "players") && (
           <button
             type="button"
             className={styles.writeButton}
+            disabled={!canWrite}
             onClick={() => setEditing("new")}
           >
-            <Plus aria-hidden="true" /> Escrever história
+            <Plus aria-hidden="true" />
+            {playerLimitReached ? "Limite de 3 atingido" : "Escrever história"}
           </button>
         )}
       </header>
 
-      {master && activeArticles.length > 0 && (
-        <p className={styles.manageHint}>Segure um card para gerenciar.</p>
+      {!master && category === "players" && (
+        <p className={styles.playerLimit}>
+          Você publicou {playerArticleCount} de 3 histórias permitidas.
+        </p>
       )}
+
+      {(master || activeArticles.some(canEditArticle)) &&
+        activeArticles.length > 0 && (
+          <p className={styles.manageHint}>
+            {master
+              ? "Segure um card para gerenciar."
+              : "Segure uma história sua para editar."}
+          </p>
+        )}
 
       {loading ? (
         <p className={styles.status}>Abrindo o arquivo...</p>
@@ -349,7 +383,7 @@ export default function CommunityLibrary({
                 onPointerCancel={cancelHold}
                 onPointerLeave={cancelHold}
                 onContextMenu={(event) => {
-                  if (!master) return;
+                  if (!canEditArticle(article)) return;
                   event.preventDefault();
                   cancelHold();
                   setActionTarget(article);
@@ -423,6 +457,7 @@ export default function CommunityLibrary({
           campaign={campaign}
           category={category}
           article={editing === "new" ? null : editing}
+          currentUserId={currentUserId}
           busy={busy}
           close={() => setEditing(null)}
           saved={async () => {
@@ -442,8 +477,8 @@ export default function CommunityLibrary({
             setEditing(actionTarget);
             setActionTarget(null);
           }}
-          archive={() => void archive(actionTarget)}
-          remove={() => void remove(actionTarget)}
+          archive={master ? () => void archive(actionTarget) : undefined}
+          remove={master ? () => void remove(actionTarget) : undefined}
         />
       )}
       {error && <p className={styles.error}>{error}</p>}
@@ -463,8 +498,8 @@ function ArticleActions({
   busy: boolean;
   close: () => void;
   edit: () => void;
-  archive: () => void;
-  remove: () => void;
+  archive?: () => void;
+  remove?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -499,25 +534,29 @@ function ArticleActions({
             <small>Alterar texto, descrição ou imagem</small>
           </span>
         </button>
-        <button type="button" onClick={archive} disabled={busy}>
-          <Archive aria-hidden="true" />
-          <span>
-            <strong>Arquivar</strong>
-            <small>Ocultar sem apagar a publicação</small>
-          </span>
-        </button>
-        <button
-          type="button"
-          className={styles.destructiveAction}
-          onClick={remove}
-          disabled={busy}
-        >
-          <Trash2 aria-hidden="true" />
-          <span>
-            <strong>Excluir</strong>
-            <small>Remover definitivamente</small>
-          </span>
-        </button>
+        {archive && (
+          <button type="button" onClick={archive} disabled={busy}>
+            <Archive aria-hidden="true" />
+            <span>
+              <strong>Arquivar</strong>
+              <small>Ocultar sem apagar a publicação</small>
+            </span>
+          </button>
+        )}
+        {remove && (
+          <button
+            type="button"
+            className={styles.destructiveAction}
+            onClick={remove}
+            disabled={busy}
+          >
+            <Trash2 aria-hidden="true" />
+            <span>
+              <strong>Excluir</strong>
+              <small>Remover definitivamente</small>
+            </span>
+          </button>
+        )}
         <button
           type="button"
           className={styles.cancelAction}
@@ -535,6 +574,7 @@ function ArticleEditor({
   campaign,
   category,
   article,
+  currentUserId,
   busy,
   close,
   saved,
@@ -544,6 +584,7 @@ function ArticleEditor({
   campaign: string;
   category: EditorialCategory;
   article: Row | null;
+  currentUserId: string;
   busy: boolean;
   close: () => void;
   saved: () => Promise<void>;
@@ -573,7 +614,11 @@ function ArticleEditor({
     let uploadedPath = "";
     try {
       if (file)
-        uploadedPath = await uploadCommunityArticleImage(file, campaign);
+        uploadedPath = await uploadCommunityArticleImage(
+          file,
+          campaign,
+          article?.created_by || currentUserId,
+        );
       const result = await action(article ? "update" : "create", {
         ...(article ? { id: article.id } : {}),
         category,
@@ -618,7 +663,7 @@ function ArticleEditor({
             <FilePenLine aria-hidden="true" />
           </span>
           <div>
-            <small>PAINEL DO PINK</small>
+            <small>{article ? "EDIÇÃO DA HISTÓRIA" : "NOVA HISTÓRIA"}</small>
             <h2 id="community-article-editor-title">
               {article ? "Editar história" : "Escrever história"}
             </h2>

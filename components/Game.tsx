@@ -3048,6 +3048,7 @@ export default function Game({ invite }: { invite?: string }) {
               avatars={rows("campaign_avatars")}
               urls={avatarUrls}
               actor={socialActor}
+              currentUserId={session.user.id}
               master={Boolean(isMaster)}
               notifications={rows("notifications")}
               openMenu={() => setMenu(true)}

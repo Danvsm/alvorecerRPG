@@ -77,6 +77,19 @@
   width: 17px;
 }
 
+.writeButton:disabled {
+  color: #8f8882;
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
+}
+
+.playerLimit {
+  margin: 14px 0 -8px;
+  color: #b8a889;
+  font-size: 0.76rem;
+}
+
 .articleGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
