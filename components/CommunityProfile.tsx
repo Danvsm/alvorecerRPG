@@ -206,6 +206,8 @@ export default function CommunityProfile({
     | null
   >(null);
   const [selectedMedalId, setSelectedMedalId] = useState("");
+  const [titleDialog, setTitleDialog] = useState<{ slot: number } | null>(null);
+  const [selectedTitleId, setSelectedTitleId] = useState("");
   const [visualDialog, setVisualDialog] = useState<
     "menu" | "avatar" | "frame" | null
   >(null);
@@ -219,6 +221,7 @@ export default function CommunityProfile({
   const [selectedWallpaperId, setSelectedWallpaperId] = useState("");
   const [wallpaperDialog, setWallpaperDialog] = useState(false);
   const medalDialogRef = useRef<HTMLDialogElement>(null);
+  const titleDialogRef = useRef<HTMLDialogElement>(null);
   const visualDialogRef = useRef<HTMLDialogElement>(null);
   const wallpaperDialogRef = useRef<HTMLDialogElement>(null);
   const cursorRef = useRef<{ createdAt: string; id: string } | undefined>(
@@ -235,6 +238,11 @@ export default function CommunityProfile({
     if (!medalDialog) return;
     medalDialogRef.current?.showModal();
   }, [medalDialog]);
+
+  useEffect(() => {
+    if (!titleDialog) return;
+    if (!titleDialogRef.current?.open) titleDialogRef.current?.showModal();
+  }, [titleDialog]);
 
   useEffect(() => {
     if (!visualDialog) return;
@@ -266,6 +274,13 @@ export default function CommunityProfile({
     medalDialogRef.current?.close();
     setMedalDialog(null);
     setSelectedMedalId("");
+  };
+
+  const closeTitleDialog = () => {
+    if (busyAction === "featured-title") return;
+    titleDialogRef.current?.close();
+    setTitleDialog(null);
+    setSelectedTitleId("");
   };
 
   const signPostMedia = useCallback(async (page: ProfilePost[]) => {
@@ -331,6 +346,8 @@ export default function CommunityProfile({
     setEditingBio(false);
     setMedalDialog(null);
     setSelectedMedalId("");
+    setTitleDialog(null);
+    setSelectedTitleId("");
     setVisualDialog(null);
     setSelectedAvatarId("");
     setSelectedFrameId("");
@@ -504,6 +521,64 @@ export default function CommunityProfile({
         }),
       );
       closeMedalDialog();
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
+  const saveFeaturedTitle = async () => {
+    if (!summary?.can_edit || !titleDialog || !selectedTitleId) return;
+
+    const slot = titleDialog.slot;
+    setBusyAction("featured-title");
+    setError("");
+    try {
+      const response = await browserDb().rpc("community_profile_action", {
+        c: campaign,
+        op: "featured_title",
+        d: {
+          actor_id: actor,
+          slot,
+          title_id: selectedTitleId,
+        },
+      });
+      if (response.error) throw response.error;
+
+      setCollectibles((current) =>
+        current.map((entry) => {
+          if (entry.kind !== "title") return entry;
+          if (entry.cosmetic_id === selectedTitleId)
+            return { ...entry, featured_slot: slot };
+          if (entry.featured_slot === slot)
+            return { ...entry, featured_slot: null };
+          if (
+            entry.cosmetic_id !== selectedTitleId &&
+            entry.featured_slot != null &&
+            entry.featured_slot !== slot
+          )
+            return entry;
+          return entry;
+        }),
+      );
+
+      // If the selected title was already in the other slot, clear that slot locally.
+      setCollectibles((current) =>
+        current.map((entry) => {
+          if (
+            entry.kind === "title" &&
+            entry.cosmetic_id !== selectedTitleId &&
+            entry.featured_slot === slot
+          )
+            return { ...entry, featured_slot: null };
+          return entry;
+        }),
+      );
+
+      titleDialogRef.current?.close();
+      setTitleDialog(null);
+      setSelectedTitleId("");
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -726,7 +801,9 @@ export default function CommunityProfile({
     medalDialog?.mode === "info"
       ? cosmeticById.get(medalDialog.medalId)
       : undefined;
-  const displayedTitles = titles.slice(0, 2);
+  const featuredTitles = [1, 2].map((slot) =>
+    titles.find((entry) => entry.featured_slot === slot),
+  );
   const bio = summary?.bio || DEFAULT_BIO;
 
   const activeWallpaperUrl = activeWallpaperId
@@ -911,35 +988,35 @@ export default function CommunityProfile({
         </div>
 
         <div className={styles.titleRow} aria-label="Títulos do personagem">
-          {(displayedTitles.length
-            ? displayedTitles
-            : [
-                {
-                  cosmetic_id: "planned-flame",
-                  item: {
-                    name: "Portador da Chama",
-                    icon: "flame",
-                    color: "#efb65e",
-                  },
-                },
-                {
-                  cosmetic_id: "planned-clan",
-                  item: {
-                    name: "Clã Nascente",
-                    icon: "shield",
-                    color: "#c9c2b7",
-                  },
-                },
-              ]
-          ).map((entry) => (
-            <span
-              key={entry.cosmetic_id}
-              title={entry.item ? undefined : "Em desenvolvimento"}
-            >
-              {entry.item && <CosmeticIcon item={entry.item} />}
-              {entry.item?.name || "Título em desenvolvimento"}
-            </span>
-          ))}
+          {featuredTitles.map((entry, index) => {
+            const slot = index + 1;
+            const content = (
+              <>
+                {entry?.item ? (
+                  <CosmeticIcon item={entry.item} />
+                ) : (
+                  <Award aria-hidden="true" />
+                )}
+                {entry?.item?.name || "Escolher título"}
+              </>
+            );
+
+            return summary?.can_edit ? (
+              <button
+                type="button"
+                key={`title-slot-${slot}`}
+                aria-label={`Alterar título da posição ${slot}`}
+                onClick={() => {
+                  setSelectedTitleId(entry?.cosmetic_id || "");
+                  setTitleDialog({ slot });
+                }}
+              >
+                {content}
+              </button>
+            ) : (
+              <span key={`title-slot-${slot}`}>{content}</span>
+            );
+          })}
         </div>
 
         <div className={styles.stats} aria-label="Estatísticas do perfil">
@@ -1573,6 +1650,99 @@ export default function CommunityProfile({
               </div>
             </>
           )}
+        </dialog>
+      )}
+
+      {titleDialog && (
+        <dialog
+          ref={titleDialogRef}
+          className={styles.medalDialog}
+          onCancel={(event) => {
+            event.preventDefault();
+            closeTitleDialog();
+          }}
+        >
+          <div className={styles.medalDialogHeader}>
+            <div>
+              <small>Títulos do perfil</small>
+              <h2>Escolher título</h2>
+              <p>
+                Este título ficará na posição {titleDialog.slot} do seu perfil.
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Fechar"
+              disabled={busyAction === "featured-title"}
+              onClick={closeTitleDialog}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={styles.medalChoiceList}>
+            {titles
+              .filter(
+                (entry) =>
+                  entry.item?.active && !entry.item?.archived_at,
+              )
+              .map((entry) => {
+                const selected = selectedTitleId === entry.cosmetic_id;
+                const occupiedSlot = entry.featured_slot;
+                return (
+                  <button
+                    type="button"
+                    key={entry.cosmetic_id}
+                    className={
+                      selected
+                        ? `${styles.medalChoice} ${styles.medalChoiceSelected}`
+                        : styles.medalChoice
+                    }
+                    aria-pressed={selected}
+                    disabled={busyAction === "featured-title"}
+                    onClick={() => setSelectedTitleId(entry.cosmetic_id)}
+                  >
+                    <span className={styles.titleChoiceIcon}>
+                      {entry.item ? (
+                        <CosmeticIcon item={entry.item} />
+                      ) : (
+                        <Award aria-hidden="true" />
+                      )}
+                    </span>
+                    <span className={styles.medalChoiceCopy}>
+                      <strong>{entry.item?.name || "Título"}</strong>
+                      <small>
+                        {entry.item?.description ||
+                          (occupiedSlot
+                            ? `Atualmente na posição ${occupiedSlot}.`
+                            : "Título disponível para o seu perfil.")}
+                      </small>
+                    </span>
+                    <span className={styles.medalChoiceCheck}>
+                      {selected && <Check aria-hidden="true" />}
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+
+          <div className={styles.medalDialogActions}>
+            <button
+              type="button"
+              disabled={busyAction === "featured-title"}
+              onClick={closeTitleDialog}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="primary"
+              disabled={busyAction === "featured-title" || !selectedTitleId}
+              onClick={() => void saveFeaturedTitle()}
+            >
+              {busyAction === "featured-title" ? "Salvando..." : "Confirmar"}
+            </button>
+          </div>
         </dialog>
       )}
 
