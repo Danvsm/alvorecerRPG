@@ -189,8 +189,8 @@ async function pushToUsers(
             kind: payload.kind || "announcement",
           }),
           {
-            TTL: 259200,
-            urgency: "high",
+            TTL: payload.kind === "message" ? 86400 : 259200,
+            urgency: payload.kind === "message" ? "high" : "normal",
           },
         );
 
