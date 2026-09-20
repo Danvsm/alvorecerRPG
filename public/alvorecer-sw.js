@@ -144,8 +144,10 @@ async function imageResponse(request) {
       accessedAt: now,
       validatedAt: metadata?.validatedAt || 0,
     });
+    const versioned = new URL(request.url).searchParams.has("v");
     const stale =
-      !metadata || now - (metadata.validatedAt || 0) >= REVALIDATE_AFTER_MS;
+      !versioned &&
+      (!metadata || now - (metadata.validatedAt || 0) >= REVALIDATE_AFTER_MS);
     const background = stale
       ? Promise.all([
           touch,
