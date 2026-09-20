@@ -150,11 +150,11 @@ test("image URLs keep their authorization token and change only with the asset v
   );
 });
 
-test("the worker revision forces browsers to install the CSP-corrected script", () => {
-  assert.equal(IMAGE_CACHE_WORKER_REVISION, "5");
+test("the worker revision forces browsers to install the immutable-version cache update", () => {
+  assert.equal(IMAGE_CACHE_WORKER_REVISION, "6");
   assert.equal(IMAGE_CACHE_NAME, "alvorecer-images-v2");
-  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=5");
-  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=5&debug=1");
+  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=6");
+  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=6&debug=1");
   assert.match(workerSource, /alvorecer-images-v2/);
   assert.match(workerSource, /alvorecer-images-meta-v2/);
 });
@@ -214,8 +214,26 @@ test("a changed version downloads only the new image", async () => {
   assert.equal(harness.stores.get(IMAGE_CACHE_NAME)?.size, 2);
 });
 
-test("a stale cached image remains available offline and a removed image is evicted", async () => {
-  const url = signedImage("offline.webp", "one", "v1");
+test("versioned signed images do not revalidate while their version is unchanged", async () => {
+  let requests = 0;
+  const harness = createWorkerHarness(async () => {
+    requests += 1;
+    return new Response("available");
+  });
+  const firstUrl = signedImage("persistent.webp", "one", "v1");
+  const renewedUrl = signedImage("persistent.webp", "two", "v1");
+
+  await harness.dispatchFetch(firstUrl);
+  harness.advance(24 * 60 * 60 * 1000);
+  assert.equal(
+    await (await harness.dispatchFetch(renewedUrl))?.text(),
+    "available",
+  );
+  assert.equal(requests, 1);
+});
+
+test("unversioned cached images still revalidate and removed images are evicted", async () => {
+  const url = "https://assets.test/offline.webp";
   const harness = createWorkerHarness(async () => new Response("available"));
   await harness.dispatchFetch(url);
 
@@ -303,6 +321,11 @@ test("integration keeps logout isolation, HTTP cache headers and development-onl
   const game = readFileSync("components/Game.tsx", "utf8");
   const layout = readFileSync("app/layout.tsx", "utf8");
   const media = readFileSync("lib/media.ts", "utf8");
+  const profile = readFileSync("components/CommunityProfile.tsx", "utf8");
+  const wallpaperManager = readFileSync(
+    "components/WallpaperManager.tsx",
+    "utf8",
+  );
   const config = readFileSync("next.config.ts", "utf8");
 
   assert.match(game, /setAvatarUrls\(\{\}\)/);
@@ -311,6 +334,10 @@ test("integration keeps logout isolation, HTTP cache headers and development-onl
   assert.doesNotMatch(game, /cacheNonce/);
   assert.match(layout, /<ImageCache \/>/);
   assert.match(media, /cacheControl: "31536000"/);
+  assert.match(profile, /versionedImageUrl/);
+  assert.match(profile, /wallpaper\.updated_at \|\| wallpaper\.created_at/);
+  assert.match(wallpaperManager, /versionedImageUrl/);
+  assert.match(workerSource, /!versioned &&/);
   assert.match(config, /no-cache, no-store, must-revalidate/);
   assert.match(
     config,
