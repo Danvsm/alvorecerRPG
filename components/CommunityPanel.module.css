@@ -4359,7 +4359,7 @@ dialog.commentsSheet {
 
 .exploreCategories {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin: 0 0 12px;
 }
@@ -4394,10 +4394,6 @@ dialog.commentsSheet {
 }
 
 .exploreCategoryCard:nth-child(3) {
-  background-position: 50% 43%;
-}
-
-.exploreCategoryCard:nth-child(4) {
   background-position: 67% 44%;
 }
 
