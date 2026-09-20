@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, Send, Square, Trash2, X } from "lucide-react";
+import { Mic, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   CHAT_AUDIO_BITRATE,
@@ -16,10 +16,12 @@ import { readableErrorMessage } from "@/lib/network";
 
 export default function VoiceRecorder({
   disabled,
+  holding,
   onClose,
   onSend,
 }: {
   disabled?: boolean;
+  holding: boolean;
   onClose: () => void;
   onSend: (payload: ChatAudioPayload) => Promise<void>;
 }) {
@@ -40,6 +42,8 @@ export default function VoiceRecorder({
   const payloadRef = useRef<ChatAudioPayload | null>(null);
   const formatRef = useRef<ChatAudioFormat | null>(null);
   const cancelledRef = useRef(false);
+  const releasedRef = useRef(false);
+  const startedRef = useRef(false);
 
   const releaseInput = () => {
     if (intervalRef.current != null) window.clearInterval(intervalRef.current);
@@ -76,7 +80,8 @@ export default function VoiceRecorder({
     document.addEventListener("visibilitychange", hidden);
     return () => {
       document.removeEventListener("visibilitychange", hidden);
-      if (intervalRef.current != null) window.clearInterval(intervalRef.current);
+      if (intervalRef.current != null)
+        window.clearInterval(intervalRef.current);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       void audioContextRef.current?.close();
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -88,13 +93,17 @@ export default function VoiceRecorder({
     setState("requesting");
     setError("");
     try {
-      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      if (
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof MediaRecorder === "undefined"
+      ) {
         throw new Error("Este navegador não oferece gravação de voz.");
       }
       const format = selectChatAudioFormat((mime) =>
         MediaRecorder.isTypeSupported(mime),
       );
-      if (!format) throw new Error("Nenhum formato de áudio compatível foi encontrado.");
+      if (!format)
+        throw new Error("Nenhum formato de áudio compatível foi encontrado.");
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -170,8 +179,14 @@ export default function VoiceRecorder({
       startedAtRef.current = Date.now();
       setElapsed(0);
       setState("recording");
+      if (releasedRef.current || !holding) {
+        window.setTimeout(() => stopRecording(false), 0);
+      }
       intervalRef.current = window.setInterval(() => {
-        const next = Math.min(MAX_CHAT_AUDIO_MS, Date.now() - startedAtRef.current);
+        const next = Math.min(
+          MAX_CHAT_AUDIO_MS,
+          Date.now() - startedAtRef.current,
+        );
         setElapsed(next);
         const analyser = analyserRef.current;
         if (analyser) {
@@ -195,6 +210,20 @@ export default function VoiceRecorder({
     }
   };
 
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void start();
+    // A gravação começa uma única vez quando a barra substitui o campo de texto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (holding) return;
+    releasedRef.current = true;
+    if (state === "recording") stopRecording(false);
+  }, [holding, state]);
+
   const send = async () => {
     const payload = payloadRef.current;
     if (!payload || state !== "preview") return;
@@ -212,48 +241,38 @@ export default function VoiceRecorder({
 
   return (
     <section className="voice-recorder" aria-label="Gravar mensagem de voz">
-      <div className="voice-recorder-topline">
-        <strong>Mensagem de voz</strong>
-        <button
-          type="button"
-          onClick={() => {
-            if (state === "recording") stopRecording(true);
-            resetPreview();
-            onClose();
-          }}
-          aria-label="Fechar gravador"
-          disabled={state === "uploading"}
-        >
-          <X />
-        </button>
-      </div>
-
       {state === "ready" || state === "requesting" ? (
-        <button
-          type="button"
-          className="voice-start-button"
-          onClick={start}
-          disabled={disabled || state === "requesting"}
-        >
+        <div className="voice-requesting-row" aria-live="polite">
           <Mic />
-          {state === "requesting" ? "Abrindo microfone..." : "Começar a gravar"}
-        </button>
+          <span>
+            {state === "requesting"
+              ? "Abrindo microfone..."
+              : "Preparando áudio..."}
+          </span>
+          <button type="button" onClick={onClose} aria-label="Cancelar áudio">
+            <Trash2 />
+          </button>
+        </div>
       ) : state === "recording" ? (
         <div className="voice-recording-row">
+          <button
+            type="button"
+            onClick={() => stopRecording(true)}
+            aria-label="Cancelar gravação"
+          >
+            <Trash2 />
+          </button>
           <span className="voice-recording-dot" aria-hidden="true" />
           <strong>{formatAudioDuration(elapsed)}</strong>
-          <span>/ 5:00</span>
-          <button type="button" onClick={() => stopRecording(true)}>
-            <Trash2 /> Cancelar
-          </button>
-          <button type="button" className="primary" onClick={() => stopRecording(false)}>
-            <Square /> Concluir
-          </button>
+          <span className="voice-recording-wave" aria-hidden="true">
+            {Array.from({ length: 15 }, (_, index) => (
+              <i key={index} />
+            ))}
+          </span>
+          <span className="voice-release-hint">Solte para concluir</span>
         </div>
       ) : (
         <div className="voice-preview-row">
-          <audio src={previewUrl} controls preload="metadata" />
-          <small>{formatAudioDuration(elapsed)}</small>
           <button
             type="button"
             onClick={() => {
@@ -265,18 +284,19 @@ export default function VoiceRecorder({
           >
             <Trash2 />
           </button>
+          <audio src={previewUrl} controls preload="metadata" />
+          <small>{formatAudioDuration(elapsed)}</small>
           <button
             type="button"
             className="primary"
             onClick={send}
             disabled={state === "uploading"}
           >
-            <Send /> {state === "uploading" ? "Enviando..." : "Enviar"}
+            {state === "uploading" ? "Enviando..." : "Enviar"}
           </button>
         </div>
       )}
       {error && <p className="voice-recorder-error">{error}</p>}
-      <small className="voice-recorder-limit">Limite de 5 minutos</small>
     </section>
   );
 }

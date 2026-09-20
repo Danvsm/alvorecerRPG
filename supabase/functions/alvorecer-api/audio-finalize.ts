@@ -1,18 +1,15 @@
-import { parseBuffer } from "music-metadata";
 import { admin, member } from "./server.ts";
+import { inspectAudioDuration } from "./audio-duration.ts";
 
 const MAX_AUDIO_BYTES = 3 * 1024 * 1024;
 const MAX_AUDIO_DURATION_MS = 5 * 60 * 1000;
-const ALLOWED_MIME_TYPES = new Set([
-  "audio/webm",
-  "audio/ogg",
-  "audio/mp4",
-]);
+const ALLOWED_MIME_TYPES = new Set(["audio/webm", "audio/ogg", "audio/mp4"]);
 
 type AudioFinalizeBody = {
   campaign?: unknown;
   actorId?: unknown;
   mediaId?: unknown;
+  durationMs?: unknown;
   waveform?: unknown;
 };
 
@@ -58,6 +55,14 @@ export async function finalizeAudio(req: Request) {
   const actorId = uuid(body.actorId, "Identidade");
   const mediaId = uuid(body.mediaId, "Áudio");
   const waveform = normalizedWaveform(body.waveform);
+  const claimedDurationMs = Math.round(Number(body.durationMs));
+  if (
+    !Number.isFinite(claimedDurationMs) ||
+    claimedDurationMs < 250 ||
+    claimedDurationMs > MAX_AUDIO_DURATION_MS
+  ) {
+    throw new Error("Duração de áudio inválida.");
+  }
   const context = await member(req, campaignId);
 
   const { data: media, error: mediaError } = await context.db
@@ -102,16 +107,21 @@ export async function finalizeAudio(req: Request) {
   let durationMs = 0;
   try {
     const bytes = new Uint8Array(await object.arrayBuffer());
-    const metadata = await parseBuffer(
+    durationMs = inspectAudioDuration(
       bytes,
-      { mimeType, size: bytes.byteLength },
-      { duration: true, skipCovers: true },
+      mimeType as "audio/webm" | "audio/ogg" | "audio/mp4",
     );
-    durationMs = Math.round(Number(metadata.format.duration || 0) * 1000);
   } catch {
     await rejectUpload(mediaId, media.storage_path);
     throw new Error("O arquivo enviado não é um áudio válido.");
   }
+
+  if (Math.abs(durationMs - claimedDurationMs) > 5000) {
+    await rejectUpload(mediaId, media.storage_path);
+    throw new Error("A duração informada não corresponde ao arquivo enviado.");
+  }
+
+  durationMs = Math.min(durationMs, MAX_AUDIO_DURATION_MS);
 
   if (durationMs < 250 || durationMs > MAX_AUDIO_DURATION_MS) {
     await rejectUpload(mediaId, media.storage_path);
@@ -132,7 +142,8 @@ export async function finalizeAudio(req: Request) {
     p_duration_ms: durationMs,
     p_waveform: waveform,
   });
-  if (error) throw new Error(error.message || "Não foi possível enviar o áudio.");
+  if (error)
+    throw new Error(error.message || "Não foi possível enviar o áudio.");
 
   return Response.json(data, {
     headers: { "Cache-Control": "no-store" },

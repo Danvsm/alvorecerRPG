@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, ChevronLeft, Flag, ImagePlus, MessageCircle, Mic, Send, Trash2, X } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  ChevronLeft,
+  Flag,
+  ImagePlus,
+  MessageCircle,
+  Mic,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
@@ -54,10 +65,14 @@ export default function DirectChat({
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0),
     [limit, setLimit] = useState(50),
-    [latestByConversation, setLatestByConversation] = useState<Record<string, Row>>({}),
+    [latestByConversation, setLatestByConversation] = useState<
+      Record<string, Row>
+    >({}),
     [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set()),
     [contactsInteractive, setContactsInteractive] = useState(true),
-    [mutedConversations, setMutedConversations] = useState<Set<string>>(new Set()),
+    [mutedConversations, setMutedConversations] = useState<Set<string>>(
+      new Set(),
+    ),
     [contactMenu, setContactMenu] = useState<{
       conversationId: string;
       identityId: string;
@@ -84,6 +99,7 @@ export default function DirectChat({
     } | null>(null),
     [messageReportReason, setMessageReportReason] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceHolding, setVoiceHolding] = useState(false);
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,6 +113,16 @@ export default function DirectChat({
     y: number;
     moved: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    const releaseVoice = () => setVoiceHolding(false);
+    window.addEventListener("pointerup", releaseVoice);
+    window.addEventListener("pointercancel", releaseVoice);
+    return () => {
+      window.removeEventListener("pointerup", releaseVoice);
+      window.removeEventListener("pointercancel", releaseVoice);
+    };
+  }, []);
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
       c: campaign,
@@ -133,7 +159,8 @@ export default function DirectChat({
   };
 
   const sendVoice = async (payload: ChatAudioPayload) => {
-    if (busy || !selected) throw new Error("Abra uma conversa para enviar o áudio.");
+    if (busy || !selected)
+      throw new Error("Abra uma conversa para enviar o áudio.");
     setBusy(true);
     setError("");
     try {
@@ -173,7 +200,17 @@ export default function DirectChat({
           waveform: payload.waveform,
         }),
       });
-      const result = await response.json();
+      const responseText = await response.text();
+      let result: Row = {};
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        result = {
+          error: response.ok
+            ? "O servidor respondeu em um formato inesperado."
+            : "Não foi possível validar o áudio no servidor.",
+        };
+      }
       if (!response.ok) {
         throw new Error(result.error || "Não foi possível enviar o áudio.");
       }
@@ -270,7 +307,9 @@ export default function DirectChat({
         else next.add(conversationId);
         return next;
       });
-      showFeedback(currentlyMuted ? "Notificações reativadas." : "Conversa silenciada.");
+      showFeedback(
+        currentlyMuted ? "Notificações reativadas." : "Conversa silenciada.",
+      );
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -326,11 +365,7 @@ export default function DirectChat({
     }
   };
 
-  const openMessageMenu = (
-    message: Row,
-    clientX: number,
-    clientY: number,
-  ) => {
+  const openMessageMenu = (message: Row, clientX: number, clientY: number) => {
     const width = 176;
     const height = 104;
     const x = Math.max(10, Math.min(clientX, window.innerWidth - width - 10));
@@ -404,7 +439,11 @@ export default function DirectChat({
     ).then((result) => {
       if (!valid || result.error) return;
       setMutedConversations(
-        new Set((result.data || []).map((entry: Row) => String(entry.conversation_id))),
+        new Set(
+          (result.data || []).map((entry: Row) =>
+            String(entry.conversation_id),
+          ),
+        ),
       );
     });
     return () => {
@@ -489,7 +528,9 @@ export default function DirectChat({
       const latestResult = await retryNetworkRead(() =>
         browserDb()
           .from("direct_messages")
-          .select("id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)")
+          .select(
+            "id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)",
+          )
           .in("conversation_id", ids)
           .order("created_at", { ascending: false }),
       );
@@ -564,7 +605,7 @@ export default function DirectChat({
     );
   }, [messages, open, selected]);
 
-    const actorIdentity = identities.find((identity) => identity.id === actor);
+  const actorIdentity = identities.find((identity) => identity.id === actor);
 
   const contactRows = useMemo(() => {
     const conversationByPeer = new Map<string, Row>();
@@ -583,8 +624,7 @@ export default function DirectChat({
         const latest = conversation
           ? latestByConversation[conversation.id]
           : undefined;
-        const activityAt =
-          latest?.created_at || conversation?.created_at || "";
+        const activityAt = latest?.created_at || conversation?.created_at || "";
         const online = Boolean(
           identity.user_id && onlineUserIds.has(identity.user_id),
         );
@@ -614,13 +654,7 @@ export default function DirectChat({
           "pt-BR",
         );
       });
-  }, [
-    actor,
-    conversations,
-    identities,
-    latestByConversation,
-    onlineUserIds,
-  ]);
+  }, [actor, conversations, identities, latestByConversation, onlineUserIds]);
 
   const openContact = async (identityId: string) => {
     if (
@@ -651,7 +685,11 @@ export default function DirectChat({
     if (!value) return "";
     const date = new Date(value);
     const now = new Date();
-    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const startMessage = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -908,7 +946,10 @@ export default function DirectChat({
                       key={identity.id}
                       disabled={busy || !contactsInteractive}
                       onPointerDown={(event) => {
-                        if (!conversation || event.pointerType === "mouse" && event.button !== 0) {
+                        if (
+                          !conversation ||
+                          (event.pointerType === "mouse" && event.button !== 0)
+                        ) {
                           return;
                         }
                         closeContactPress();
@@ -967,7 +1008,8 @@ export default function DirectChat({
                           return;
                         }
                         event.preventDefault();
-                        const rect = event.currentTarget.getBoundingClientRect();
+                        const rect =
+                          event.currentTarget.getBoundingClientRect();
                         openContactMenu(
                           String(conversation.id),
                           String(identity.id),
@@ -1013,7 +1055,10 @@ export default function DirectChat({
                       {conversation && (
                         <span className="chat-contact-meta">
                           {mutedConversations.has(String(conversation.id)) && (
-                            <BellOff size={14} aria-label="Conversa silenciada" />
+                            <BellOff
+                              size={14}
+                              aria-label="Conversa silenciada"
+                            />
                           )}
                           <time dateTime={activityAt}>
                             {contactTime(activityAt)}
@@ -1032,80 +1077,86 @@ export default function DirectChat({
               )}
             </div>
           )}
-          {selected && <div className="chat-messages">
-            {messages.length >= limit && (
-              <button onClick={() => setLimit((n) => n + 50)}>
-                Carregar anteriores
-              </button>
-            )}
-            {messages.map((m) => {
-              const sender = identities.find((i) => i.id === m.sender_id);
-              return (
-                <div
-                  className={
-                    m.sender_id === actor
-                      ? "chat-message mine chat-message-actionable"
-                      : "chat-message chat-message-actionable"
-                  }
-                  key={m.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={
-                    m.sender_id === actor
-                      ? "Abrir opções da sua mensagem"
-                      : "Abrir opções da mensagem"
-                  }
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    openMessageMenu(m, event.clientX, event.clientY);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    openMessageMenu(
-                      m,
-                      rect.left + rect.width / 2,
-                      rect.top + rect.height / 2,
-                    );
-                  }}
-                >
-                  <div className="chat-message-author">
-                    <IdentityAvatar
-                      identity={sender}
-                      identityId={m.sender_id}
-                      avatarAlt={sender?.name}
-                      cosmetics={cosmetics}
-                      equipment={equipment}
-                      urls={urls}
-                      size={30}
-                    />
-                    <small>{sender?.name || "Perfil indisponível"}</small>
-                  </div>
-                  {m.media_id ? (
-                    mediaType(m) === "audio" ? (
-                      <ChatAudio id={m.media_id} />
+          {selected && (
+            <div className="chat-messages">
+              {messages.length >= limit && (
+                <button onClick={() => setLimit((n) => n + 50)}>
+                  Carregar anteriores
+                </button>
+              )}
+              {messages.map((m) => {
+                const sender = identities.find((i) => i.id === m.sender_id);
+                return (
+                  <div
+                    className={
+                      m.sender_id === actor
+                        ? "chat-message mine chat-message-actionable"
+                        : "chat-message chat-message-actionable"
+                    }
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={
+                      m.sender_id === actor
+                        ? "Abrir opções da sua mensagem"
+                        : "Abrir opções da mensagem"
+                    }
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openMessageMenu(m, event.clientX, event.clientY);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      openMessageMenu(
+                        m,
+                        rect.left + rect.width / 2,
+                        rect.top + rect.height / 2,
+                      );
+                    }}
+                  >
+                    <div className="chat-message-author">
+                      <IdentityAvatar
+                        identity={sender}
+                        identityId={m.sender_id}
+                        avatarAlt={sender?.name}
+                        cosmetics={cosmetics}
+                        equipment={equipment}
+                        urls={urls}
+                        size={30}
+                      />
+                      <small>{sender?.name || "Perfil indisponível"}</small>
+                    </div>
+                    {m.media_id ? (
+                      mediaType(m) === "audio" ? (
+                        <ChatAudio id={m.media_id} />
+                      ) : (
+                        <ChatImage id={m.media_id} />
+                      )
                     ) : (
-                      <ChatImage id={m.media_id} />
-                    )
-                  ) : (
-                    <p>{m.body}</p>
-                  )}
-                  <small>
-                    {new Date(m.created_at).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </small>
-                </div>
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>}
+                      <p>{m.body}</p>
+                    )}
+                    <small>
+                      {new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </small>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
           {canSend && voiceOpen && (
             <VoiceRecorder
               disabled={busy}
-              onClose={() => setVoiceOpen(false)}
+              holding={voiceHolding}
+              onClose={() => {
+                setVoiceHolding(false);
+                setVoiceOpen(false);
+              }}
               onSend={sendVoice}
             />
           )}
@@ -1189,9 +1240,15 @@ export default function DirectChat({
                 <button
                   type="button"
                   className="chat-voice-button"
-                  onClick={() => setVoiceOpen(true)}
+                  onPointerDown={(event) => {
+                    if (event.pointerType === "mouse" && event.button !== 0)
+                      return;
+                    event.preventDefault();
+                    setVoiceHolding(true);
+                    setVoiceOpen(true);
+                  }}
                   disabled={busy}
-                  aria-label="Gravar mensagem de voz"
+                  aria-label="Segure para gravar mensagem de voz"
                 >
                   <Mic aria-hidden="true" />
                 </button>
@@ -1354,9 +1411,7 @@ export default function DirectChat({
                     ? "Excluir anexo?"
                     : "Excluir mensagem?"}
                 </h3>
-                <p>
-                  Ela será removida para você e para a outra pessoa.
-                </p>
+                <p>Ela será removida para você e para a outra pessoa.</p>
                 <div className="chat-action-dialog-actions">
                   <button
                     type="button"
@@ -1419,9 +1474,7 @@ export default function DirectChat({
                   <button
                     type="button"
                     className="danger"
-                    disabled={
-                      busy || messageReportReason.trim().length < 3
-                    }
+                    disabled={busy || messageReportReason.trim().length < 3}
                     onClick={() => void reportMessage()}
                   >
                     {busy ? "Enviando..." : "Enviar denúncia"}
