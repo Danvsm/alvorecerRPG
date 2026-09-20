@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Gift, Gem, Sparkles, X } from "lucide-react";
+import Image from "next/image";
+import { Gift, Sparkles, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage } from "@/lib/network";
 import { playChestReveal } from "@/lib/site-sounds";
@@ -36,6 +37,8 @@ type Opening = {
   gifted?: boolean;
   gems?: number;
   pending?: boolean;
+  avatar_id?: string;
+  cosmetic_id?: string;
 };
 const rarityName: Record<Rarity, string> = {
   common: "Comum",
@@ -47,9 +50,11 @@ const rarityName: Record<Rarity, string> = {
 
 export default function TreasureChest({
   campaign,
+  urls,
   onChanged,
 }: {
   campaign: string;
+  urls: Record<string, string>;
   onChanged?: () => void;
 }) {
   const [data, setData] = useState<Dashboard | null>(null);
@@ -78,6 +83,15 @@ export default function TreasureChest({
     () => Math.max(0, (data?.cost_gems || 30) - (data?.gems || 0)),
     [data],
   );
+  const isCosmeticReward =
+    result?.reward_type === "avatar" || result?.reward_type === "frame";
+  const rewardAssetId =
+    result?.reward_type === "avatar"
+      ? result.avatar_id
+      : result?.reward_type === "frame"
+        ? result.cosmetic_id
+        : undefined;
+  const rewardImage = rewardAssetId ? urls[rewardAssetId] : undefined;
   async function openChest(giftId?: string) {
     setBusy(true);
     setError("");
@@ -141,7 +155,14 @@ export default function TreasureChest({
         <p className={styles.eyebrow}>Tesouros de Alvorecer</p>
         <h2 className={styles.title}>Baú Dourado</h2>
         <div className={styles.balance}>
-          <Gem size={18} />
+          <Image
+            src="/treasure/gems.webp"
+            width={34}
+            height={28}
+            alt=""
+            aria-hidden="true"
+            priority
+          />
           {data?.gems ?? "—"} Gemas
         </div>
         <div
@@ -161,7 +182,22 @@ export default function TreasureChest({
             <div className={styles.lock} />
           </div>
           {result && (
-            <div className={styles.result}>
+            <div
+              className={`${styles.result} ${isCosmeticReward ? styles.cosmeticResult : ""}`}
+            >
+              {isCosmeticReward && (
+                <>
+                  <div className={styles.prizeRays} aria-hidden="true" />
+                  <div className={styles.prizeSparkles} aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                </>
+              )}
               <button
                 className={styles.close}
                 onClick={reset}
@@ -172,6 +208,20 @@ export default function TreasureChest({
               <span className={`${styles.rarity} ${styles[result.rarity]}`}>
                 {rarityName[result.rarity]}
               </span>
+              {isCosmeticReward && (
+                <strong className={styles.extraordinary}>
+                  Prêmio extraordinário
+                </strong>
+              )}
+              {isCosmeticReward && rewardImage && (
+                // URLs do Storage podem mudar de origem, então a prévia usa img.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className={styles.prizeImage}
+                  src={rewardImage}
+                  alt={result.reward_label}
+                />
+              )}
               <h3>{result.reward_label}</h3>
               <p>
                 {result.pending

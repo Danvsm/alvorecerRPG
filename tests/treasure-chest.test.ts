@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 
@@ -15,6 +15,14 @@ const pendingRewardsMigration = () =>
   readFile(
     new URL(
       "../supabase/migrations/20260920233417_chest_pending_rewards.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+const rewardDeleteMigration = () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260920234823_chest_reward_delete.sql",
       import.meta.url,
     ),
     "utf8",
@@ -74,12 +82,34 @@ test("player chest includes gift, next-opening loop, odds and reduced-motion sup
   assert.match(component, /Abrir outro por/);
   assert.match(component, /Presentear um Baú/);
   assert.match(component, /Chances por raridade/);
+  assert.match(component, /\/treasure\/gems\.webp/);
+  assert.match(component, /Prêmio extraordinário/);
+  assert.match(component, /cosmeticResult/);
   assert.match(component, /crypto\.randomUUID\(\)/);
   assert.match(admin, /option value="xp"/);
   assert.match(admin, /option value="dracmas"/);
+  assert.match(admin, /reward_delete/);
+  assert.match(admin, /chance base/);
+  assert.match(admin, /rewardRarity/);
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(game, /\["Baú", Gem\]/);
   assert.match(game, /<ChestAdmin campaign=\{campaign\}/);
+});
+
+test("official Gem asset is optimized for the interface", async () => {
+  const asset = await stat(
+    new URL("../public/treasure/gems.webp", import.meta.url),
+  );
+  assert.ok(asset.size > 1_000);
+  assert.ok(asset.size < 80_000);
+});
+
+test("only Pink can permanently remove a configured chest reward", async () => {
+  const sql = await rewardDeleteMigration();
+  assert.match(sql, /if not public\.is_master\(c\)/);
+  assert.match(sql, /op='reward_delete'/);
+  assert.match(sql, /delete from public\.chest_rewards/);
+  assert.match(sql, /set chest_only=false/);
 });
 
 test("chest opening and gifting debit once and deliver rewards atomically", async () => {
@@ -118,6 +148,7 @@ test("chest opening and gifting debit once and deliver rewards atomically", asyn
     `);
     await db.exec(await migration());
     await db.exec(await pendingRewardsMigration());
+    await db.exec(await rewardDeleteMigration());
     const ids = [
       crypto.randomUUID(),
       crypto.randomUUID(),
@@ -271,6 +302,35 @@ test("chest opening and gifting debit once and deliver rewards atomically", asyn
           [campaign, waiting],
         )
       ).rows[0].chest_pending_xp,
+      0,
+    );
+
+    const temporaryReward = crypto.randomUUID();
+    await db.exec("reset role");
+    await db.query(
+      "insert into chest_rewards(id,campaign_id,rarity,reward_type,label,amount,weight) values($1,$2,'common','xp','Temporário',1,1)",
+      [temporaryReward, campaign],
+    );
+    await asUser(player);
+    await assert.rejects(
+      db.query("select chest_admin_action($1,'reward_delete',$2::jsonb)", [
+        campaign,
+        JSON.stringify({ id: temporaryReward }),
+      ]),
+      /Somente Pink/,
+    );
+    await asUser(master);
+    await db.query("select chest_admin_action($1,'reward_delete',$2::jsonb)", [
+      campaign,
+      JSON.stringify({ id: temporaryReward }),
+    ]);
+    assert.equal(
+      (
+        await db.query<{ count: number }>(
+          "select count(*)::int count from chest_rewards where id=$1",
+          [temporaryReward],
+        )
+      ).rows[0].count,
       0,
     );
   } finally {

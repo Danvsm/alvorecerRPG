@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage } from "@/lib/network";
 import styles from "./ChestAdmin.module.css";
@@ -12,6 +13,12 @@ const rarityNames: Record<string, string> = {
   rare: "Rara",
   epic: "Épica",
   legendary: "Lendária",
+};
+const typeNames: Record<string, string> = {
+  frame: "Moldura",
+  avatar: "Avatar",
+  xp: "XP",
+  dracmas: "Dracmas",
 };
 export default function ChestAdmin({ campaign }: { campaign: string }) {
   const [data, setData] = useState<Row | null>(null),
@@ -27,6 +34,10 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
     [rarity, setRarity] = useState("rare"),
     [weight, setWeight] = useState(1),
     [amount, setAmount] = useState(100);
+  const [rewardSearch, setRewardSearch] = useState(""),
+    [rewardRarity, setRewardRarity] = useState("all"),
+    [rewardType, setRewardType] = useState("all"),
+    [rewardStatus, setRewardStatus] = useState("all");
   const load = useCallback(async () => {
     const r = await browserDb().rpc("chest_admin_dashboard", { c: campaign });
     if (r.error) throw r.error;
@@ -72,6 +83,39 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
   }
   const assets = type === "avatar" ? data?.avatars || [] : data?.frames || [];
   const chosen = assets.find((a: Row) => a.id === asset);
+  const rewards = useMemo(() => data?.rewards || [], [data?.rewards]);
+  const rarityWeightTotals = useMemo(
+    () =>
+      rewards.reduce((totals: Record<string, number>, reward: Row) => {
+        if (reward.active) {
+          totals[reward.rarity] =
+            (totals[reward.rarity] || 0) + Number(reward.weight || 0);
+        }
+        return totals;
+      }, {}),
+    [rewards],
+  );
+  const filteredRewards = useMemo(() => {
+    const query = rewardSearch.trim().toLocaleLowerCase("pt-BR");
+    return rewards.filter((reward: Row) => {
+      const matchesSearch =
+        !query || reward.label.toLocaleLowerCase("pt-BR").includes(query);
+      const matchesRarity =
+        rewardRarity === "all" || reward.rarity === rewardRarity;
+      const matchesType =
+        rewardType === "all" || reward.reward_type === rewardType;
+      const matchesStatus =
+        rewardStatus === "all" ||
+        (rewardStatus === "active" ? reward.active : !reward.active);
+      return matchesSearch && matchesRarity && matchesType && matchesStatus;
+    });
+  }, [rewardRarity, rewardSearch, rewardStatus, rewardType, rewards]);
+  function rewardChance(reward: Row) {
+    if (!reward.active) return 0;
+    const total = rarityWeightTotals[reward.rarity] || 0;
+    if (!total) return 0;
+    return ((odds[reward.rarity] || 0) * Number(reward.weight || 0)) / total;
+  }
   async function addReward() {
     const isValueReward = type === "xp" || type === "dracmas";
     if ((!isValueReward && !chosen) || (isValueReward && amount <= 0)) return;
@@ -121,7 +165,19 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
           </p>
         </section>
         <section className={styles.card}>
-          <h4>Entregar Gemas</h4>
+          <div className={styles.gemHeading}>
+            <Image
+              src="/treasure/gems.webp"
+              width={72}
+              height={59}
+              alt="Gemas"
+              priority
+            />
+            <div>
+              <h4>Entregar Gemas</h4>
+              <small>Moeda exclusiva do Baú Dourado</small>
+            </div>
+          </div>
           <label className={styles.field}>
             Jogador
             <select value={player} onChange={(e) => setPlayer(e.target.value)}>
@@ -259,25 +315,105 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
       </section>
       <section className={styles.card}>
         <h4>Prêmios configurados</h4>
-        {data?.rewards?.map((r: Row) => (
+        <div className={styles.filters}>
+          <label className={styles.field}>
+            Buscar
+            <input
+              type="search"
+              placeholder="Nome do prêmio"
+              value={rewardSearch}
+              onChange={(event) => setRewardSearch(event.target.value)}
+            />
+          </label>
+          <label className={styles.field}>
+            Raridade
+            <select
+              value={rewardRarity}
+              onChange={(event) => setRewardRarity(event.target.value)}
+            >
+              <option value="all">Todas</option>
+              {Object.entries(rarityNames).map(([key, name]) => (
+                <option key={key} value={key}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            Tipo
+            <select
+              value={rewardType}
+              onChange={(event) => setRewardType(event.target.value)}
+            >
+              <option value="all">Todos</option>
+              {Object.entries(typeNames).map(([key, name]) => (
+                <option key={key} value={key}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            Status
+            <select
+              value={rewardStatus}
+              onChange={(event) => setRewardStatus(event.target.value)}
+            >
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="paused">Pausados</option>
+            </select>
+          </label>
+        </div>
+        <p className={styles.probabilityNote}>
+          Chance base considera a raridade e o peso do prêmio. Para cosméticos,
+          a chance individual pode aumentar quando itens já possuídos saem do
+          sorteio.
+        </p>
+        {filteredRewards.map((r: Row) => (
           <div className={styles.reward} key={r.id}>
-            <div>
+            <div className={styles.rewardName}>
               <strong>{r.label}</strong>
               <small>
-                {rarityNames[r.rarity]} · peso {r.weight} · {r.reward_type}
+                {rarityNames[r.rarity]} · peso {r.weight}
               </small>
             </div>
-            <button
-              className={styles.button}
-              disabled={busy}
-              onClick={() =>
-                act("reward_toggle", { id: r.id, active: !r.active })
-              }
-            >
-              {r.active ? "Pausar" : "Ativar"}
-            </button>
+            <div className={styles.rewardInfo}>
+              <span className={styles.badge}>{typeNames[r.reward_type]}</span>
+              <span className={styles.chance}>
+                <strong>
+                  {rewardChance(r).toLocaleString("pt-BR", {
+                    maximumFractionDigits: 3,
+                  })}
+                  %
+                </strong>
+                chance base
+              </span>
+            </div>
+            <div className={styles.rewardActions}>
+              <button
+                className={styles.button}
+                disabled={busy}
+                onClick={() =>
+                  act("reward_toggle", { id: r.id, active: !r.active })
+                }
+              >
+                {r.active ? "Pausar" : "Ativar"}
+              </button>
+              <button
+                className={styles.deleteButton}
+                disabled={busy}
+                onClick={() => act("reward_delete", { id: r.id })}
+                aria-label={`Excluir ${r.label}`}
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         ))}
+        {!filteredRewards.length && (
+          <p className={styles.empty}>Nenhum prêmio corresponde aos filtros.</p>
+        )}
       </section>
       {error && (
         <p className="error" role="alert">

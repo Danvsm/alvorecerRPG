@@ -3583,6 +3583,7 @@ export default function Game({ invite }: { invite?: string }) {
           {page === "Baú" && !isMaster && (
             <TreasureChest
               campaign={campaign}
+              urls={avatarUrls}
               onChanged={() => void load(campaign)}
             />
           )}

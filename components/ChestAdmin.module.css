@@ -18,6 +18,24 @@
   margin: 0 0 10px;
   color: #e8c98f;
 }
+.gemHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+}
+.gemHeading img {
+  width: 72px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 13px rgba(167, 63, 255, 0.72));
+}
+.gemHeading h4 {
+  margin-bottom: 3px;
+}
+.gemHeading small {
+  color: #9f8eaa;
+}
 .field {
   display: grid;
   gap: 6px;
@@ -55,19 +73,47 @@
 }
 .reward {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(150px, 1fr) minmax(190px, auto) auto;
   gap: 10px;
   align-items: center;
   padding: 10px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
-.reward:first-child {
-  border-top: 0;
-}
 .reward small {
   display: block;
   color: #948a7d;
   margin-top: 3px;
+}
+.rewardInfo,
+.rewardActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.chance {
+  min-width: 88px;
+  color: #998d7e;
+  font-size: 0.66rem;
+  text-align: right;
+  line-height: 1.2;
+}
+.chance strong {
+  display: block;
+  color: #f0ce8c;
+  font-size: 0.92rem;
+}
+.deleteButton {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(234, 72, 86, 0.32);
+  border-radius: 10px;
+  background: rgba(93, 16, 25, 0.25);
+  color: #ff9ba4;
+  font-weight: 700;
+}
+.deleteButton:disabled {
+  opacity: 0.45;
 }
 .badge {
   padding: 5px 8px;
@@ -75,6 +121,16 @@
   background: rgba(218, 170, 80, 0.1);
   font-size: 0.68rem;
   text-transform: uppercase;
+}
+.filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(120px, 1fr));
+  gap: 8px;
+}
+.probabilityNote,
+.empty {
+  color: #928679;
+  font-size: 0.76rem;
 }
 .odds {
   display: grid;
@@ -84,5 +140,26 @@
 @media (max-width: 650px) {
   .odds {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .reward {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rewardInfo {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .rewardActions {
+    grid-column: 1 / -1;
+  }
+  .rewardActions button {
+    flex: 1;
+  }
+}
+@media (max-width: 390px) {
+  .filters {
+    grid-template-columns: 1fr;
   }
 }

@@ -58,6 +58,13 @@
   color: #f4cb70;
   font-weight: 800;
 }
+.balance img {
+  width: 34px;
+  height: auto;
+  margin: -8px 0;
+  object-fit: contain;
+  filter: drop-shadow(0 0 9px rgba(170, 62, 255, 0.9));
+}
 .chestStage {
   height: 230px;
   display: grid;
@@ -395,6 +402,106 @@
   box-shadow: 0 0 36px rgba(230, 158, 40, 0.32);
   animation: reveal 0.45s ease-out;
 }
+.cosmeticResult {
+  isolation: isolate;
+  top: 6%;
+  overflow: hidden;
+  padding: 19px 16px 17px;
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(107, 49, 163, 0.42),
+      transparent 43%
+    ),
+    rgba(7, 5, 8, 0.96);
+  border-color: rgba(255, 219, 125, 0.88);
+  box-shadow:
+    0 0 22px rgba(255, 198, 70, 0.55),
+    0 0 65px rgba(158, 53, 255, 0.52),
+    inset 0 0 32px rgba(255, 211, 95, 0.12);
+  animation: extraordinaryReveal 0.72s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.cosmeticResult > *:not(.prizeRays, .prizeSparkles) {
+  position: relative;
+  z-index: 2;
+}
+.prizeRays {
+  position: absolute;
+  z-index: -1;
+  inset: -90%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 221, 130, 0.27) 0deg 7deg,
+    transparent 7deg 20deg
+  );
+  animation: raysSpin 13s linear infinite;
+}
+.extraordinary {
+  display: block;
+  margin: 4px 0 1px;
+  color: #fff0b5;
+  font-size: 0.67rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px #ffbd42;
+}
+.prizeImage {
+  display: block;
+  width: 112px;
+  height: 112px;
+  margin: 4px auto 0;
+  object-fit: contain;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 5px #fff4c2) drop-shadow(0 0 15px #ffc64f)
+    drop-shadow(0 0 30px #a237ff);
+  animation: prizeFloat 2.2s ease-in-out infinite;
+}
+.prizeSparkles {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
+.prizeSparkles i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff6ca;
+  box-shadow:
+    0 0 7px #fff,
+    0 0 15px #ffc63d;
+  animation: prizeTwinkle 1.35s ease-in-out infinite alternate;
+}
+.prizeSparkles i:nth-child(1) {
+  left: 12%;
+  top: 20%;
+}
+.prizeSparkles i:nth-child(2) {
+  left: 23%;
+  top: 70%;
+  animation-delay: 0.2s;
+}
+.prizeSparkles i:nth-child(3) {
+  left: 43%;
+  top: 11%;
+  animation-delay: 0.55s;
+}
+.prizeSparkles i:nth-child(4) {
+  right: 11%;
+  top: 28%;
+  animation-delay: 0.3s;
+}
+.prizeSparkles i:nth-child(5) {
+  right: 21%;
+  top: 72%;
+  animation-delay: 0.7s;
+}
+.prizeSparkles i:nth-child(6) {
+  left: 48%;
+  bottom: 8%;
+  animation-delay: 0.4s;
+}
 .result p {
   margin: 5px 0;
   color: #bfb3a4;
@@ -458,6 +565,31 @@
     transform: translateX(100%);
   }
 }
+@keyframes extraordinaryReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.35) rotate(-3deg);
+    filter: brightness(2.4);
+  }
+}
+@keyframes raysSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes prizeFloat {
+  50% {
+    transform: translateY(-5px) scale(1.05);
+    filter: drop-shadow(0 0 8px #fff4c2) drop-shadow(0 0 22px #ffc64f)
+      drop-shadow(0 0 42px #a237ff);
+  }
+}
+@keyframes prizeTwinkle {
+  to {
+    opacity: 0.2;
+    transform: scale(0.35);
+  }
+}
 @media (max-width: 520px) {
   .page {
     padding-inline: 8px;
@@ -482,13 +614,19 @@
     left: 3%;
     right: 3%;
   }
+  .cosmeticResult {
+    top: 2%;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero:before,
   .shaking .chest,
   .shaking .glow,
   .particles i,
-  .result {
+  .result,
+  .prizeRays,
+  .prizeImage,
+  .prizeSparkles i {
     animation: none;
   }
   .lid,
