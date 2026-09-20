@@ -184,6 +184,32 @@ export default function CommunityFeed({
     [actor, campaign],
   );
 
+  const setPostCommentCount = useCallback((postId: string, count: number) => {
+    const safeCount = Math.max(0, count);
+    setPosts((current) =>
+      current.map((post) =>
+        post.id === postId ? { ...post, comment_count: safeCount } : post,
+      ),
+    );
+    setCommentsPost((current) =>
+      current?.id === postId
+        ? { ...current, comment_count: safeCount }
+        : current,
+    );
+  }, []);
+
+  const refreshPostCommentCount = useCallback(
+    async (postId: string) => {
+      const response = await browserDb()
+        .from("community_post_comments")
+        .select("id", { count: "exact", head: true })
+        .eq("post_id", postId);
+      if (response.error || response.count == null) return;
+      setPostCommentCount(postId, response.count);
+    },
+    [setPostCommentCount],
+  );
+
   useEffect(() => {
     void loadPosts(true);
   }, [loadPosts]);
@@ -206,7 +232,20 @@ export default function CommunityFeed({
             String(event.actor_id || "") === actor
           )
             return;
-          void loadPosts(true);
+
+          const kind = String(event.event_kind || "");
+          const entityId = String(event.entity_id || "");
+          if (
+            entityId &&
+            (kind === "comment" || kind === "delete_comment")
+          ) {
+            void refreshPostCommentCount(entityId);
+            return;
+          }
+
+          if (kind === "create_post" || kind === "delete_post") {
+            void loadPosts(true);
+          }
         },
       )
       .subscribe();
@@ -214,7 +253,7 @@ export default function CommunityFeed({
     return () => {
       void browserDb().removeChannel(channel);
     };
-  }, [actor, campaign, loadPosts]);
+  }, [actor, campaign, loadPosts, refreshPostCommentCount]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -491,9 +530,7 @@ export default function CommunityFeed({
           urls={urls}
           close={() => setCommentsPost(null)}
           act={act}
-          changed={async () => {
-            await loadPosts(true);
-          }}
+          changed={setPostCommentCount}
         />
       )}
     </section>
@@ -982,7 +1019,7 @@ function CommentsSheet({
   urls: Record<string, string>;
   close: () => void;
   act: (op: string, details: Row) => Promise<Row>;
-  changed: () => Promise<void>;
+  changed: (postId: string, commentCount: number) => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [comments, setComments] = useState<FeedComment[]>([]);
@@ -999,14 +1036,16 @@ function CommentsSheet({
         requested_actor: actor,
       }),
     );
-    if (response.error) setError(readableErrorMessage(response.error));
-    else
-      setComments(
-        (response.data || []).map((comment: Row) => ({
-          ...comment,
-          like_count: Number(comment.like_count || 0),
-        })),
-      );
+    if (response.error) {
+      setError(readableErrorMessage(response.error));
+      return null;
+    }
+    const loaded = (response.data || []).map((comment: Row) => ({
+      ...comment,
+      like_count: Number(comment.like_count || 0),
+    })) as FeedComment[];
+    setComments(loaded);
+    return loaded.length;
   }, [actor, campaign, post.id]);
 
   useEffect(() => {
@@ -1075,7 +1114,8 @@ function CommentsSheet({
       });
       setBody("");
       setReplyingTo(null);
-      await Promise.all([loadComments(), changed()]);
+      const commentCount = await loadComments();
+      if (commentCount != null) changed(post.id, commentCount);
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
@@ -1122,7 +1162,8 @@ function CommentsSheet({
       });
       if (response.error) throw response.error;
       if (replyingTo?.id === comment.id) setReplyingTo(null);
-      await Promise.all([loadComments(), changed()]);
+      const commentCount = await loadComments();
+      if (commentCount != null) changed(post.id, commentCount);
     } catch (reason) {
       setError(readableErrorMessage(reason));
     } finally {
