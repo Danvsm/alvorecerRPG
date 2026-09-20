@@ -45,6 +45,13 @@ test("the editorial experience is readable and master-only for writing", async (
   assert.match(library, /body: 20000/);
   assert.match(library, /community_article_action/);
   assert.match(library, /community_articles/);
+  assert.match(library, /unoptimized/);
+  assert.match(library, /Segure um card para gerenciar/);
+  assert.match(library, /onPointerDown/);
+  assert.match(library, />Editar</);
+  assert.match(library, />Arquivar</);
+  assert.match(library, />Excluir</);
+  assert.doesNotMatch(library, /styles\.cardActions/);
 });
 
 test("editorial tables, RPC and media are protected in Supabase", async () => {

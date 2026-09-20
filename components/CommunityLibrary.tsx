@@ -14,7 +14,8 @@ import {
   X,
 } from "lucide-react";
 import {
-  FormEvent,
+  type FormEvent,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -66,11 +67,50 @@ export default function CommunityLibrary({
   const [articles, setArticles] = useState<Row[]>([]);
   const [selected, setSelected] = useState<Row | null>(null);
   const [editing, setEditing] = useState<Row | "new" | null>(null);
+  const [actionTarget, setActionTarget] = useState<Row | null>(null);
   const [coverUrls, setCoverUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const holdTimer = useRef<number | null>(null);
+  const holdStart = useRef({ x: 0, y: 0 });
+  const holdTriggered = useRef(false);
   const info = editorialCategories[category];
+
+  const cancelHold = () => {
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  };
+
+  const startHold = (event: ReactPointerEvent, article: Row) => {
+    if (!master || event.button !== 0) return;
+    cancelHold();
+    holdTriggered.current = false;
+    holdStart.current = { x: event.clientX, y: event.clientY };
+    holdTimer.current = window.setTimeout(() => {
+      holdTriggered.current = true;
+      setActionTarget(article);
+      navigator.vibrate?.(24);
+      holdTimer.current = null;
+    }, 550);
+  };
+
+  const moveHold = (event: ReactPointerEvent) => {
+    if (
+      Math.abs(event.clientX - holdStart.current.x) > 10 ||
+      Math.abs(event.clientY - holdStart.current.y) > 10
+    )
+      cancelHold();
+  };
+
+  useEffect(
+    () => () => {
+      if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -167,6 +207,7 @@ export default function CommunityLibrary({
     setError("");
     try {
       await action(restore ? "restore" : "archive", { id: article.id });
+      setActionTarget(null);
       if (selected?.id === article.id) setSelected(null);
       await load();
     } catch (caught) {
@@ -182,6 +223,7 @@ export default function CommunityLibrary({
     setError("");
     try {
       const result = await action("delete", { id: article.id });
+      setActionTarget(null);
       if (result.cover_path)
         await browserDb()
           .storage.from("community-articles")
@@ -213,6 +255,7 @@ export default function CommunityLibrary({
                 alt={`Capa de ${selected.title}`}
                 fill
                 sizes="(max-width: 760px) 100vw, 760px"
+                unoptimized
               />
             )}
             <span />
@@ -226,16 +269,6 @@ export default function CommunityLibrary({
             </time>
           </header>
           <div className={styles.articleBody}>{selected.body}</div>
-          {master && (
-            <div className={styles.articleActions}>
-              <button type="button" onClick={() => setEditing(selected)}>
-                <Pencil aria-hidden="true" /> Editar
-              </button>
-              <button type="button" onClick={() => void archive(selected)}>
-                <Archive aria-hidden="true" /> Arquivar
-              </button>
-            </div>
-          )}
         </article>
         {editing && (
           <ArticleEditor
@@ -279,13 +312,37 @@ export default function CommunityLibrary({
         )}
       </header>
 
+      {master && activeArticles.length > 0 && (
+        <p className={styles.manageHint}>Segure um card para gerenciar.</p>
+      )}
+
       {loading ? (
         <p className={styles.status}>Abrindo o arquivo...</p>
       ) : activeArticles.length ? (
         <div className={styles.articleGrid}>
           {activeArticles.map((article) => (
             <article className={styles.storyCard} key={article.id}>
-              <button type="button" onClick={() => setSelected(article)}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (holdTriggered.current) {
+                    holdTriggered.current = false;
+                    return;
+                  }
+                  setSelected(article);
+                }}
+                onPointerDown={(event) => startHold(event, article)}
+                onPointerMove={moveHold}
+                onPointerUp={cancelHold}
+                onPointerCancel={cancelHold}
+                onPointerLeave={cancelHold}
+                onContextMenu={(event) => {
+                  if (!master) return;
+                  event.preventDefault();
+                  cancelHold();
+                  setActionTarget(article);
+                }}
+              >
                 <span className={styles.cardCover}>
                   {coverUrls[article.cover_path] && (
                     <Image
@@ -293,6 +350,7 @@ export default function CommunityLibrary({
                       alt=""
                       fill
                       sizes="(max-width: 680px) 100vw, 360px"
+                      unoptimized
                     />
                   )}
                   <span className={styles.cardShade} />
@@ -306,16 +364,6 @@ export default function CommunityLibrary({
                   </em>
                 </span>
               </button>
-              {master && (
-                <div className={styles.cardActions}>
-                  <button type="button" onClick={() => setEditing(article)}>
-                    <Pencil aria-hidden="true" /> Editar
-                  </button>
-                  <button type="button" onClick={() => void archive(article)}>
-                    <Archive aria-hidden="true" /> Arquivar
-                  </button>
-                </div>
-              )}
             </article>
           ))}
         </div>
@@ -372,8 +420,101 @@ export default function CommunityLibrary({
           action={action}
         />
       )}
+      {actionTarget && (
+        <ArticleActions
+          article={actionTarget}
+          busy={busy}
+          close={() => setActionTarget(null)}
+          edit={() => {
+            setEditing(actionTarget);
+            setActionTarget(null);
+          }}
+          archive={() => void archive(actionTarget)}
+          remove={() => void remove(actionTarget)}
+        />
+      )}
       {error && <p className={styles.error}>{error}</p>}
     </section>
+  );
+}
+
+function ArticleActions({
+  article,
+  busy,
+  close,
+  edit,
+  archive,
+  remove,
+}: {
+  article: Row;
+  busy: boolean;
+  close: () => void;
+  edit: () => void;
+  archive: () => void;
+  remove: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    dialog.current?.showModal();
+    return () => dialog.current?.close();
+  }, []);
+
+  return (
+    <dialog
+      ref={dialog}
+      className={styles.actionDialog}
+      aria-labelledby="community-article-actions-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) close();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !busy) close();
+      }}
+    >
+      <div>
+        <span className={styles.actionGrip} aria-hidden="true" />
+        <header>
+          <small>GERENCIAR PUBLICAÇÃO</small>
+          <h2 id="community-article-actions-title">{article.title}</h2>
+        </header>
+        <button type="button" onClick={edit} disabled={busy}>
+          <Pencil aria-hidden="true" />
+          <span>
+            <strong>Editar</strong>
+            <small>Alterar texto, descrição ou imagem</small>
+          </span>
+        </button>
+        <button type="button" onClick={archive} disabled={busy}>
+          <Archive aria-hidden="true" />
+          <span>
+            <strong>Arquivar</strong>
+            <small>Ocultar sem apagar a publicação</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={styles.destructiveAction}
+          onClick={remove}
+          disabled={busy}
+        >
+          <Trash2 aria-hidden="true" />
+          <span>
+            <strong>Excluir</strong>
+            <small>Remover definitivamente</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={styles.cancelAction}
+          onClick={close}
+          disabled={busy}
+        >
+          Cancelar
+        </button>
+      </div>
+    </dialog>
   );
 }
 
