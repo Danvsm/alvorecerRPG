@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { browserDb } from "@/lib/client";
 import { uploadProfileWallpaper } from "@/lib/media";
+import { versionedImageUrl } from "@/lib/image-cache";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import styles from "./WallpaperManager.module.css";
@@ -84,7 +85,10 @@ export default function WallpaperManager({
       Object.fromEntries(
         catalog.map((entry, index) => [
           entry.id,
-          signed.data?.[index]?.signedUrl || "",
+          versionedImageUrl(
+            signed.data?.[index]?.signedUrl || "",
+            entry.updated_at || entry.created_at || entry.storage_path,
+          ),
         ]),
       ),
     );
