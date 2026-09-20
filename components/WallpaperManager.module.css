@@ -1,0 +1,169 @@
+.manager {
+  display: grid;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.uploadForm {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.uploadForm > div {
+  display: grid;
+  gap: 4px;
+  align-self: center;
+}
+
+.uploadForm > div strong {
+  color: #f2e9df;
+  font-size: 0.9rem;
+}
+
+.uploadForm > div small {
+  color: #948a83;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.uploadForm label {
+  display: grid;
+  gap: 6px;
+  color: #aaa09a;
+  font-size: 0.72rem;
+}
+
+.uploadForm input {
+  min-width: 0;
+}
+
+.uploadForm button {
+  white-space: nowrap;
+}
+
+.notice {
+  margin: 0;
+  color: #cfac6c;
+  font-size: 0.76rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #ffffff12;
+  border-radius: 14px;
+  background: #0c0a0c;
+}
+
+.archived {
+  opacity: 0.6;
+}
+
+.preview {
+  grid-column: 1 / -1;
+  min-height: 112px;
+  overflow: hidden;
+  border: 1px solid #ffffff10;
+  border-radius: 10px;
+  background:
+    linear-gradient(0deg, #08070866, transparent),
+    #151012;
+  background-position: center;
+  background-size: cover;
+}
+
+.preview span {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  color: #817873;
+  font-size: 0.72rem;
+}
+
+.meta {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 3px;
+}
+
+.meta strong {
+  overflow: hidden;
+  color: #e8dfd8;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta small {
+  color: #8f8580;
+  font-size: 0.66rem;
+}
+
+.card > button {
+  align-self: center;
+  min-height: 36px;
+  padding-inline: 10px;
+  font-size: 0.7rem;
+}
+
+.card > button svg,
+.uploadForm button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.empty {
+  margin: 8px 0 2px;
+  padding: 18px;
+  border: 1px dashed #ffffff14;
+  border-radius: 12px;
+  color: #8e8580;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.spin {
+  animation: wallpaperSpin 900ms linear infinite;
+}
+
+@keyframes wallpaperSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 760px) {
+  .uploadForm {
+    grid-template-columns: 1fr;
+  }
+
+  .uploadForm > div {
+    margin-bottom: 2px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview,
+  .preview span {
+    min-height: 128px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
