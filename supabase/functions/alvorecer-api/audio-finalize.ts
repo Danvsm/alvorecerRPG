@@ -1,5 +1,8 @@
 import { admin, member } from "./server.ts";
-import { inspectAudioDuration } from "./audio-duration.ts";
+import {
+  hasValidAudioContainer,
+  inspectAudioDuration,
+} from "./audio-duration.ts";
 
 const MAX_AUDIO_BYTES = 3 * 1024 * 1024;
 const MAX_AUDIO_DURATION_MS = 5 * 60 * 1000;
@@ -104,16 +107,20 @@ export async function finalizeAudio(req: Request) {
     throw new Error("O áudio ultrapassa o limite de 3 MB.");
   }
 
-  let durationMs = 0;
-  try {
-    const bytes = new Uint8Array(await object.arrayBuffer());
-    durationMs = inspectAudioDuration(
-      bytes,
-      mimeType as "audio/webm" | "audio/ogg" | "audio/mp4",
-    );
-  } catch {
+  const bytes = new Uint8Array(await object.arrayBuffer());
+  const supportedMime = mimeType as "audio/webm" | "audio/ogg" | "audio/mp4";
+  if (!hasValidAudioContainer(bytes, supportedMime)) {
     await rejectUpload(mediaId, media.storage_path);
     throw new Error("O arquivo enviado não é um áudio válido.");
+  }
+
+  let durationMs = claimedDurationMs;
+  try {
+    durationMs = inspectAudioDuration(bytes, supportedMime);
+  } catch {
+    // Alguns MediaRecorders móveis geram WebM fragmentado sem metadados de
+    // duração. A assinatura, a reserva, o tamanho e o limite do cliente ainda
+    // são validados pelo servidor antes de aceitar a duração medida na captura.
   }
 
   if (Math.abs(durationMs - claimedDurationMs) > 5000) {

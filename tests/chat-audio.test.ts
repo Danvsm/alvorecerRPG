@@ -8,7 +8,10 @@ import {
   MAX_CHAT_AUDIO_MS,
   selectChatAudioFormat,
 } from "../lib/chat-audio";
-import { inspectAudioDuration } from "../supabase/functions/alvorecer-api/audio-duration";
+import {
+  hasValidAudioContainer,
+  inspectAudioDuration,
+} from "../supabase/functions/alvorecer-api/audio-duration";
 
 test("voice messages keep the five minute and three megabyte limits", () => {
   assert.equal(MAX_CHAT_AUDIO_MS, 300_000);
@@ -45,11 +48,13 @@ test("the server reads WebM, OGG and nested MP4 durations without dependencies",
     0x03, 0xe8, 0xa3, 0x85, 0x81, 0x03, 0xe8, 0x80, 0x00,
   ]);
   assert.equal(inspectAudioDuration(webm, "audio/webm"), 2020);
+  assert.equal(hasValidAudioContainer(webm, "audio/webm"), true);
 
   const ogg = new Uint8Array(27);
   ogg.set([0x4f, 0x67, 0x67, 0x53]);
   ogg.set([0x80, 0xbb], 6);
   assert.equal(inspectAudioDuration(ogg, "audio/ogg"), 1000);
+  assert.equal(hasValidAudioContainer(ogg, "audio/ogg"), true);
 
   const mp4 = new Uint8Array(68);
   const view = new DataView(mp4.buffer);
@@ -62,6 +67,11 @@ test("the server reads WebM, OGG and nested MP4 durations without dependencies",
   view.setUint32(44, 1000);
   view.setUint32(48, 2500);
   assert.equal(inspectAudioDuration(mp4, "audio/mp4"), 2500);
+  assert.equal(hasValidAudioContainer(mp4, "audio/mp4"), true);
+  assert.equal(
+    hasValidAudioContainer(new Uint8Array([1, 2, 3, 4]), "audio/webm"),
+    false,
+  );
 });
 
 test("voice media uses a private bucket and server-only finalization", async () => {
@@ -109,4 +119,6 @@ test("voice media uses a private bucket and server-only finalization", async () 
   assert.match(durationReader, /WEBM_CLUSTER/);
   assert.match(durationReader, /mp4Duration/);
   assert.match(durationReader, /oggDuration/);
+  assert.match(edge, /hasValidAudioContainer/);
+  assert.match(edge, /let durationMs = claimedDurationMs/);
 });

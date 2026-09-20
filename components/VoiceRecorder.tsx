@@ -257,7 +257,10 @@ export default function VoiceRecorder({
         <div className="voice-recording-row">
           <button
             type="button"
-            onClick={() => stopRecording(true)}
+            onClick={() => {
+              stopRecording(true);
+              onClose();
+            }}
             aria-label="Cancelar gravação"
           >
             <Trash2 />

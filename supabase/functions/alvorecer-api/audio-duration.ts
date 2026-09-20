@@ -197,3 +197,12 @@ export function inspectAudioDuration(
   if (mimeType === "audio/ogg") return oggDuration(data);
   return mp4Duration(data);
 }
+
+export function hasValidAudioContainer(
+  data: Uint8Array,
+  mimeType: "audio/webm" | "audio/ogg" | "audio/mp4",
+) {
+  if (mimeType === "audio/webm") return matches(data, 0, WEBM_HEADER);
+  if (mimeType === "audio/ogg") return boxName(data, 0) === "OggS";
+  return data.length >= 12 && boxName(data, 4) === "ftyp";
+}

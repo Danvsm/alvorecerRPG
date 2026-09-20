@@ -1149,20 +1149,9 @@ export default function DirectChat({
               <div ref={messagesEndRef} />
             </div>
           )}
-          {canSend && voiceOpen && (
-            <VoiceRecorder
-              disabled={busy}
-              holding={voiceHolding}
-              onClose={() => {
-                setVoiceHolding(false);
-                setVoiceOpen(false);
-              }}
-              onSend={sendVoice}
-            />
-          )}
-          {canSend && !voiceOpen && (
+          {canSend && (
             <form
-              className="chat-composer"
+              className={`chat-composer${voiceOpen ? " voice-active" : ""}`}
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (busy || !body.trim()) return;
@@ -1189,89 +1178,111 @@ export default function DirectChat({
               }}
             >
               <div className="chat-attachment-actions">
-                <label className="chat-image-button" aria-label="Enviar imagem">
-                  <ImagePlus aria-hidden="true" />
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={busy}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      if (!file || busy) return;
-                      setBusy(true);
-                      setError("");
-                      try {
-                        const blob = await optimizedWebp(file, 800);
-                        const db = browserDb();
-                        const r = await db.rpc("chat_media_action", {
-                          c: campaign,
-                          op: "reserve",
-                          d: { actor_id: actor, conversation_id: selected },
-                        });
-                        if (r.error) throw r.error;
-                        const upload = await db.storage
-                          .from("chat-media")
-                          .upload(r.data.path, blob, {
-                            contentType: "image/webp",
+                {!voiceOpen && (
+                  <label
+                    className="chat-image-button"
+                    aria-label="Enviar imagem"
+                  >
+                    <ImagePlus aria-hidden="true" />
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={busy}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file || busy) return;
+                        setBusy(true);
+                        setError("");
+                        try {
+                          const blob = await optimizedWebp(file, 800);
+                          const db = browserDb();
+                          const r = await db.rpc("chat_media_action", {
+                            c: campaign,
+                            op: "reserve",
+                            d: { actor_id: actor, conversation_id: selected },
                           });
-                        if (upload.error) throw upload.error;
-                        const sent = await db.rpc("chat_media_action", {
-                          c: campaign,
-                          op: "send",
-                          d: { actor_id: actor, media_id: r.data.id },
-                        });
-                        if (sent.error) throw sent.error;
-                        void pushReceivedMessage(selected);
-                        setRefresh((v) => v + 1);
-                        window.dispatchEvent(
-                          new CustomEvent("alvorecer:chat-updated", {
-                            detail: { campaign },
-                          }),
-                        );
-                      } catch (e) {
-                        setError(readableErrorMessage(e));
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  />
-                </label>
+                          if (r.error) throw r.error;
+                          const upload = await db.storage
+                            .from("chat-media")
+                            .upload(r.data.path, blob, {
+                              contentType: "image/webp",
+                            });
+                          if (upload.error) throw upload.error;
+                          const sent = await db.rpc("chat_media_action", {
+                            c: campaign,
+                            op: "send",
+                            d: { actor_id: actor, media_id: r.data.id },
+                          });
+                          if (sent.error) throw sent.error;
+                          void pushReceivedMessage(selected);
+                          setRefresh((v) => v + 1);
+                          window.dispatchEvent(
+                            new CustomEvent("alvorecer:chat-updated", {
+                              detail: { campaign },
+                            }),
+                          );
+                        } catch (e) {
+                          setError(readableErrorMessage(e));
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    />
+                  </label>
+                )}
                 <button
                   type="button"
-                  className="chat-voice-button"
+                  className={`chat-voice-button${voiceOpen ? " active" : ""}`}
                   onPointerDown={(event) => {
+                    if (voiceOpen) return;
                     if (event.pointerType === "mouse" && event.button !== 0)
                       return;
                     event.preventDefault();
+                    event.currentTarget.setPointerCapture(event.pointerId);
                     setVoiceHolding(true);
                     setVoiceOpen(true);
                   }}
                   disabled={busy}
                   aria-label="Segure para gravar mensagem de voz"
+                  aria-pressed={voiceOpen}
                 >
                   <Mic aria-hidden="true" />
                 </button>
               </div>
-              <label className="chat-text-field">
-                <span className="visually-hidden">Mensagem</span>
-                <textarea
-                  required
-                  maxLength={4000}
-                  rows={1}
-                  placeholder="Mensagem..."
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
+              {voiceOpen ? (
+                <VoiceRecorder
+                  disabled={busy}
+                  holding={voiceHolding}
+                  onClose={() => {
+                    setVoiceHolding(false);
+                    setVoiceOpen(false);
+                  }}
+                  onSend={sendVoice}
                 />
-              </label>
-              <button
-                type="submit"
-                className="chat-send-button"
-                disabled={busy || !body.trim()}
-                aria-label="Enviar mensagem"
-              >
-                <Send aria-hidden="true" />
-              </button>
+              ) : (
+                <>
+                  <label className="chat-text-field">
+                    <span className="visually-hidden">Mensagem</span>
+                    <textarea
+                      required
+                      maxLength={4000}
+                      rows={1}
+                      placeholder="Mensagem..."
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="chat-send-button"
+                    disabled={busy || !body.trim()}
+                    aria-label="Enviar mensagem"
+                  >
+                    <Send aria-hidden="true" />
+                  </button>
+                </>
+              )}
             </form>
           )}
           {messageMenu && (

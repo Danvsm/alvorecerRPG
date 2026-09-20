@@ -2722,6 +2722,27 @@ dialog::backdrop {
 
 .chat-voice-button {
   cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chat-voice-button.active {
+  color: #fff5ed;
+  border-color: #d84a59;
+  background: linear-gradient(145deg, #bd263d, #761426);
+  box-shadow:
+    0 0 0 5px #d02a4324,
+    0 0 18px #d02a435c;
+  transform: scale(1.04);
+}
+
+.chat-composer.voice-active {
+  align-items: center;
+}
+
+.chat-composer.voice-active .voice-recorder {
+  grid-column: 2 / 4;
 }
 
 .chat-image-button input {
@@ -2778,11 +2799,7 @@ dialog::backdrop {
 
 .voice-recorder {
   position: relative;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  border-top: 1px solid #ffffff0e;
-  background: #090809f2;
-  box-shadow: 0 -8px 28px #0007;
-  backdrop-filter: blur(18px);
+  min-width: 0;
 }
 
 .voice-requesting-row,
