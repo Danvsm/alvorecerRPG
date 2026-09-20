@@ -28,13 +28,23 @@ import CommunityArchives from "./CommunityArchives";
 import CommunityFeed from "./CommunityFeed";
 import CommunityStories from "./CommunityStories";
 import CommunityInbox from "./CommunityInbox";
+import CommunityLibrary, {
+  editorialCategories,
+  type EditorialCategory,
+} from "./CommunityLibrary";
 import CommunityProfile from "./CommunityProfile";
 import IdentityAvatar from "./IdentityAvatar";
 import NotificationBell from "./NotificationBell";
 import styles from "./CommunityPanel.module.css";
 
 type CommunityView =
-  "home" | "explore" | "create" | "messages" | "profile" | "archives";
+  | "home"
+  | "explore"
+  | "library"
+  | "create"
+  | "messages"
+  | "profile"
+  | "archives";
 type RankingMetric = "wealth" | "sessions" | "achievements" | "medals";
 
 const rankingFields: Record<
@@ -52,16 +62,19 @@ const rankingFields: Record<
 
 const exploreCategories = [
   {
+    id: "world_legends",
     title: "Lendas do Mundo",
     eyebrow: "Descubra o passado",
     image: "/community/lendas-do-mundo.webp",
   },
   {
+    id: "players",
     title: "Jogadores",
     eyebrow: "Conheça aventureiros",
     image: "/community/jogadores.webp",
   },
   {
+    id: "character_stories",
     title: "Histórias dos personagens",
     eyebrow: "Leia e compartilhe",
     image: "/community/historias-dos-personagens.webp",
@@ -142,6 +155,8 @@ export default function CommunityPanel({
   initialView?: "home" | "archives";
 }) {
   const [selected, setSelected] = useState("");
+  const [selectedCategory, setSelectedCategory] =
+    useState<EditorialCategory>("world_legends");
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -363,9 +378,37 @@ export default function CommunityPanel({
     );
   };
 
+  const revealLibrary = (category: EditorialCategory) => {
+    setSelected("");
+    setSelectedCategory(category);
+    setView("library");
+    communityRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className={styles.community} ref={communityRef}>
-      {view === "profile" && current ? (
+      {view === "library" ? (
+        <header className={`${styles.socialHeader} ${styles.profileHeader}`}>
+          <div className={styles.headerShade} />
+          <button
+            type="button"
+            className={styles.headerButton}
+            aria-label="Voltar para Explorar"
+            onClick={() => setView("explore")}
+          >
+            <ArrowLeft aria-hidden="true" />
+          </button>
+          <strong className={styles.profileHeaderTitle}>
+            {editorialCategories[selectedCategory].title}
+          </strong>
+          <div className={styles.headerActions}>
+            <NotificationBell
+              notifications={notifications}
+              save={saveNotification}
+            />
+          </div>
+        </header>
+      ) : view === "profile" && current ? (
         <header className={`${styles.socialHeader} ${styles.profileHeader}`}>
           <div className={styles.headerShade} />
           <button
@@ -465,7 +508,7 @@ export default function CommunityPanel({
         </header>
       ) : null}
 
-      {view !== "messages" && (
+      {view !== "messages" && view !== "library" && (
         <div
           className={`${styles.searchDock} ${
             view === "explore" || searchOpen || search ? styles.searchOpen : ""
@@ -571,24 +614,27 @@ export default function CommunityPanel({
         />
       )}
 
+      {view === "library" && (
+        <CommunityLibrary
+          campaign={campaign}
+          category={selectedCategory}
+          master={master}
+        />
+      )}
+
       {view === "explore" && (
         <section
           className={`${styles.directory} ${styles.exploreDirectory}`}
           ref={directoryRef}
         >
           <div className={styles.exploreCategories}>
-            {exploreCategories.map((category, index) => (
+            {exploreCategories.map((category) => (
               <button
                 type="button"
                 className={styles.exploreCategoryCard}
                 key={category.title}
                 style={{ backgroundImage: `url("${category.image}")` }}
-                onClick={() => {
-                  if (index === 1) {
-                    setRankingMetric("wealth");
-                    setVisibleCount(999);
-                  }
-                }}
+                onClick={() => revealLibrary(category.id as EditorialCategory)}
               >
                 <span className={styles.exploreCategoryShade} />
                 <span className={styles.exploreCategoryCopy}>
@@ -608,7 +654,10 @@ export default function CommunityPanel({
                 Descubra os reinos, lendas e acontecimentos que moldaram o
                 universo de Alvorecer.
               </p>
-              <button type="button">
+              <button
+                type="button"
+                onClick={() => revealLibrary("world_history")}
+              >
                 Explorar a lore
                 <ChevronRight aria-hidden="true" />
               </button>
@@ -758,7 +807,11 @@ export default function CommunityPanel({
         </button>
         <button
           type="button"
-          className={view === "explore" ? styles.activeBottomItem : ""}
+          className={
+            view === "explore" || view === "library"
+              ? styles.activeBottomItem
+              : ""
+          }
           onClick={() => {
             setView("explore");
             setSelected("");

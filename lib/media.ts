@@ -146,6 +146,22 @@ async function postImageWebp(file: File) {
   return blob;
 }
 
+export async function uploadCommunityArticleImage(
+  file: File,
+  campaign: string,
+) {
+  const blob = await postImageWebp(file);
+  const path = `${campaign}/editorial/${crypto.randomUUID()}.webp`;
+  const { error } = await browserDb()
+    .storage.from("community-articles")
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
+  if (error) throw error;
+  return path;
+}
+
 export async function uploadMedalImage(file: File, campaign: string) {
   if (file.type !== "image/png")
     throw new Error("A medalha precisa ser enviada em PNG");
@@ -170,10 +186,7 @@ export async function uploadMedalImage(file: File, campaign: string) {
   return path;
 }
 
-export async function uploadProfileWallpaper(
-  file: File,
-  campaign: string,
-) {
+export async function uploadProfileWallpaper(file: File, campaign: string) {
   if (
     file.size > 1024 * 1024 ||
     !["image/webp", "image/jpeg", "image/png"].includes(file.type)
