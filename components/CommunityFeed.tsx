@@ -1015,6 +1015,38 @@ function CommentsSheet({
     return () => ref.current?.close();
   }, [loadComments]);
 
+  useEffect(() => {
+    const channel = browserDb()
+      .channel(`community-comments:${campaign}:${post.id}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_events",
+          filter: `campaign_id=eq.${campaign}`,
+        },
+        (payload) => {
+          const event = payload.new as Row;
+          if (
+            event.scope !== "feed" ||
+            !["comment", "delete_comment"].includes(
+              String(event.event_kind || ""),
+            ) ||
+            String(event.entity_id || "") !== post.id ||
+            String(event.actor_id || "") === actor
+          )
+            return;
+          void loadComments();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void browserDb().removeChannel(channel);
+    };
+  }, [actor, campaign, loadComments, post.id]);
+
   const roots = useMemo(
     () => comments.filter((comment) => !comment.parent_id),
     [comments],
