@@ -18,7 +18,7 @@ import {
   Sun,
   Swords,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import type { Row } from "@/lib/types";
 import styles from "./TitleManager.module.css";
 
@@ -78,7 +78,7 @@ export default function TitleManager({
     [titles],
   );
 
-  const submitCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
