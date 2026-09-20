@@ -3,7 +3,9 @@
 import Image from "next/image";
 import {
   ArrowLeft,
+  BookOpen,
   ChevronRight,
+  Clock3,
   Compass,
   Crown,
   Home,
@@ -13,6 +15,7 @@ import {
   Search,
   Send,
   SlidersHorizontal,
+  Sparkles,
   Trophy,
   UserCheck,
   UserPlus,
@@ -35,6 +38,29 @@ import styles from "./CommunityPanel.module.css";
 type CommunityView =
   "home" | "explore" | "create" | "messages" | "profile" | "archives";
 type CommunityFilter = "all" | "online" | "players" | "world";
+
+const exploreCategories = [
+  {
+    title: "Lendas do Mundo",
+    eyebrow: "Descubra o passado",
+    image: "/community/feed-composer-pages.webp",
+  },
+  {
+    title: "Jogadores",
+    eyebrow: "Conheça aventureiros",
+    image: "/community/community-wallpaper.webp",
+  },
+  {
+    title: "Clãs",
+    eyebrow: "Encontre sua guilda",
+    image: "/community/story-composer-arch.webp",
+  },
+  {
+    title: "Histórias dos personagens",
+    eyebrow: "Leia e compartilhe",
+    image: "/community/feed-composer-background.webp",
+  },
+] as const;
 
 const profileCaption = (identity: Row) => {
   if (identity.subtitle) return identity.subtitle;
@@ -403,6 +429,9 @@ export default function CommunityPanel({
           >
             <Menu aria-hidden="true" />
           </button>
+          {view === "explore" && (
+            <strong className={styles.exploreHeaderTitle}>Explorar</strong>
+          )}
           <div className={styles.headerActions}>
             <button
               type="button"
@@ -423,7 +452,7 @@ export default function CommunityPanel({
 
       {view !== "messages" && <div
         className={`${styles.searchDock} ${
-          view === "explore" && (searchOpen || search) ? styles.searchOpen : ""
+          view === "explore" || searchOpen || search ? styles.searchOpen : ""
         }`}
       >
         <label className={styles.search}>
@@ -437,7 +466,11 @@ export default function CommunityPanel({
             onBlur={() => {
               if (!search) setSearchOpen(false);
             }}
-            placeholder="Buscar jogador"
+            placeholder={
+              view === "explore"
+                ? "Buscar jogadores, histórias, clãs..."
+                : "Buscar jogador"
+            }
           />
         </label>
       </div>}
@@ -516,51 +549,121 @@ export default function CommunityPanel({
       )}
 
       {view === "explore" && (
-        <section className={styles.directory} ref={directoryRef}>
-          <div className={styles.sectionHeading}>
-            <h2>
-              {rankingMode ? (
-                <Trophy aria-hidden="true" />
-              ) : (
-                <Compass aria-hidden="true" />
-              )}
-              {rankingMode ? "Ranking de riqueza" : "Explorar jogadores"}
-            </h2>
-            <div className={styles.directoryTools}>
-              {(
-                <button
-                  type="button"
-                  className={rankingMode ? styles.activeRanking : ""}
-                  aria-pressed={rankingMode}
-                  onClick={() => setRankingMode((active) => !active)}
-                >
-                  <Trophy aria-hidden="true" />
-                  Ranking
-                </button>
-              )}
-              <label className={styles.filter}>
-                <SlidersHorizontal aria-hidden="true" />
-                <span className="visually-hidden">Filtrar perfis</span>
-                <select
-                  value={filter}
-                  onChange={(event) =>
-                    setFilter(event.target.value as CommunityFilter)
-                  }
-                >
-                  <option value="all">Todos</option>
-                  <option value="online">Online agora</option>
-                  <option value="players">Jogadores e Mestre</option>
-                  <option value="world">Personagens do Mundo</option>
-                </select>
-              </label>
-            </div>
+        <section
+          className={`${styles.directory} ${styles.exploreDirectory}`}
+          ref={directoryRef}
+        >
+          <div className={styles.exploreCategories}>
+            {exploreCategories.map((category, index) => (
+              <button
+                type="button"
+                className={styles.exploreCategoryCard}
+                key={category.title}
+                style={{ backgroundImage: `url("${category.image}")` }}
+                onClick={() => {
+                  if (index === 1) setFilter("players");
+                }}
+              >
+                <span className={styles.exploreCategoryShade} />
+                <span className={styles.exploreCategoryCopy}>
+                  <strong>{category.title}</strong>
+                  <small>{category.eyebrow}</small>
+                </span>
+                <ChevronRight aria-hidden="true" />
+              </button>
+            ))}
           </div>
 
-          <div className={styles.directoryGrid}>
-            {directory.slice(0, visibleCount).map((identity) => {
-              const rank = rankByIdentity.get(identity.id);
+          <article className={styles.exploreLoreBanner}>
+            <div className={styles.exploreLoreShade} />
+            <div className={styles.exploreLoreCopy}>
+              <h2>História do mundo</h2>
+              <p>
+                Descubra os reinos, lendas e acontecimentos que moldaram o
+                universo de Alvorecer.
+              </p>
+              <button type="button">
+                Explorar a lore
+                <ChevronRight aria-hidden="true" />
+              </button>
+            </div>
+            <span className={styles.exploreLoreSeal}>
+              Toda lenda
+              <br />
+              tem um começo
+            </span>
+          </article>
+
+          <div className={styles.explorePeopleHeading}>
+            <span className={styles.explorePeopleIcon}>
+              <Trophy aria-hidden="true" />
+            </span>
+            <div>
+              <h2>Personagens em destaque</h2>
+              <p>Conheça personagens marcantes da comunidade.</p>
+            </div>
+            <button type="button" onClick={() => setVisibleCount(999)}>
+              Ver todos <ChevronRight aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={styles.exploreFilterPills}>
+            <button
+              type="button"
+              className={!rankingMode && filter === "all" ? styles.explorePillActive : ""}
+              onClick={() => {
+                setRankingMode(false);
+                setFilter("all");
+              }}
+            >
+              <Sparkles aria-hidden="true" />
+              Em destaque
+            </button>
+            <button
+              type="button"
+              className={!rankingMode && filter === "online" ? styles.explorePillActive : ""}
+              onClick={() => {
+                setRankingMode(false);
+                setFilter("online");
+              }}
+            >
+              <Clock3 aria-hidden="true" />
+              Online agora
+            </button>
+            <button
+              type="button"
+              className={rankingMode ? styles.explorePillActive : ""}
+              onClick={() => setRankingMode(true)}
+            >
+              <Trophy aria-hidden="true" />
+              Ranking
+            </button>
+            <label className={styles.exploreSelectPill}>
+              <SlidersHorizontal aria-hidden="true" />
+              <select
+                value={filter}
+                onChange={(event) => {
+                  setRankingMode(false);
+                  setFilter(event.target.value as CommunityFilter);
+                }}
+              >
+                <option value="all">Todos</option>
+                <option value="players">Jogadores</option>
+                <option value="world">Do mundo</option>
+                <option value="online">Online</option>
+              </select>
+            </label>
+          </div>
+
+          <div className={`${styles.directoryGrid} ${styles.exploreDirectoryGrid}`}>
+            {directory.slice(0, visibleCount).map((identity, index) => {
+              const rank = rankByIdentity.get(identity.id) || index + 1;
               return (
-                <article className={styles.profileRow} key={identity.id}>
+                <article className={`${styles.profileRow} ${styles.exploreProfileRow}`} key={identity.id}>
+                  <span className={styles.exploreRank}>
+                    {rank === 1 && <Crown aria-hidden="true" />}
+                    <strong>{rank}</strong>
+                  </span>
                   <button
                     type="button"
                     className={styles.profileTrigger}
@@ -572,7 +675,7 @@ export default function CommunityPanel({
                         cosmetics={cosmetics}
                         equipment={equipment}
                         urls={urls}
-                        size={66}
+                        size={58}
                       />
                       <OnlineDot online={isOnline(identity)} />
                     </span>
@@ -582,13 +685,6 @@ export default function CommunityPanel({
                       <em>“{profileLine(identity)}”</em>
                     </span>
                   </button>
-                  {rank ? (
-                    <RankMedal rank={rank} />
-                  ) : identity.kind === "master" ? (
-                    <span className={styles.masterMark} title="Mestre">
-                      <Crown aria-hidden="true" />
-                    </span>
-                  ) : null}
                   <ChevronRight
                     className={styles.rowChevron}
                     aria-hidden="true"
