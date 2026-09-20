@@ -260,6 +260,7 @@ self.addEventListener("push", (event) => {
   }
 
   const notificationTitle = String(payload.title || "Notificação");
+  const highPriorityMessage = payload.kind === "message";
 
   event.waitUntil(
     (async () => {
@@ -275,10 +276,15 @@ self.addEventListener("push", (event) => {
         body: payload.body || "Você recebeu uma nova notificação.",
         icon: "/alvorecer-mark.svg",
         tag: payload.tag,
-        renotify: Boolean(payload.tag),
+        renotify: highPriorityMessage || Boolean(payload.tag),
         data: { url: payload.url || "/" },
-        silent: hasVisibleWindow,
-        vibrate: hasVisibleWindow ? undefined : [80, 50, 80],
+        silent: highPriorityMessage ? false : hasVisibleWindow,
+        vibrate: highPriorityMessage
+          ? [180, 70, 180, 70, 260]
+          : hasVisibleWindow
+            ? undefined
+            : [80, 50, 80],
+        requireInteraction: highPriorityMessage && !hasVisibleWindow,
         lang: "pt-BR",
       });
     })(),
