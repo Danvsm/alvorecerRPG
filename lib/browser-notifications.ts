@@ -1,6 +1,7 @@
 "use client";
 
 import { browserDb } from "@/lib/client";
+import { imageCacheWorkerUrl } from "@/lib/image-cache";
 
 const VAPID_PUBLIC_KEY =
   "BJBrWPRxiT-G4BR87p377bpqMpPYprbbMKEpCj3_TyOgRZ6rzKgdZZ0qMMv1uBhY97KgSlK_Obn16BGJkLGnGyE";
@@ -23,7 +24,7 @@ export async function ensureAlvorecerNotificationWorker() {
 
   try {
     const registration = await navigator.serviceWorker.register(
-      "/alvorecer-sw.js?v=5",
+      imageCacheWorkerUrl(process.env.NODE_ENV === "development"),
       { scope: "/", updateViaCache: "none" },
     );
     await navigator.serviceWorker.ready;
