@@ -1,4 +1,4 @@
-export const IMAGE_CACHE_WORKER_REVISION = "5";
+export const IMAGE_CACHE_WORKER_REVISION = "6";
 export const IMAGE_CACHE_NAME = "alvorecer-images-v2";
 export const IMAGE_CACHE_LIMIT = 300;
 export const IMAGE_CACHE_WORKER_PATH = "/alvorecer-sw.js";
