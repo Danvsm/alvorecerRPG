@@ -4268,98 +4268,173 @@ dialog.commentsSheet {
 }
 
 
-/* Explore discovery screen: visual-first dark fantasy composition. */
+/* Explore page rebuilt from the approved mobile reference. */
 .exploreHeader {
-  min-height: 98px;
+  min-height: 90px;
+  padding-inline: 18px;
   background:
-    linear-gradient(90deg, #080607ee 0%, #15090bbd 48%, #17090b91 100%),
-    url("/community/community-wallpaper.webp") 58% 24% / cover no-repeat;
+    linear-gradient(90deg, #070506f2 0%, #100708c7 48%, #11080988 100%),
+    url("/community/community-wallpaper.webp") 59% 24% / cover no-repeat;
 }
 
 .exploreHeader .headerShade {
   background:
-    linear-gradient(180deg, #06040538 0%, #0807081f 56%, #080708d8 100%),
-    linear-gradient(90deg, #050405d9 0%, transparent 70%);
+    linear-gradient(180deg, #0504052e 0%, #07060724 52%, #080708e6 100%),
+    linear-gradient(90deg, #050405d9 0%, transparent 74%);
   backdrop-filter: none;
 }
 
 .exploreHeaderTitle {
   min-width: 0;
   overflow: hidden;
-  color: #f1dfb9;
+  color: #f3dfb8;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 2.7rem);
+  font-size: clamp(2rem, 5vw, 2.55rem);
   font-weight: 500;
-  letter-spacing: -0.035em;
-  text-shadow: 0 3px 18px #000;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-shadow: 0 3px 16px #000;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .exploreHeader + .searchDock {
-  max-height: 88px;
-  padding: 10px 20px 0;
+  max-height: 72px;
+  padding: 7px 18px 0;
   opacity: 1;
   background: #080708;
 }
 
-.exploreHeader + .searchDock .search {
-  min-height: 52px;
-  border-color: #c48d43;
-  border-radius: 17px;
-  background: linear-gradient(180deg, #0c0d10f5, #090a0cf5);
+.community .exploreHeader + .searchDock .search {
+  display: grid;
+  min-height: 48px;
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid #a97836;
+  border-radius: 16px;
+  color: #d4ad6a;
+  background: #0a0b0df3;
   box-shadow:
-    inset 0 0 0 1px #ffffff05,
-    0 8px 22px #0007;
+    inset 0 0 0 1px #ffffff04,
+    0 6px 18px #0005;
 }
 
-.exploreHeader + .searchDock .search input {
-  min-height: 50px;
-  color: #eee8df;
+.community .exploreHeader + .searchDock .search > svg {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  color: #d7a75a;
+  stroke-width: 1.8;
+}
+
+.community .exploreHeader + .searchDock .search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #e9e2d9;
+  background: transparent;
+  font-size: 0.89rem;
+  line-height: 46px;
+}
+
+.community .exploreHeader + .searchDock .search input::placeholder {
+  color: #8f8984;
+  opacity: 1;
+}
+
+.exploreSearchMark {
+  opacity: 0.72;
+  transform: rotate(12deg);
 }
 
 .exploreDirectory {
-  width: min(100%, 920px);
-  padding-top: 14px;
-  padding-bottom: 120px;
+  width: min(100%, 900px);
+  padding: 10px 18px 118px;
 }
 
 .exploreCategories {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 9px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin: 0 0 12px;
 }
 
 .exploreCategoryCard {
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 198px;
+  min-height: 154px;
   align-content: end;
-  padding: 12px 11px;
+  padding: 9px 8px 10px;
   overflow: hidden;
-  border: 1px solid #a87334;
-  border-radius: 13px;
-  color: #f4eadb;
-  background-color: #100d0c;
+  border: 1px solid #9d6d2d;
+  border-radius: 10px;
+  color: #f6ead8;
+  background-color: #0e0b0b;
   background-position: center;
   background-size: cover;
   box-shadow:
-    inset 0 0 28px #0008,
-    0 7px 22px #0005;
+    inset 0 -52px 36px #040303df,
+    inset 0 0 24px #0007;
   isolation: isolate;
   text-align: left;
 }
 
+.exploreCategoryCard:nth-child(1) {
+  background-position: 48% 48%;
+}
+
+.exploreCategoryCard:nth-child(2) {
+  background-position: 61% 28%;
+}
+
+.exploreCategoryCard:nth-child(3) {
+  background-position: 50% 43%;
+}
+
+.exploreCategoryCard:nth-child(4) {
+  background-position: 67% 44%;
+}
+
+.exploreCategoryCard::before,
+.exploreCategoryCard::after {
+  position: absolute;
+  z-index: 2;
+  width: 13px;
+  height: 13px;
+  border-color: #bf8e46;
+  opacity: 0.55;
+  content: "";
+  pointer-events: none;
+}
+
+.exploreCategoryCard::before {
+  top: 4px;
+  left: 4px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.exploreCategoryCard::after {
+  right: 4px;
+  bottom: 4px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
 .exploreCategoryCard:hover,
 .exploreCategoryCard:focus-visible {
-  border-color: #daa653;
+  border-color: #c99444;
+  background-color: #130d0b;
   box-shadow:
-    inset 0 0 28px #0006,
-    0 0 0 1px #d39a433b,
-    0 9px 26px #0006;
-  transform: translateY(-1px);
+    inset 0 -52px 36px #040303d7,
+    0 0 0 1px #c9944424;
+  transform: none;
 }
 
 .exploreCategoryShade {
@@ -4367,23 +4442,23 @@ dialog.commentsSheet {
   z-index: -1;
   inset: 0;
   background:
-    linear-gradient(180deg, #0000000a 22%, #05040466 54%, #060505ee 100%),
-    linear-gradient(90deg, #0002, transparent 75%);
+    linear-gradient(180deg, #0000000a 0%, #0302021a 34%, #050404c4 78%, #050404f3 100%),
+    linear-gradient(90deg, #0003, transparent 70%);
 }
 
 .exploreCategoryCopy {
   display: grid;
   min-width: 0;
-  gap: 8px;
-  padding-right: 15px;
+  gap: 5px;
+  padding-right: 10px;
 }
 
 .exploreCategoryCopy strong {
   display: -webkit-box;
   overflow: hidden;
-  color: #fff3df;
+  color: #f8ebd8;
   font-family: var(--font-display);
-  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-size: 0.97rem;
   font-weight: 500;
   line-height: 0.98;
   text-shadow: 0 2px 8px #000;
@@ -4394,10 +4469,11 @@ dialog.commentsSheet {
 .exploreCategoryCopy small {
   display: -webkit-box;
   overflow: hidden;
-  color: #d4c0a3;
-  font-size: 0.63rem;
-  line-height: 1.28;
-  letter-spacing: 0.07em;
+  color: #bdb0a0;
+  font-size: 0.52rem;
+  font-weight: 500;
+  line-height: 1.23;
+  letter-spacing: 0.045em;
   text-transform: uppercase;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -4405,28 +4481,55 @@ dialog.commentsSheet {
 
 .exploreCategoryCard > svg {
   position: absolute;
-  right: 8px;
-  bottom: 11px;
-  width: 17px;
-  height: 17px;
-  color: #e4ad5b;
+  right: 6px;
+  bottom: 8px;
+  width: 14px;
+  height: 14px;
+  color: #d8a34d;
+  stroke-width: 1.8;
 }
 
 .exploreLoreBanner {
   position: relative;
   display: grid;
-  min-height: 222px;
-  margin: 0 0 20px;
-  padding: 24px 24px;
+  min-height: 158px;
+  margin: 0 0 14px;
+  padding: 15px 16px;
   overflow: hidden;
-  border: 1px solid #b37b35;
-  border-radius: 13px;
+  border: 1px solid #a57431;
+  border-radius: 10px;
   background:
-    url("/community/community-wallpaper.webp") 66% 29% / cover no-repeat;
+    url("/community/community-wallpaper.webp") 68% 31% / cover no-repeat;
   box-shadow:
-    inset 0 0 45px #0008,
-    0 8px 24px #0004;
+    inset 0 0 38px #0007,
+    0 5px 16px #0003;
   isolation: isolate;
+}
+
+.exploreLoreBanner::before,
+.exploreLoreBanner::after {
+  position: absolute;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-color: #c7964e;
+  opacity: 0.65;
+  content: "";
+  pointer-events: none;
+}
+
+.exploreLoreBanner::before {
+  top: 5px;
+  left: 5px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.exploreLoreBanner::after {
+  right: 5px;
+  bottom: 5px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
 }
 
 .exploreLoreShade {
@@ -4434,61 +4537,63 @@ dialog.commentsSheet {
   z-index: -1;
   inset: 0;
   background:
-    linear-gradient(90deg, #080607f5 0%, #080607e6 34%, #0806077a 57%, #0806071f 100%),
-    linear-gradient(0deg, #06050578, transparent 65%);
+    linear-gradient(90deg, #070506fa 0%, #070506ee 34%, #070506a0 53%, #07050616 100%),
+    linear-gradient(0deg, #05040472, transparent 65%);
 }
 
 .exploreLoreCopy {
   align-self: center;
-  width: min(54%, 440px);
+  width: min(56%, 390px);
 }
 
 .exploreLoreCopy h2 {
-  margin: 0 0 8px;
-  color: #fff1df;
+  margin: 0 0 6px;
+  color: #fff0dc;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.6rem, 4vw, 2.35rem);
   font-weight: 500;
-  line-height: 1;
+  line-height: 0.92;
+  letter-spacing: -0.025em;
 }
 
 .exploreLoreCopy p {
-  margin: 0 0 18px;
-  color: #c5c0ba;
-  font-size: 0.9rem;
-  line-height: 1.35;
+  margin: 0 0 11px;
+  color: #b7b2ae;
+  font-size: 0.71rem;
+  line-height: 1.32;
 }
 
 .exploreLoreCopy button {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 35px;
   align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border: 1px solid #c6333f;
-  border-radius: 10px;
-  color: #f1a3a8;
-  background: #430d13c4;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #b72c38;
+  border-radius: 9px;
+  color: #efa1a6;
+  background: #3b0b10d9;
+  box-shadow: inset 0 0 14px #941c271f;
   font-family: var(--font-display);
-  font-size: 0.77rem;
+  font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .exploreLoreCopy button svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .exploreLoreSeal {
   position: absolute;
-  right: 18px;
-  bottom: 13px;
-  color: #d9c7a7;
+  right: 10px;
+  bottom: 8px;
+  color: #cab694;
   font-family: var(--font-display);
-  font-size: 0.65rem;
-  line-height: 1.15;
-  letter-spacing: 0.1em;
+  font-size: 0.49rem;
+  line-height: 1.12;
+  letter-spacing: 0.08em;
   text-align: right;
   text-transform: uppercase;
   text-shadow: 0 2px 8px #000;
@@ -4496,407 +4601,420 @@ dialog.commentsSheet {
 
 .explorePeopleHeading {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 29px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  margin: 4px 0 10px;
+  gap: 7px;
+  margin: 2px 0 7px;
 }
 
 .explorePeopleIcon {
   display: grid;
-  width: 31px;
-  height: 31px;
+  width: 28px;
+  height: 28px;
   place-items: center;
-  color: #d7a951;
+  color: #d3a24a;
 }
 
 .explorePeopleIcon svg {
-  width: 27px;
-  height: 27px;
-  stroke-width: 1.65;
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.6;
 }
 
 .explorePeopleHeading h2 {
   margin: 0;
-  color: #f3e8dc;
+  color: #f2e6d9;
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 3.2vw, 2rem);
+  font-size: 1.28rem;
   font-weight: 500;
-  line-height: 1.05;
+  line-height: 1;
 }
 
 .explorePeopleHeading p {
   margin: 3px 0 0;
-  color: #918b86;
-  font-size: 0.76rem;
+  color: #89837f;
+  font-size: 0.62rem;
+  line-height: 1.2;
 }
 
 .explorePeopleHeading > button {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 28px;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   padding: 0;
   border: 0;
-  color: #d6ac61;
+  color: #d2a557;
   background: transparent;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
 }
 
 .explorePeopleHeading > button svg {
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
 }
 
 .exploreFilterPills {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
-  margin-bottom: 10px;
+  grid-template-columns: 1.08fr 1fr 1fr 0.86fr;
+  gap: 5px;
+  margin: 0 0 8px;
 }
 
-.exploreFilterPills > button,
-.exploreSelectPill {
+.exploreFilterPills > button {
   display: flex;
   min-width: 0;
-  min-height: 39px;
+  min-height: 33px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 7px 9px;
-  border: 1px solid #3c3734;
+  gap: 4px;
+  padding: 5px 5px;
+  overflow: hidden;
+  border: 1px solid #393432;
   border-radius: 999px;
-  color: #aaa39e;
-  background: #09090a;
+  color: #a39d99;
+  background: #080809;
   box-shadow: none;
-  font-size: 0.69rem;
+  font-size: 0.56rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.exploreFilterPills > button svg,
-.exploreSelectPill > svg {
-  width: 15px;
-  height: 15px;
+.exploreFilterPills > button svg {
+  width: 13px;
+  height: 13px;
   flex: 0 0 auto;
 }
 
 .exploreFilterPills > button.explorePillActive {
-  border-color: #d33e49;
-  color: #ef7c83;
-  background: #2b0d11;
-  box-shadow: inset 0 0 14px #9a1e281a;
-}
-
-.exploreSelectPill {
-  padding-right: 5px;
-}
-
-.exploreSelectPill select {
-  width: 100%;
-  min-width: 0;
-  min-height: 26px;
-  padding: 0 16px 0 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  font-size: inherit;
-  outline: 0;
+  border-color: #c73540;
+  color: #e96d76;
+  background: #270b0f;
+  box-shadow: inset 0 0 12px #8d1a2318;
 }
 
 .exploreDirectoryGrid {
-  gap: 7px;
+  gap: 5px;
 }
 
 .exploreProfileRow {
-  grid-template-columns: 40px minmax(0, 1fr) 22px;
-  min-height: 76px;
-  padding: 7px 10px;
-  border-color: #6c471f;
-  border-radius: 10px;
-  background:
-    radial-gradient(circle at 16% 30%, #5d321210, transparent 32%),
-    linear-gradient(90deg, #0d0b0b, #080808);
-  box-shadow: inset 0 0 16px #0005;
+  grid-template-columns: 33px minmax(0, 1fr) 17px;
+  min-height: 66px;
+  padding: 5px 8px;
+  border-color: #60401f;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #0d0b0b, #080808);
+  box-shadow: inset 0 0 13px #0005;
 }
 
 .exploreProfileRow:hover {
-  border-color: #a66f2e;
-  background: linear-gradient(90deg, #15100c, #090909);
+  border-color: #8f612c;
+  background: linear-gradient(90deg, #120f0c, #090909);
 }
 
 .exploreRank {
   display: grid;
-  width: 34px;
+  width: 29px;
   justify-items: center;
   align-content: center;
-  color: #9b968f;
+  color: #98938f;
   font-family: var(--font-display);
 }
 
 .exploreRank svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   margin-bottom: -2px;
-  color: #f0b341;
-  fill: #f0b341;
-  stroke-width: 1.3;
+  color: #e7ad40;
+  fill: #e7ad40;
+  stroke-width: 1.2;
 }
 
 .exploreRank strong {
-  font-size: 1.3rem;
+  font-size: 1.12rem;
   font-weight: 500;
   line-height: 1;
 }
 
 .exploreProfileRow .profileTrigger {
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 7px;
 }
 
 .exploreProfileRow .avatarWrap {
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
 }
 
 .exploreProfileRow .profileMeta {
-  gap: 2px;
+  gap: 1px;
 }
 
 .exploreProfileRow .profileMeta strong {
-  color: #f3eadf;
+  color: #f2e8dd;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
+  line-height: 1.05;
 }
 
 .exploreProfileRow .profileMeta small {
-  color: #d7a85e;
-  font-size: 0.65rem;
-}
-
-.exploreProfileRow .profileMeta em {
-  max-width: none;
-  color: #918b87;
-  font-size: 0.67rem;
+  color: #cfa158;
+  font-size: 0.56rem;
   line-height: 1.15;
 }
 
+.exploreProfileRow .profileMeta em {
+  max-width: 100%;
+  color: #8f8985;
+  font-size: 0.57rem;
+  line-height: 1.12;
+}
+
 .exploreProfileRow .rowChevron {
-  width: 20px;
-  height: 20px;
-  color: #dca34f;
+  width: 17px;
+  height: 17px;
+  color: #d19a49;
 }
 
 @media (max-width: 760px) {
   .exploreHeader {
-    min-height: 86px;
-    padding-top: max(8px, env(safe-area-inset-top));
-    background-position: 57% 25%;
+    min-height: 80px;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: max(7px, env(safe-area-inset-top)) 13px 7px;
+    background-position: 58% 25%;
+  }
+
+  .exploreHeader .headerButton,
+  .exploreHeader .headerActions :global(.notification-container > button) {
+    width: 37px;
+    min-width: 37px;
+    height: 37px;
+  }
+
+  .exploreHeader .headerButton svg,
+  .exploreHeader .headerActions :global(.notification-container > button svg) {
+    width: 22px;
+    height: 22px;
   }
 
   .exploreHeaderTitle {
-    font-size: clamp(1.9rem, 8vw, 2.45rem);
+    font-size: clamp(1.85rem, 7.8vw, 2.25rem);
   }
 
   .exploreHeader + .searchDock {
-    padding: 8px 14px 0;
+    padding-inline: 13px;
   }
 
   .exploreDirectory {
-    padding: 11px 14px 112px;
-  }
-
-  .exploreCategories {
-    gap: 6px;
-    margin-bottom: 12px;
-  }
-
-  .exploreCategoryCard {
-    min-height: 156px;
-    padding: 9px 7px;
-    border-radius: 10px;
-  }
-
-  .exploreCategoryCopy {
-    gap: 5px;
-    padding-right: 9px;
-  }
-
-  .exploreCategoryCopy strong {
-    font-size: clamp(0.8rem, 3.6vw, 1rem);
-  }
-
-  .exploreCategoryCopy small {
-    font-size: clamp(0.48rem, 2.1vw, 0.58rem);
-    letter-spacing: 0.04em;
-  }
-
-  .exploreCategoryCard > svg {
-    right: 5px;
-    bottom: 8px;
-    width: 14px;
-    height: 14px;
-  }
-
-  .exploreLoreBanner {
-    min-height: 164px;
-    padding: 18px 16px;
-    margin-bottom: 16px;
-    background-position: 64% 30%;
-  }
-
-  .exploreLoreCopy {
-    width: 55%;
-  }
-
-  .exploreLoreCopy h2 {
-    font-size: clamp(1.55rem, 7vw, 2rem);
-  }
-
-  .exploreLoreCopy p {
-    margin-bottom: 12px;
-    font-size: 0.72rem;
-  }
-
-  .exploreLoreCopy button {
-    min-height: 35px;
-    padding: 6px 12px;
-    font-size: 0.61rem;
-  }
-
-  .exploreLoreSeal {
-    right: 9px;
-    bottom: 8px;
-    font-size: 0.5rem;
-  }
-
-  .explorePeopleHeading {
-    grid-template-columns: 30px minmax(0, 1fr) auto;
-    gap: 7px;
-  }
-
-  .explorePeopleHeading h2 {
-    font-size: 1.28rem;
-  }
-
-  .explorePeopleHeading p {
-    font-size: 0.67rem;
-  }
-
-  .explorePeopleHeading > button {
-    font-size: 0.65rem;
-  }
-
-  .exploreFilterPills {
-    gap: 6px;
-  }
-
-  .exploreFilterPills > button,
-  .exploreSelectPill {
-    min-height: 35px;
-    gap: 4px;
-    padding: 6px 6px;
-    font-size: 0.58rem;
-  }
-
-  .exploreFilterPills > button svg,
-  .exploreSelectPill > svg {
-    width: 13px;
-    height: 13px;
-  }
-
-  .exploreProfileRow {
-    min-height: 70px;
-    grid-template-columns: 34px minmax(0, 1fr) 18px;
-    padding: 5px 8px;
-  }
-
-  .exploreProfileRow .profileTrigger {
-    grid-template-columns: 58px minmax(0, 1fr);
-    gap: 7px;
-  }
-
-  .exploreProfileRow .avatarWrap {
-    width: 54px;
-    height: 54px;
-  }
-
-  .exploreRank {
-    width: 30px;
-  }
-
-  .exploreRank strong {
-    font-size: 1.15rem;
-  }
-
-  .exploreProfileRow .profileMeta strong {
-    font-size: 0.92rem;
-  }
-
-  .exploreProfileRow .profileMeta small {
-    font-size: 0.58rem;
-  }
-
-  .exploreProfileRow .profileMeta em {
-    font-size: 0.61rem;
+    padding: 9px 13px 112px;
   }
 }
 
 @media (max-width: 430px) {
+  .exploreHeader {
+    min-height: 76px;
+    padding-inline: 12px;
+  }
+
+  .exploreHeaderTitle {
+    font-size: 1.93rem;
+  }
+
+  .exploreHeader .headerActions {
+    gap: 2px;
+  }
+
+  .exploreHeader + .searchDock {
+    max-height: 61px;
+    padding: 5px 12px 0;
+  }
+
+  .community .exploreHeader + .searchDock .search {
+    min-height: 45px;
+    grid-template-columns: 18px minmax(0, 1fr) 18px;
+    gap: 8px;
+    padding-inline: 12px;
+    border-radius: 14px;
+  }
+
+  .community .exploreHeader + .searchDock .search > svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .community .exploreHeader + .searchDock .search input {
+    min-height: 43px;
+    font-size: 0.78rem;
+    line-height: 43px;
+  }
+
+  .exploreDirectory {
+    padding: 8px 12px 108px;
+  }
+
   .exploreCategories {
-    gap: 5px;
+    gap: 4px;
+    margin-bottom: 10px;
   }
 
   .exploreCategoryCard {
-    min-height: 150px;
+    min-height: 132px;
+    padding: 8px 6px 9px;
+    border-radius: 9px;
+  }
+
+  .exploreCategoryCopy {
+    gap: 4px;
+    padding-right: 8px;
+  }
+
+  .exploreCategoryCopy strong {
+    font-size: clamp(0.75rem, 3.35vw, 0.9rem);
+    line-height: 0.98;
+  }
+
+  .exploreCategoryCopy small {
+    font-size: clamp(0.42rem, 1.75vw, 0.5rem);
+    line-height: 1.18;
+  }
+
+  .exploreCategoryCard > svg {
+    right: 4px;
+    bottom: 7px;
+    width: 12px;
+    height: 12px;
+  }
+
+  .exploreLoreBanner {
+    min-height: 146px;
+    margin-bottom: 13px;
+    padding: 14px 13px;
+    background-position: 68% 31%;
+  }
+
+  .exploreLoreCopy {
+    width: 58%;
+  }
+
+  .exploreLoreCopy h2 {
+    margin-bottom: 5px;
+    font-size: 1.56rem;
+  }
+
+  .exploreLoreCopy p {
+    margin-bottom: 9px;
+    font-size: 0.64rem;
+  }
+
+  .exploreLoreCopy button {
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 0.56rem;
+  }
+
+  .exploreLoreSeal {
+    right: 8px;
+    bottom: 7px;
+    font-size: 0.44rem;
+  }
+
+  .explorePeopleHeading {
+    grid-template-columns: 27px minmax(0, 1fr) auto;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .explorePeopleIcon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .explorePeopleIcon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .explorePeopleHeading h2 {
+    font-size: 1.12rem;
   }
 
   .explorePeopleHeading p {
-    max-width: 225px;
+    font-size: 0.57rem;
+  }
+
+  .explorePeopleHeading > button {
+    font-size: 0.57rem;
   }
 
   .exploreFilterPills {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 7px;
   }
 
-  .exploreFilterPills > button,
-  .exploreSelectPill {
-    padding-inline: 4px;
+  .exploreFilterPills > button {
+    min-height: 31px;
+    gap: 3px;
+    padding: 4px 3px;
+    font-size: 0.5rem;
   }
 
-  .exploreFilterPills > button:nth-child(2) {
-    font-size: 0;
+  .exploreFilterPills > button svg {
+    width: 12px;
+    height: 12px;
   }
 
-  .exploreFilterPills > button:nth-child(2)::after {
-    font-size: 0.58rem;
-    content: "Online";
+  .exploreProfileRow {
+    min-height: 62px;
+    grid-template-columns: 29px minmax(0, 1fr) 16px;
+    padding: 4px 7px;
   }
 
-  .exploreSelectPill > svg {
-    display: none;
+  .exploreProfileRow .profileTrigger {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .exploreProfileRow .avatarWrap {
+    width: 48px;
+    height: 48px;
+  }
+
+  .exploreRank {
+    width: 27px;
+  }
+
+  .exploreRank strong {
+    font-size: 1.03rem;
+  }
+
+  .exploreProfileRow .profileMeta strong {
+    font-size: 0.84rem;
+  }
+
+  .exploreProfileRow .profileMeta small {
+    font-size: 0.51rem;
   }
 
   .exploreProfileRow .profileMeta em {
-    max-width: 205px;
+    font-size: 0.52rem;
   }
 }
 
 @media (max-width: 360px) {
+  .exploreFilterPills > button {
+    font-size: 0;
+  }
+
+  .exploreFilterPills > button svg {
+    width: 14px;
+    height: 14px;
+  }
+
   .exploreCategoryCard {
-    min-height: 138px;
-  }
-
-  .exploreCategoryCopy strong {
-    font-size: 0.74rem;
-  }
-
-  .exploreCategoryCopy small {
-    font-size: 0.44rem;
-  }
-
-  .exploreLoreCopy {
-    width: 62%;
+    min-height: 124px;
   }
 
   .explorePeopleHeading > button {
@@ -4904,84 +5022,7 @@ dialog.commentsSheet {
   }
 
   .explorePeopleHeading > button svg {
-    width: 17px;
-    height: 17px;
-  }
-}
-
-
-/* Mobile polish after visual verification on Explore. */
-.community .exploreHeader + .searchDock .search {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 11px;
-  min-height: 52px;
-  padding: 0 14px;
-}
-
-.community .exploreHeader + .searchDock .search > svg {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  margin: 0;
-}
-
-.community .exploreHeader + .searchDock .search input {
-  flex: 1 1 auto;
-  width: 0;
-  min-width: 0;
-  min-height: 50px;
-  margin: 0;
-  padding: 0;
-  align-self: stretch;
-  border: 0;
-  background: transparent;
-  line-height: 50px;
-}
-
-@media (max-width: 430px) {
-  .community .exploreHeader + .searchDock {
-    max-height: 72px;
-    padding: 7px 13px 0;
-  }
-
-  .community .exploreHeader + .searchDock .search {
-    min-height: 50px;
-    border-radius: 15px;
-  }
-
-  .community .exploreHeader + .searchDock .search input {
-    min-height: 48px;
-    line-height: 48px;
-    font-size: 0.86rem;
-  }
-
-  .exploreDirectory {
-    padding-top: 10px;
-  }
-
-  .exploreCategories {
-    gap: 4px;
-  }
-
-  .exploreCategoryCard {
-    min-height: 144px;
-    padding: 9px 7px 10px;
-  }
-
-  .exploreCategoryCopy strong {
-    font-size: clamp(0.78rem, 3.45vw, 0.94rem);
-    line-height: 1.02;
-  }
-
-  .exploreCategoryCopy small {
-    font-size: clamp(0.45rem, 1.9vw, 0.54rem);
-    line-height: 1.2;
-  }
-
-  .exploreLoreBanner {
-    margin-top: 10px;
+    width: 15px;
+    height: 15px;
   }
 }
