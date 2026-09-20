@@ -170,6 +170,63 @@ export async function uploadMedalImage(file: File, campaign: string) {
   return path;
 }
 
+export async function uploadProfileWallpaper(
+  file: File,
+  campaign: string,
+) {
+  if (
+    file.size > 1024 * 1024 ||
+    !["image/webp", "image/jpeg", "image/png"].includes(file.type)
+  )
+    throw new Error("Use WebP, JPG ou PNG de até 1 MB");
+
+  const image = await createImageBitmap(file);
+  if (image.width * image.height > 24000000) {
+    image.close();
+    throw new Error("A imagem excede 24 megapixels");
+  }
+
+  let scale = Math.min(1, 1920 / Math.max(image.width, image.height));
+  let blob: Blob | null = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) {
+      image.close();
+      throw new Error("Não foi possível preparar o wallpaper");
+    }
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (value) =>
+          value
+            ? resolve(value)
+            : reject(new Error("Não foi possível converter o wallpaper")),
+        "image/webp",
+        Math.max(0.7, 0.88 - attempt * 0.04),
+      ),
+    );
+    if (blob.size <= 1024 * 1024) break;
+    scale *= 0.86;
+  }
+  image.close();
+
+  if (!blob || blob.type !== "image/webp" || blob.size > 1024 * 1024)
+    throw new Error("Não foi possível reduzir o wallpaper para até 1 MB");
+
+  const path = `${campaign}/wallpapers/${crypto.randomUUID()}.webp`;
+  const { error } = await browserDb()
+    .storage.from("profile-wallpapers")
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
+  if (error) throw error;
+  return path;
+}
+
 export async function uploadCommunityPostImage(
   file: File,
   campaign: string,
