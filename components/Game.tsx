@@ -45,6 +45,7 @@ import AvatarGallery from "./AvatarGallery";
 import AvatarPickerDialog from "./AvatarPickerDialog";
 import CosmeticsPanel from "./CosmeticsPanel";
 import MedalManager from "./MedalManager";
+import TitleManager from "./TitleManager";
 import WallpaperManager from "./WallpaperManager";
 import CommunityPanel from "./CommunityPanel";
 import IdentityAvatar from "./IdentityAvatar";
@@ -3326,6 +3327,61 @@ export default function Game({ invite }: { invite?: string }) {
                 }
               />
 
+              </details>
+
+              <details className="panel cosmetics-section">
+                <summary>
+                  <span>
+                    <strong>Títulos</strong>
+                    <small>Crie títulos com ícones e entregue aos jogadores.</small>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </summary>
+                <TitleManager
+                  titles={rows("cosmetics").filter(
+                    (cosmetic) => cosmetic.kind === "title",
+                  )}
+                  players={medalPlayers}
+                  busy={busy}
+                  create={({ name, description, icon }) =>
+                    perform(async () => {
+                      const response = await browserDb().rpc("identity_action", {
+                        c: campaign,
+                        op: "cosmetic",
+                        d: {
+                          kind: "title",
+                          name,
+                          description,
+                          icon,
+                          color: "#D9B568",
+                          active: true,
+                        },
+                      });
+                      if (response.error)
+                        throw new Error(response.error.message);
+                      await load(campaign, true);
+                      setMessage("Título criado");
+                    })
+                  }
+                  send={({ titleId, identityId }) =>
+                    perform(async () => {
+                      const response = await browserDb().rpc("identity_action", {
+                        c: campaign,
+                        op: "grant",
+                        d: {
+                          identity_id: identityId,
+                          cosmetic_id: titleId,
+                          origin: "gift",
+                          note: "Título enviado pelo mestre",
+                        },
+                      });
+                      if (response.error)
+                        throw new Error(response.error.message);
+                      await load(campaign, true);
+                      setMessage("Título enviado");
+                    })
+                  }
+                />
               </details>
 
               <details className="panel cosmetics-section">
