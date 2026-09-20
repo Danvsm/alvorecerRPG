@@ -3,7 +3,6 @@
 import Image from "next/image";
 import {
   ArrowLeft,
-  BookOpen,
   ChevronRight,
   Clock3,
   Compass,
@@ -419,7 +418,11 @@ export default function CommunityPanel({
           </div>
         </header>
       ) : view !== "messages" ? (
-        <header className={styles.socialHeader}>
+        <header
+          className={`${styles.socialHeader} ${
+            view === "explore" ? styles.exploreHeader : ""
+          }`}
+        >
           <div className={styles.headerShade} />
           <button
             type="button"
