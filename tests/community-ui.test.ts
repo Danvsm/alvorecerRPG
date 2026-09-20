@@ -93,6 +93,36 @@ test("the five supplied rank medals are part of the community gallery", async ()
   );
   assert.match(source, /\/community\/rank-\$\{rank\}\.webp/);
   assert.match(source, /rank > 5/);
+  assert.match(source, /<RankMedal rank=\{rank\}/);
+});
+
+test("explore ranks real profiles by wealth, sessions, achievements and medals", async () => {
+  const [source, migration] = await Promise.all([
+    readFile(
+      new URL("../components/CommunityPanel.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260920064646_community_rankings.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(source, /rpc\("community_rankings"/);
+  assert.match(source, />\s*Riqueza\s*</);
+  assert.match(source, />\s*Sessões\s*</);
+  assert.match(source, />\s*Conquistas\s*</);
+  assert.match(source, />\s*Medalhas\s*</);
+  assert.match(source, /Posição no ranking de Dracmas/);
+  assert.match(migration, /function public\.community_rankings\(c uuid\)/);
+  assert.match(migration, /session_rank bigint/);
+  assert.match(migration, /achievement_rank bigint/);
+  assert.match(migration, /medal_rank bigint/);
+  assert.match(migration, /not public\.is_member\(c\)/);
+  assert.doesNotMatch(migration, /returns table\([\s\S]*?wealth_cents bigint/);
 });
 
 test("the supplied community wallpaper is optimized and used by the social header", async () => {
@@ -133,7 +163,7 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.match(source, /styles\.messageBadge/);
   assert.doesNotMatch(source, /Seções da Comunidade/);
   assert.doesNotMatch(source, /Em destaque/);
-  assert.doesNotMatch(source, /Ver todos/);
+  assert.match(source, /Ver todos/);
   assert.match(source, /<CommunityStories/);
   assert.match(css, /\.storyRing/);
   assert.match(css, /\.bottomNav/);

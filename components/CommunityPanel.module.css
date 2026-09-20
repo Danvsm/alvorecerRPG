@@ -747,8 +747,6 @@
   line-height: 1.4;
 }
 
-
-
 .archiveSection {
   display: grid;
   gap: 14px;
@@ -3514,7 +3512,6 @@ dialog.commentsSheet {
   }
 }
 
-
 /* Familiar social reading, with a literary accent only in narrative headings. */
 .community {
   font-family: var(--font-ui);
@@ -3641,7 +3638,6 @@ dialog.commentsSheet {
     font-size: clamp(1rem, 4vw, 1.08rem);
   }
 }
-
 
 /* Full-screen mobile inbox inspired by the clean conversation-list layout. */
 .inboxScreen {
@@ -3908,7 +3904,6 @@ dialog.commentsSheet {
     font-size: 0.8rem;
   }
 }
-
 
 /* Unified social inbox: every available profile lives in one conversation list. */
 .inboxScreen {
@@ -4179,7 +4174,6 @@ dialog.commentsSheet {
   }
 }
 
-
 /* Perfil social: topo discreto sobreposto ao hero. */
 .profileHeader {
   min-height: 72px;
@@ -4190,7 +4184,12 @@ dialog.commentsSheet {
 }
 
 .profileHeader .headerShade {
-  background: linear-gradient(180deg, #050405bd 0%, #08070855 58%, transparent 100%);
+  background: linear-gradient(
+    180deg,
+    #050405bd 0%,
+    #08070855 58%,
+    transparent 100%
+  );
   backdrop-filter: blur(2px);
 }
 
@@ -4241,7 +4240,6 @@ dialog.commentsSheet {
   }
 }
 
-
 .profileFollowButton {
   transition:
     color 140ms ease,
@@ -4266,7 +4264,6 @@ dialog.commentsSheet {
 .profileFollowButton.profileFollowing svg {
   filter: drop-shadow(0 0 7px #d8b56066);
 }
-
 
 /* Explore page rebuilt from the approved mobile reference. */
 .exploreHeader {
@@ -4443,7 +4440,13 @@ dialog.commentsSheet {
   z-index: -1;
   inset: 0;
   background:
-    linear-gradient(180deg, #0000000a 0%, #0302021a 34%, #050404c4 78%, #050404f3 100%),
+    linear-gradient(
+      180deg,
+      #0000000a 0%,
+      #0302021a 34%,
+      #050404c4 78%,
+      #050404f3 100%
+    ),
     linear-gradient(90deg, #0003, transparent 70%);
 }
 
@@ -4499,8 +4502,7 @@ dialog.commentsSheet {
   overflow: hidden;
   border: 1px solid #a57431;
   border-radius: 10px;
-  background:
-    url("/community/historia-do-mundo.webp") 67% 34% / cover no-repeat;
+  background: url("/community/historia-do-mundo.webp") 67% 34% / cover no-repeat;
   box-shadow:
     inset 0 0 38px #0007,
     0 5px 16px #0003;
@@ -4538,7 +4540,13 @@ dialog.commentsSheet {
   z-index: -1;
   inset: 0;
   background:
-    linear-gradient(90deg, #070506fa 0%, #070506ee 34%, #070506a0 53%, #07050616 100%),
+    linear-gradient(
+      90deg,
+      #070506fa 0%,
+      #070506ee 34%,
+      #070506a0 53%,
+      #07050616 100%
+    ),
     linear-gradient(0deg, #05040472, transparent 65%);
 }
 
@@ -4602,18 +4610,19 @@ dialog.commentsSheet {
 
 .explorePeopleHeading {
   display: grid;
-  grid-template-columns: 29px minmax(0, 1fr) auto;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
-  margin: 2px 0 7px;
+  gap: 9px;
+  margin: 5px 1px 10px;
 }
 
 .explorePeopleIcon {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   color: #d3a24a;
+  filter: drop-shadow(0 0 8px #d3a24a30);
 }
 
 .explorePeopleIcon svg {
@@ -4626,16 +4635,16 @@ dialog.commentsSheet {
   margin: 0;
   color: #f2e6d9;
   font-family: var(--font-display);
-  font-size: 1.28rem;
+  font-size: 1.34rem;
   font-weight: 500;
   line-height: 1;
 }
 
 .explorePeopleHeading p {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   color: #89837f;
-  font-size: 0.62rem;
-  line-height: 1.2;
+  font-size: 0.65rem;
+  line-height: 1.25;
 }
 
 .explorePeopleHeading > button {
@@ -4657,125 +4666,171 @@ dialog.commentsSheet {
 
 .exploreFilterPills {
   display: grid;
-  grid-template-columns: 1.08fr 1fr 1fr 0.86fr;
-  gap: 5px;
-  margin: 0 0 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 11px;
 }
 
 .exploreFilterPills > button {
   display: flex;
   min-width: 0;
-  min-height: 33px;
+  min-height: 38px;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px 5px;
+  gap: 5px;
+  padding: 6px 8px;
   overflow: hidden;
-  border: 1px solid #393432;
+  border: 1px solid #413b37;
   border-radius: 999px;
-  color: #a39d99;
-  background: #080809;
+  color: #aaa39e;
+  background: linear-gradient(180deg, #100e0f, #09090a);
   box-shadow: none;
-  font-size: 0.56rem;
-  font-weight: 500;
+  font-size: 0.66rem;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .exploreFilterPills > button svg {
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
 }
 
 .exploreFilterPills > button.explorePillActive {
-  border-color: #c73540;
-  color: #e96d76;
-  background: #270b0f;
-  box-shadow: inset 0 0 12px #8d1a2318;
+  border-color: #c23a46;
+  color: #ff9ba2;
+  background:
+    radial-gradient(circle at 50% 0%, #b6273438, transparent 75%),
+    linear-gradient(180deg, #2b0c11, #17090c);
+  box-shadow:
+    inset 0 0 0 1px #ff8d9610,
+    0 4px 13px #0004;
 }
 
 .exploreDirectoryGrid {
-  gap: 5px;
+  gap: 8px;
 }
 
 .exploreProfileRow {
-  grid-template-columns: 33px minmax(0, 1fr) 17px;
-  min-height: 66px;
-  padding: 5px 8px;
-  border-color: #60401f;
-  border-radius: 9px;
-  background: linear-gradient(90deg, #0d0b0b, #080808);
-  box-shadow: inset 0 0 13px #0005;
+  grid-template-columns: 46px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 7px;
+  min-height: 78px;
+  padding: 8px 10px 8px 7px;
+  border-color: #563a20;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 0% 50%, #8a4c1720, transparent 34%),
+    linear-gradient(100deg, #110e0e, #080809 74%);
+  box-shadow:
+    inset 0 0 18px #0005,
+    0 3px 12px #0003;
 }
 
 .exploreProfileRow:hover {
   border-color: #8f612c;
-  background: linear-gradient(90deg, #120f0c, #090909);
+  background:
+    radial-gradient(circle at 0% 50%, #a661232d, transparent 38%),
+    linear-gradient(100deg, #17120f, #09090a 74%);
+}
+
+.exploreProfileRow:first-child {
+  border-color: #9b6a2f;
+  background:
+    radial-gradient(circle at 0% 50%, #c8832b2b, transparent 38%),
+    linear-gradient(100deg, #181109, #09090a 76%);
 }
 
 .exploreRank {
   display: grid;
-  width: 29px;
+  width: 44px;
   justify-items: center;
   align-content: center;
   color: #98938f;
   font-family: var(--font-display);
 }
 
-.exploreRank svg {
-  width: 14px;
-  height: 14px;
-  margin-bottom: -2px;
-  color: #e7ad40;
-  fill: #e7ad40;
-  stroke-width: 1.2;
-}
-
-.exploreRank strong {
-  font-size: 1.12rem;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.exploreProfileRow .profileTrigger {
-  grid-template-columns: 54px minmax(0, 1fr);
-  gap: 7px;
-}
-
-.exploreProfileRow .avatarWrap {
-  width: 52px;
+.exploreProfileRow .rankMedal {
+  width: 44px;
   height: 52px;
 }
 
+.exploreProfileRow .rankMedal img {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 4px 7px #000b);
+}
+
+.exploreProfileRow .rankMedal strong {
+  right: -1px;
+  bottom: 1px;
+  min-width: 20px;
+  padding: 2px 4px;
+  border: 1px solid #7e5729;
+  border-radius: 999px;
+  color: #f8d28c;
+  background: #17100bd9;
+  font-size: 0.58rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.exploreProfileRow .rankNumber {
+  min-width: 44px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.exploreProfileRow .profileTrigger {
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.exploreProfileRow .avatarWrap {
+  width: 56px;
+  height: 56px;
+}
+
+.exploreProfileRow .avatarWrap > .onlineDot {
+  right: -1px;
+  bottom: 1px;
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+}
+
 .exploreProfileRow .profileMeta {
-  gap: 1px;
+  gap: 2px;
 }
 
 .exploreProfileRow .profileMeta strong {
   color: #f2e8dd;
   font-family: var(--font-display);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.96rem;
+  font-weight: 600;
   line-height: 1.05;
 }
 
 .exploreProfileRow .profileMeta small {
   color: #cfa158;
-  font-size: 0.56rem;
-  line-height: 1.15;
+  font-size: 0.59rem;
+  line-height: 1.2;
 }
 
 .exploreProfileRow .profileMeta em {
   max-width: 100%;
-  color: #8f8985;
-  font-size: 0.57rem;
-  line-height: 1.12;
+  color: #aaa39d;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .exploreProfileRow .rowChevron {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   color: #d19a49;
 }
 
@@ -4893,7 +4948,7 @@ dialog.commentsSheet {
     min-height: 146px;
     margin-bottom: 13px;
     padding: 14px 13px;
-    background-position: 68% 31%;
+    background-position: 67% 34%;
   }
 
   .exploreLoreCopy {
@@ -4923,14 +4978,14 @@ dialog.commentsSheet {
   }
 
   .explorePeopleHeading {
-    grid-template-columns: 27px minmax(0, 1fr) auto;
-    gap: 6px;
-    margin-bottom: 6px;
+    grid-template-columns: 29px minmax(0, 1fr) auto;
+    gap: 7px;
+    margin-bottom: 9px;
   }
 
   .explorePeopleIcon {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
   }
 
   .explorePeopleIcon svg {
@@ -4939,7 +4994,7 @@ dialog.commentsSheet {
   }
 
   .explorePeopleHeading h2 {
-    font-size: 1.12rem;
+    font-size: 1.17rem;
   }
 
   .explorePeopleHeading p {
@@ -4951,62 +5006,88 @@ dialog.commentsSheet {
   }
 
   .exploreFilterPills {
-    gap: 4px;
-    margin-bottom: 7px;
+    display: flex;
+    gap: 6px;
+    margin: 0 -1px 10px;
+    padding: 1px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  .exploreFilterPills::-webkit-scrollbar {
+    display: none;
   }
 
   .exploreFilterPills > button {
-    min-height: 31px;
-    gap: 3px;
-    padding: 4px 3px;
-    font-size: 0.5rem;
+    min-width: 82px;
+    min-height: 36px;
+    flex: 1 0 82px;
+    gap: 4px;
+    padding: 5px 7px;
+    font-size: 0.59rem;
+    scroll-snap-align: start;
   }
 
   .exploreFilterPills > button svg {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
   }
 
   .exploreProfileRow {
-    min-height: 62px;
-    grid-template-columns: 29px minmax(0, 1fr) 16px;
-    padding: 4px 7px;
+    min-height: 74px;
+    grid-template-columns: 42px minmax(0, 1fr) 16px;
+    gap: 6px;
+    padding: 7px 8px 7px 5px;
   }
 
   .exploreProfileRow .profileTrigger {
-    grid-template-columns: 50px minmax(0, 1fr);
-    gap: 6px;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 8px;
   }
 
   .exploreProfileRow .avatarWrap {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
   }
 
   .exploreRank {
-    width: 27px;
+    width: 40px;
   }
 
-  .exploreRank strong {
-    font-size: 1.03rem;
+  .exploreProfileRow .rankMedal {
+    width: 40px;
+    height: 48px;
+  }
+
+  .exploreProfileRow .rankMedal img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .exploreProfileRow .rankNumber {
+    min-width: 40px;
+    font-size: 0.98rem;
   }
 
   .exploreProfileRow .profileMeta strong {
-    font-size: 0.84rem;
+    font-size: 0.89rem;
   }
 
   .exploreProfileRow .profileMeta small {
-    font-size: 0.51rem;
+    font-size: 0.54rem;
   }
 
   .exploreProfileRow .profileMeta em {
-    font-size: 0.52rem;
+    font-size: 0.56rem;
   }
 }
 
 @media (max-width: 360px) {
   .exploreFilterPills > button {
-    font-size: 0;
+    min-width: 80px;
+    flex-basis: 80px;
+    font-size: 0.57rem;
   }
 
   .exploreFilterPills > button svg {
@@ -5027,7 +5108,6 @@ dialog.commentsSheet {
     height: 15px;
   }
 }
-
 
 @media (max-width: 430px) {
   .exploreCategories {

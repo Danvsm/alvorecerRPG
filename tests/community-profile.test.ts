@@ -315,7 +315,7 @@ test("community profile UI follows the dark fantasy mobile profile contract", as
   assert.doesNotMatch(profile, /orkutista-logo/);
   assert.match(panel, /<CommunityProfile/);
   assert.match(panel, /view === "profile" \? styles\.activeBottomItem/);
-  assert.match(panel, /<strong>\{current\.name\}<\/strong>/);
+  assert.match(panel, /<strong[^>]*>\{current\.name\}<\/strong>/);
   assert.match(styles, /community-wallpaper\.webp/);
   assert.match(styles, /grid-template-columns: repeat\(5,/);
   assert.match(styles, /@media \(max-width: 520px\)/);

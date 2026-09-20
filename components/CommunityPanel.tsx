@@ -2,18 +2,19 @@
 
 import Image from "next/image";
 import {
+  Award,
   ArrowLeft,
+  CalendarCheck2,
   ChevronRight,
-  Clock3,
+  Coins,
   Compass,
-  Crown,
   Home,
+  Medal,
   Menu,
   MoreVertical,
   Plus,
   Search,
   Send,
-  Sparkles,
   Trophy,
   UserCheck,
   UserPlus,
@@ -21,7 +22,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
-import { orderCommunityIdentities } from "@/lib/community";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import CommunityArchives from "./CommunityArchives";
@@ -35,7 +35,20 @@ import styles from "./CommunityPanel.module.css";
 
 type CommunityView =
   "home" | "explore" | "create" | "messages" | "profile" | "archives";
-type CommunityFilter = "all" | "online" | "players" | "world";
+type RankingMetric = "wealth" | "sessions" | "achievements" | "medals";
+
+const rankingFields: Record<
+  RankingMetric,
+  {
+    rank: "wealth_rank" | "session_rank" | "achievement_rank" | "medal_rank";
+    count: "session_count" | "achievement_count" | "medal_count" | null;
+  }
+> = {
+  wealth: { rank: "wealth_rank", count: null },
+  sessions: { rank: "session_rank", count: "session_count" },
+  achievements: { rank: "achievement_rank", count: "achievement_count" },
+  medals: { rank: "medal_rank", count: "medal_count" },
+};
 
 const exploreCategories = [
   {
@@ -62,12 +75,6 @@ const profileCaption = (identity: Row) => {
   return "Aventureiro do Alvorecer";
 };
 
-const profileLine = (identity: Row) => {
-  if (identity.kind === "master") return "Guiando histórias ao amanhecer.";
-  if (identity.kind === "npc") return "Uma presença viva neste mundo.";
-  return "Uma história em construção.";
-};
-
 function RankMedal({ rank }: { rank: number }) {
   if (rank > 5) return <strong className={styles.rankNumber}>{rank}º</strong>;
   return (
@@ -78,7 +85,7 @@ function RankMedal({ rank }: { rank: number }) {
         height={56}
         alt={`${rank}º lugar`}
       />
-      <strong>{rank}º</strong>
+      {rank <= 2 && <strong>{rank}º</strong>}
     </span>
   );
 }
@@ -161,8 +168,7 @@ export default function CommunityPanel({
     [],
   );
 
-  const [rankingMode, setRankingMode] = useState(false);
-  const [filter, setFilter] = useState<CommunityFilter>("all");
+  const [rankingMetric, setRankingMetric] = useState<RankingMetric>("wealth");
   const [visibleCount, setVisibleCount] = useState(12);
   const [ranking, setRanking] = useState<Row[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
@@ -179,7 +185,7 @@ export default function CommunityPanel({
     setError("");
     const loadRanking = async () => {
       const response = await retryNetworkRead(() =>
-        browserDb().rpc("wealth_ranking", { c: campaign }),
+        browserDb().rpc("community_rankings", { c: campaign }),
       );
       if (!active) return;
       if (response.error) setError(readableErrorMessage(response.error));
@@ -189,8 +195,22 @@ export default function CommunityPanel({
       }
     };
     void loadRanking();
+    const channel = browserDb()
+      .channel(`community-rankings:${campaign}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "campaign_events",
+          filter: `campaign_id=eq.${campaign}`,
+        },
+        () => void loadRanking(),
+      )
+      .subscribe();
     return () => {
       active = false;
+      void browserDb().removeChannel(channel);
     };
   }, [campaign, identities]);
 
@@ -239,7 +259,7 @@ export default function CommunityPanel({
     };
   }, [campaign]);
 
-  useEffect(() => setVisibleCount(12), [search, filter, rankingMode, view]);
+  useEffect(() => setVisibleCount(12), [search, rankingMetric, view]);
 
   const activeIdentities = useMemo(
     () => identities.filter((identity) => identity.active),
@@ -250,10 +270,28 @@ export default function CommunityPanel({
         (identity) => identity.kind === "master" && identity.user_id,
       )?.id || actor
     : actor;
+  const selectedRanking = rankingFields[rankingMetric];
   const rankByIdentity = useMemo(
     () =>
-      new Map(ranking.map((entry) => [entry.identity_id, Number(entry.rank)])),
-    [ranking],
+      new Map(
+        ranking.map((entry) => [
+          entry.identity_id,
+          Number(entry[selectedRanking.rank]),
+        ]),
+      ),
+    [ranking, selectedRanking.rank],
+  );
+  const countByIdentity = useMemo(
+    () =>
+      new Map(
+        ranking.map((entry) => [
+          entry.identity_id,
+          selectedRanking.count
+            ? Number(entry[selectedRanking.count] || 0)
+            : null,
+        ]),
+      ),
+    [ranking, selectedRanking.count],
   );
   const current = activeIdentities.find((identity) => identity.id === selected);
   const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
@@ -266,59 +304,41 @@ export default function CommunityPanel({
     Boolean(identity.user_id && onlineUserIds.has(identity.user_id));
 
   const directory = useMemo(() => {
-    const byName = orderCommunityIdentities(
-      activeIdentities,
-      rankByIdentity,
-      onlineUserIds,
-      "alphabetical",
-    );
-    const byWealth = orderCommunityIdentities(
-      activeIdentities,
-      rankByIdentity,
-      onlineUserIds,
-      "wealth",
-    );
-    const byOnline = orderCommunityIdentities(
-      activeIdentities,
-      rankByIdentity,
-      onlineUserIds,
-      "online",
-    );
-    const byRank = ranking
+    const ranked = [...ranking]
+      .sort(
+        (left, right) =>
+          Number(left[selectedRanking.rank]) -
+          Number(right[selectedRanking.rank]),
+      )
       .map((entry) =>
         activeIdentities.find((identity) => identity.id === entry.identity_id),
       )
       .filter(Boolean) as Row[];
-    const source = rankingMode
-      ? byRank
-      : view === "messages"
-        ? byOnline
-        : filter === "all" || filter === "online"
-          ? byWealth
-          : byName;
-    return source.filter((identity) => {
-      if (!matchesSearch(identity)) return false;
-      if (view === "messages" && identity.id === actor) return false;
-      if (filter === "online" && !isOnline(identity)) return false;
-      if (filter === "players" && !["player", "master"].includes(identity.kind))
-        return false;
-      if (filter === "world" && identity.kind !== "npc") return false;
-      return true;
-    });
-  }, [
-    activeIdentities,
-    actor,
-    filter,
-    normalizedSearch,
-    onlineUserIds,
-    rankingMode,
-    ranking,
-    view,
-  ]);
+    const rankedIds = new Set(ranked.map((identity) => identity.id));
+    const fallback = activeIdentities
+      .filter(
+        (identity) =>
+          identity.user_id &&
+          ["master", "player"].includes(identity.kind) &&
+          !rankedIds.has(identity.id),
+      )
+      .sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));
+
+    return [...ranked, ...fallback].filter(matchesSearch);
+  }, [activeIdentities, normalizedSearch, ranking, selectedRanking.rank]);
+
+  const rankingSummary = (identityId: string) => {
+    const count = countByIdentity.get(identityId) || 0;
+    if (rankingMetric === "wealth") return "Posição no ranking de Dracmas";
+    if (rankingMetric === "sessions")
+      return `${count} ${count === 1 ? "sessão" : "sessões"}`;
+    if (rankingMetric === "achievements")
+      return `${count} ${count === 1 ? "conquista" : "conquistas"}`;
+    return `${count} ${count === 1 ? "medalha" : "medalhas"}`;
+  };
 
   const revealSearch = () => {
     setView("explore");
-    setRankingMode(false);
     setSelected("");
     setSearchOpen(true);
     window.requestAnimationFrame(() => searchRef.current?.focus());
@@ -387,9 +407,7 @@ export default function CommunityPanel({
                 }
                 aria-pressed={profileFollowing}
                 disabled={profileFollowBusy}
-                onClick={() =>
-                  setProfileFollowSignal((signal) => signal + 1)
-                }
+                onClick={() => setProfileFollowSignal((signal) => signal + 1)}
               >
                 {profileFollowing ? (
                   <UserCheck aria-hidden="true" />
@@ -447,33 +465,38 @@ export default function CommunityPanel({
         </header>
       ) : null}
 
-      {view !== "messages" && <div
-        className={`${styles.searchDock} ${
-          view === "explore" || searchOpen || search ? styles.searchOpen : ""
-        }`}
-      >
-        <label className={styles.search}>
-          <Search aria-hidden="true" />
-          <span className="visually-hidden">Buscar jogador</span>
-          <input
-            ref={searchRef}
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onBlur={() => {
-              if (!search) setSearchOpen(false);
-            }}
-            placeholder={
-              view === "explore"
-                ? "Buscar jogadores, histórias, clãs..."
-                : "Buscar jogador"
-            }
-          />
-          {view === "explore" && (
-            <Compass className={styles.exploreSearchMark} aria-hidden="true" />
-          )}
-        </label>
-      </div>}
+      {view !== "messages" && (
+        <div
+          className={`${styles.searchDock} ${
+            view === "explore" || searchOpen || search ? styles.searchOpen : ""
+          }`}
+        >
+          <label className={styles.search}>
+            <Search aria-hidden="true" />
+            <span className="visually-hidden">Buscar jogador</span>
+            <input
+              ref={searchRef}
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onBlur={() => {
+                if (!search) setSearchOpen(false);
+              }}
+              placeholder={
+                view === "explore"
+                  ? "Buscar jogadores, histórias, clãs..."
+                  : "Buscar jogador"
+              }
+            />
+            {view === "explore" && (
+              <Compass
+                className={styles.exploreSearchMark}
+                aria-hidden="true"
+              />
+            )}
+          </label>
+        </div>
+      )}
 
       {view === "home" && actor && (
         <CommunityStories
@@ -561,7 +584,10 @@ export default function CommunityPanel({
                 key={category.title}
                 style={{ backgroundImage: `url("${category.image}")` }}
                 onClick={() => {
-                  if (index === 1) setFilter("players");
+                  if (index === 1) {
+                    setRankingMetric("wealth");
+                    setVisibleCount(999);
+                  }
                 }}
               >
                 <span className={styles.exploreCategoryShade} />
@@ -599,8 +625,8 @@ export default function CommunityPanel({
               <Trophy aria-hidden="true" />
             </span>
             <div>
-              <h2>Personagens em destaque</h2>
-              <p>Conheça personagens marcantes da comunidade.</p>
+              <h2>Ranking de aventureiros</h2>
+              <p>Compare jornadas sem expor valores privados.</p>
             </div>
             <button type="button" onClick={() => setVisibleCount(999)}>
               Ver todos <ChevronRight aria-hidden="true" />
@@ -610,92 +636,98 @@ export default function CommunityPanel({
           <div className={styles.exploreFilterPills}>
             <button
               type="button"
-              className={!rankingMode && filter === "all" ? styles.explorePillActive : ""}
-              onClick={() => {
-                setRankingMode(false);
-                setFilter("all");
-              }}
+              className={
+                rankingMetric === "wealth" ? styles.explorePillActive : ""
+              }
+              aria-pressed={rankingMetric === "wealth"}
+              onClick={() => setRankingMetric("wealth")}
             >
-              <Sparkles aria-hidden="true" />
-              Em destaque
+              <Coins aria-hidden="true" />
+              Riqueza
             </button>
             <button
               type="button"
-              className={!rankingMode && filter === "online" ? styles.explorePillActive : ""}
-              onClick={() => {
-                setRankingMode(false);
-                setFilter("online");
-              }}
+              className={
+                rankingMetric === "sessions" ? styles.explorePillActive : ""
+              }
+              aria-pressed={rankingMetric === "sessions"}
+              onClick={() => setRankingMetric("sessions")}
             >
-              <Clock3 aria-hidden="true" />
-              Mais recentes
+              <CalendarCheck2 aria-hidden="true" />
+              Sessões
             </button>
             <button
               type="button"
-              className={rankingMode ? styles.explorePillActive : ""}
-              onClick={() => setRankingMode(true)}
+              className={
+                rankingMetric === "achievements" ? styles.explorePillActive : ""
+              }
+              aria-pressed={rankingMetric === "achievements"}
+              onClick={() => setRankingMetric("achievements")}
             >
-              <Trophy aria-hidden="true" />
-              Mais populares
+              <Award aria-hidden="true" />
+              Conquistas
             </button>
             <button
               type="button"
-              className={!rankingMode && filter === "players" ? styles.explorePillActive : ""}
-              onClick={() => {
-                setRankingMode(false);
-                setFilter("players");
-              }}
+              className={
+                rankingMetric === "medals" ? styles.explorePillActive : ""
+              }
+              aria-pressed={rankingMetric === "medals"}
+              onClick={() => setRankingMetric("medals")}
             >
-              <Crown aria-hidden="true" />
-              Por clã
+              <Medal aria-hidden="true" />
+              Medalhas
             </button>
           </div>
 
-          <div className={`${styles.directoryGrid} ${styles.exploreDirectoryGrid}`}>
+          <div
+            className={`${styles.directoryGrid} ${styles.exploreDirectoryGrid}`}
+          >
             {directory
               .slice(0, visibleCount >= 999 ? directory.length : 4)
               .map((identity, index) => {
-              const rank = rankByIdentity.get(identity.id) || index + 1;
-              return (
-                <article className={`${styles.profileRow} ${styles.exploreProfileRow}`} key={identity.id}>
-                  <span className={styles.exploreRank}>
-                    {rank === 1 && <Crown aria-hidden="true" />}
-                    <strong>{rank}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.profileTrigger}
-                    onClick={() => revealProfile(identity.id)}
+                const rank = rankByIdentity.get(identity.id) || index + 1;
+                return (
+                  <article
+                    className={`${styles.profileRow} ${styles.exploreProfileRow}`}
+                    key={identity.id}
                   >
-                    <span className={styles.avatarWrap}>
-                      <IdentityAvatar
-                        identity={identity}
-                        cosmetics={cosmetics}
-                        equipment={equipment}
-                        urls={urls}
-                        size={58}
-                      />
-                      <OnlineDot online={isOnline(identity)} />
+                    <span className={styles.exploreRank}>
+                      <RankMedal rank={rank} />
                     </span>
-                    <span className={styles.profileMeta}>
-                      <strong>{identity.name}</strong>
-                      <small>{profileCaption(identity)}</small>
-                      <em>“{profileLine(identity)}”</em>
-                    </span>
-                  </button>
-                  <ChevronRight
-                    className={styles.rowChevron}
-                    aria-hidden="true"
-                  />
-                </article>
-              );
-            })}
+                    <button
+                      type="button"
+                      className={styles.profileTrigger}
+                      onClick={() => revealProfile(identity.id)}
+                    >
+                      <span className={styles.avatarWrap}>
+                        <IdentityAvatar
+                          identity={identity}
+                          cosmetics={cosmetics}
+                          equipment={equipment}
+                          urls={urls}
+                          size={58}
+                        />
+                        <OnlineDot online={isOnline(identity)} />
+                      </span>
+                      <span className={styles.profileMeta}>
+                        <strong>{identity.name}</strong>
+                        <small>{profileCaption(identity)}</small>
+                        <em>{rankingSummary(identity.id)}</em>
+                      </span>
+                    </button>
+                    <ChevronRight
+                      className={styles.rowChevron}
+                      aria-hidden="true"
+                    />
+                  </article>
+                );
+              })}
           </div>
 
           {!directory.length && (
             <p className={styles.empty}>Nenhum perfil encontrado.</p>
           )}
-
         </section>
       )}
 
@@ -718,7 +750,6 @@ export default function CommunityPanel({
           onClick={() => {
             setView("home");
             setSelected("");
-            setRankingMode(false);
             communityRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
         >
@@ -731,7 +762,6 @@ export default function CommunityPanel({
           onClick={() => {
             setView("explore");
             setSelected("");
-            setRankingMode(false);
             window.requestAnimationFrame(() =>
               directoryRef.current?.scrollIntoView({ behavior: "smooth" }),
             );
@@ -761,7 +791,6 @@ export default function CommunityPanel({
           onClick={() => {
             setView("messages");
             setSelected("");
-            setRankingMode(false);
             window.requestAnimationFrame(() =>
               directoryRef.current?.scrollIntoView({ behavior: "smooth" }),
             );
