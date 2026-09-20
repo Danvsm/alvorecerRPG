@@ -72,6 +72,7 @@ export default function CommunityLibrary({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const coverObjectUrls = useRef<Record<string, string>>({});
   const holdTimer = useRef<number | null>(null);
   const holdStart = useRef({ x: 0, y: 0 });
   const holdTriggered = useRef(false);
@@ -143,23 +144,29 @@ export default function CommunityLibrary({
     const paths = [
       ...new Set(next.map((article) => article.cover_path).filter(Boolean)),
     ];
-    if (paths.length) {
-      const signed = await browserDb()
-        .storage.from("community-articles")
-        .createSignedUrls(paths, 3600);
-      if (!signed.error) {
-        setCoverUrls(
-          Object.fromEntries(
-            (signed.data || []).flatMap((entry, index) =>
-              entry.signedUrl
-                ? [[entry.path || paths[index], entry.signedUrl]]
-                : [],
-            ),
-          ),
-        );
-      }
-    } else setCoverUrls({});
-    setError("");
+    const loadedCovers = await Promise.all(
+      paths.map(async (path) => {
+        const downloaded = await browserDb()
+          .storage.from("community-articles")
+          .download(path);
+        return downloaded.error || !downloaded.data
+          ? ([path, ""] as const)
+          : ([path, URL.createObjectURL(downloaded.data)] as const);
+      }),
+    );
+    const nextCoverUrls = Object.fromEntries(
+      loadedCovers.filter((entry) => entry[1]),
+    );
+    Object.values(coverObjectUrls.current).forEach((url) =>
+      URL.revokeObjectURL(url),
+    );
+    coverObjectUrls.current = nextCoverUrls;
+    setCoverUrls(nextCoverUrls);
+    setError(
+      paths.length > Object.keys(nextCoverUrls).length
+        ? "Uma ou mais capas não puderam ser carregadas. Tente abrir novamente."
+        : "",
+    );
     setLoading(false);
   }, [campaign, category, master]);
 
@@ -180,6 +187,10 @@ export default function CommunityLibrary({
       .subscribe();
     return () => {
       void browserDb().removeChannel(channel);
+      Object.values(coverObjectUrls.current).forEach((url) =>
+        URL.revokeObjectURL(url),
+      );
+      coverObjectUrls.current = {};
     };
   }, [campaign, category, load]);
 
@@ -253,7 +264,8 @@ export default function CommunityLibrary({
               <Image
                 src={coverUrls[selected.cover_path]}
                 alt={`Capa de ${selected.title}`}
-                fill
+                width={1600}
+                height={850}
                 sizes="(max-width: 760px) 100vw, 760px"
                 unoptimized
               />
@@ -348,7 +360,8 @@ export default function CommunityLibrary({
                     <Image
                       src={coverUrls[article.cover_path]}
                       alt=""
-                      fill
+                      width={1600}
+                      height={1000}
                       sizes="(max-width: 680px) 100vw, 360px"
                       unoptimized
                     />
