@@ -45,6 +45,7 @@ import AvatarGallery from "./AvatarGallery";
 import AvatarPickerDialog from "./AvatarPickerDialog";
 import CosmeticsPanel from "./CosmeticsPanel";
 import MedalManager from "./MedalManager";
+import WallpaperManager from "./WallpaperManager";
 import CommunityPanel from "./CommunityPanel";
 import IdentityAvatar from "./IdentityAvatar";
 import IdentityBadge from "./IdentityBadge";
@@ -3325,6 +3326,17 @@ export default function Game({ invite }: { invite?: string }) {
                 }
               />
 
+              </details>
+
+              <details className="panel cosmetics-section">
+                <summary>
+                  <span>
+                    <strong>Wallpapers do perfil</strong>
+                    <small>Cadastre os fundos que jogadores e Mestre podem usar no perfil.</small>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </summary>
+                <WallpaperManager campaign={campaign} />
               </details>
 
               <details className="panel cosmetics-section">
