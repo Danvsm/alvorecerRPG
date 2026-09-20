@@ -149,6 +149,24 @@ export default function CommunityStories({
     setLoading(false);
   }, [actor, campaign]);
 
+  const refreshStoryLikeCount = useCallback(
+    async (storyId: string) => {
+      const response = await browserDb().rpc("community_story_like_count", {
+        c: campaign,
+        target_story: storyId,
+        requested_actor: actor,
+      });
+      if (response.error) return;
+      const count = Math.max(0, Number(response.data || 0));
+      setStories((current) =>
+        current.map((story) =>
+          story.id === storyId ? { ...story, like_count: count } : story,
+        ),
+      );
+    },
+    [actor, campaign],
+  );
+
   useEffect(() => {
     void loadStories();
   }, [loadStories]);
@@ -171,7 +189,17 @@ export default function CommunityStories({
             String(event.actor_id || "") === actor
           )
             return;
-          void loadStories();
+
+          const kind = String(event.event_kind || "");
+          const entityId = String(event.entity_id || "");
+          if (kind === "like_story" && entityId) {
+            void refreshStoryLikeCount(entityId);
+            return;
+          }
+
+          if (kind === "create_story" || kind === "delete_story") {
+            void loadStories();
+          }
         },
       )
       .subscribe();
@@ -179,7 +207,7 @@ export default function CommunityStories({
     return () => {
       void browserDb().removeChannel(channel);
     };
-  }, [actor, campaign, loadStories]);
+  }, [actor, campaign, loadStories, refreshStoryLikeCount]);
 
   useEffect(() => {
     if (!stories.length) return;
