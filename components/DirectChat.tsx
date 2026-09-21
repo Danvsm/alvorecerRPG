@@ -500,6 +500,13 @@ export default function DirectChat({
     if (requestedPeer.nonce === handledRequestNonce.current) return;
     handledRequestNonce.current = requestedPeer.nonce;
 
+    if (requestedPeer.id === CAMPAIGN_GROUP_SELECTION) {
+      setSelected(CAMPAIGN_GROUP_SELECTION);
+      setOpen(true);
+      setRefresh((value) => value + 1);
+      return;
+    }
+
     let valid = true;
     action("conversation", { recipient_id: requestedPeer.id })
       .then((r) => {
