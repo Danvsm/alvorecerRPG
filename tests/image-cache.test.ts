@@ -153,10 +153,10 @@ test("image URLs keep their authorization token and change only with the asset v
 });
 
 test("the worker revision forces browsers to install the immutable-version cache update", () => {
-  assert.equal(IMAGE_CACHE_WORKER_REVISION, "7");
+  assert.equal(IMAGE_CACHE_WORKER_REVISION, "8");
   assert.equal(IMAGE_CACHE_NAME, "alvorecer-images-v2");
-  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=7");
-  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=7&debug=1");
+  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=8");
+  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=8&debug=1");
   assert.match(workerSource, /alvorecer-images-v2/);
   assert.match(workerSource, /alvorecer-images-meta-v2/);
 });
