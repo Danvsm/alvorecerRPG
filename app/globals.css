@@ -4704,6 +4704,68 @@ dialog.combat-sheet {
   place-items: center;
 }
 
+.chat-group-row {
+  background:
+    linear-gradient(90deg, #6d1c291c, transparent 48%);
+}
+
+.chat-group-avatar,
+.chat-group-header-avatar {
+  border: 1px solid #8e5d39;
+  border-radius: 50%;
+  color: #efd0a0;
+  background:
+    radial-gradient(circle at 35% 28%, #9b583b55, transparent 45%),
+    linear-gradient(145deg, #2a1715, #130d0e);
+  box-shadow:
+    inset 0 0 18px #b86d2c18,
+    0 5px 18px #0005;
+}
+
+.chat-group-avatar svg {
+  width: 32px;
+  height: 32px;
+}
+
+.chat-group-header-avatar {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  place-items: center;
+}
+
+.chat-group-header-avatar svg {
+  width: 25px;
+  height: 25px;
+}
+
+.chat-group-unread {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #a6263a;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.chat-group-sender {
+  display: block;
+  margin: 0 0 2px;
+  color: #e6be82;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.chat-composer.group-chat-composer {
+  grid-template-columns: minmax(0, 1fr) 44px;
+}
+
 .chat-contact-presence {
   position: absolute;
   right: 1px;
