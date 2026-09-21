@@ -51,6 +51,11 @@ type ArchivedCall = Row & {
   ended_by_name: string | null;
   failure_reason: string | null;
   duration_seconds: number;
+  recording_id: string | null;
+  recording_storage_path: string | null;
+  recording_mime_type: string | null;
+  recording_duration_ms: number | null;
+  recording_byte_size: number | null;
 };
 
 type ArchiveDeleteType = "call" | "chat_media" | "post";
@@ -93,6 +98,7 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
   const [posts, setPosts] = useState<ArchivedPost[]>([]);
   const [chatPhotos, setChatPhotos] = useState<ArchivedChatPhoto[]>([]);
   const [calls, setCalls] = useState<ArchivedCall[]>([]);
+  const [callRecordingUrls, setCallRecordingUrls] = useState<Record<string, string>>({});
   const [postUrls, setPostUrls] = useState<Record<string, string>>({});
   const [chatUrls, setChatUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -132,6 +138,35 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
     setPosts(loadedPosts);
     setChatPhotos(loadedChatPhotos);
     setCalls(loadedCalls);
+
+    const recordedCalls = loadedCalls.filter(
+      (call): call is ArchivedCall & { recording_storage_path: string } =>
+        Boolean(call.recording_storage_path),
+    );
+
+    if (recordedCalls.length) {
+      const signedRecordings = await browserDb()
+        .storage.from("call-recordings")
+        .createSignedUrls(
+          recordedCalls.map((call) => call.recording_storage_path),
+          3600,
+        );
+
+      if (signedRecordings.error) {
+        setError(readableErrorMessage(signedRecordings.error));
+      } else {
+        setCallRecordingUrls(
+          Object.fromEntries(
+            recordedCalls.map((call, index) => [
+              call.id,
+              signedRecordings.data?.[index]?.signedUrl || "",
+            ]),
+          ),
+        );
+      }
+    } else {
+      setCallRecordingUrls({});
+    }
 
     const mediaPosts = loadedPosts.filter(
       (post): post is ArchivedPost & { image_path: string } =>
@@ -231,6 +266,11 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
 
       if (type === "call") {
         setCalls((current) => current.filter((item) => item.id !== id));
+        setCallRecordingUrls((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
       } else if (type === "chat_media") {
         setChatPhotos((current) => current.filter((item) => item.id !== id));
         setChatUrls((current) => {
@@ -347,6 +387,24 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
                         </div>
                       )}
                     </dl>
+                    {call.recording_id && callRecordingUrls[call.id] && (
+                      <div className={styles.archiveCallRecording}>
+                        <strong>Gravação da conversa</strong>
+                        <audio
+                          controls
+                          preload="none"
+                          src={callRecordingUrls[call.id]}
+                        />
+                        {call.recording_duration_ms && (
+                          <small>
+                            Áudio arquivado ·{" "}
+                            {callDuration(
+                              Math.floor(call.recording_duration_ms / 1000),
+                            )}
+                          </small>
+                        )}
+                      </div>
+                    )}
                     <em>
                       <Clock aria-hidden="true" /> Salva no histórico de chamadas
                     </em>
