@@ -3905,6 +3905,18 @@ dialog.commentsSheet {
   place-items: center;
 }
 
+.inboxProfileAvatar {
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+.inboxProfileAvatar:hover {
+  filter: brightness(1.08);
+  transform: scale(1.025);
+}
+
 .inboxOnline,
 .inboxOffline {
   position: absolute;
