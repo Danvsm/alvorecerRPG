@@ -73,6 +73,7 @@ export default function DirectChat({
   docked = false,
   hideBubble = false,
   onUnreadChange,
+  openProfile,
 }: {
   campaign: string;
   identities: Row[];
@@ -86,6 +87,7 @@ export default function DirectChat({
   docked?: boolean;
   hideBubble?: boolean;
   onUnreadChange?: (count: number) => void;
+  openProfile?: (identityId: string) => void;
 }) {
   const [open, setOpen] = useState(false),
     [conversations, setConversations] = useState<Row[]>([]),
@@ -1023,6 +1025,16 @@ export default function DirectChat({
     setLimit(50);
   };
 
+  const openIdentityProfile = (identityId?: string) => {
+    if (!identityId || !openProfile) return;
+    setVoiceOpen(false);
+    setEmojiOpen(false);
+    setOpen(false);
+    setSelected("");
+    setMessages([]);
+    openProfile(identityId);
+  };
+
   const contactTime = (value?: string) => {
     if (!value) return "";
     const date = new Date(value);
@@ -1264,13 +1276,26 @@ export default function DirectChat({
                 )
               ) : (
                 (selectedPeer || (!selected && actorIdentity)) && (
-                  <IdentityAvatar
-                    identity={selectedPeer || actorIdentity}
-                    cosmetics={cosmetics}
-                    equipment={equipment}
-                    urls={urls}
-                    size={selected ? 58 : 46}
-                  />
+                  <button
+                    type="button"
+                    className="chat-profile-avatar-button"
+                    aria-label={`Abrir perfil de ${String(
+                      (selectedPeer || actorIdentity)?.name || "usuário",
+                    )}`}
+                    onClick={() =>
+                      openIdentityProfile(
+                        String((selectedPeer || actorIdentity)?.id || ""),
+                      )
+                    }
+                  >
+                    <IdentityAvatar
+                      identity={selectedPeer || actorIdentity}
+                      cosmetics={cosmetics}
+                      equipment={equipment}
+                      urls={urls}
+                      size={selected ? 58 : 46}
+                    />
+                  </button>
                 )
               )}
               <div>
@@ -1508,7 +1533,14 @@ export default function DirectChat({
                         void openContact(identity.id);
                       }}
                     >
-                      <span className="chat-contact-avatar">
+                      <span
+                        className="chat-contact-avatar chat-contact-avatar-profile"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openIdentityProfile(String(identity.id));
+                        }}
+                      >
                         <IdentityAvatar
                           identity={identity}
                           cosmetics={cosmetics}
@@ -1594,7 +1626,12 @@ export default function DirectChat({
                       }
                     >
                       {!mine && (
-                        <span className="chat-message-avatar">
+                        <button
+                          type="button"
+                          className="chat-message-avatar chat-message-avatar-profile"
+                          aria-label={`Abrir perfil de ${sender?.name || "usuário"}`}
+                          onClick={() => openIdentityProfile(String(m.sender_id))}
+                        >
                           <IdentityAvatar
                             identity={sender}
                             identityId={m.sender_id}
@@ -1604,7 +1641,7 @@ export default function DirectChat({
                             urls={urls}
                             size={42}
                           />
-                        </span>
+                        </button>
                       )}
                       <div
                         className={
