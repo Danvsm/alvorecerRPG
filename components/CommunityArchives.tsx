@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Archive, Clock, Images, LoaderCircle } from "lucide-react";
+import { Archive, Clock, Images, LoaderCircle, PhoneCall } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -36,6 +36,23 @@ type ArchivedChatPhoto = Row & {
   message_cleared_at?: string | null;
 };
 
+type ArchivedCall = Row & {
+  id: string;
+  conversation_id: string;
+  caller_id: string;
+  caller_name: string;
+  callee_id: string;
+  callee_name: string;
+  status: "ended" | "declined" | "cancelled" | "missed" | "failed";
+  created_at: string;
+  answered_at: string | null;
+  ended_at: string | null;
+  ended_by: string | null;
+  ended_by_name: string | null;
+  failure_reason: string | null;
+  duration_seconds: number;
+};
+
 const dateTime = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "2-digit",
@@ -53,9 +70,27 @@ const remainingTime = (expiresAt: string, now: number) => {
   return `${minutes}min`;
 };
 
+const callStatusLabel: Record<ArchivedCall["status"], string> = {
+  ended: "Encerrada",
+  declined: "Recusada",
+  cancelled: "Cancelada",
+  missed: "Não atendida",
+  failed: "Falhou",
+};
+
+const callDuration = (seconds: number) => {
+  const safe = Math.max(0, Number(seconds) || 0);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const rest = safe % 60;
+  if (hours > 0) return `${hours}h ${minutes}min ${rest}s`;
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+};
+
 export default function CommunityArchives({ campaign }: { campaign: string }) {
   const [posts, setPosts] = useState<ArchivedPost[]>([]);
   const [chatPhotos, setChatPhotos] = useState<ArchivedChatPhoto[]>([]);
+  const [calls, setCalls] = useState<ArchivedCall[]>([]);
   const [postUrls, setPostUrls] = useState<Record<string, string>>({});
   const [chatUrls, setChatUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -66,18 +101,23 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
     setLoading(true);
     setError("");
 
-    const [postResponse, chatResponse] = await Promise.all([
+    const [postResponse, chatResponse, callResponse] = await Promise.all([
       retryNetworkRead(() =>
         browserDb().rpc("community_archived_posts", { c: campaign }),
       ),
       retryNetworkRead(() =>
         browserDb().rpc("master_chat_media_archive", { c: campaign }),
       ),
+      retryNetworkRead(() =>
+        browserDb().rpc("master_direct_call_archive", { c: campaign }),
+      ),
     ]);
 
-    if (postResponse.error || chatResponse.error) {
+    if (postResponse.error || chatResponse.error || callResponse.error) {
       setError(
-        readableErrorMessage(postResponse.error || chatResponse.error),
+        readableErrorMessage(
+          postResponse.error || chatResponse.error || callResponse.error,
+        ),
       );
       setLoading(false);
       return;
@@ -85,8 +125,10 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
 
     const loadedPosts = (postResponse.data || []) as ArchivedPost[];
     const loadedChatPhotos = (chatResponse.data || []) as ArchivedChatPhoto[];
+    const loadedCalls = (callResponse.data || []) as ArchivedCall[];
     setPosts(loadedPosts);
     setChatPhotos(loadedChatPhotos);
+    setCalls(loadedCalls);
 
     const mediaPosts = loadedPosts.filter(
       (post): post is ArchivedPost & { image_path: string } =>
@@ -165,8 +207,9 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
           <small>ÁREA EXCLUSIVA DO MESTRE</small>
           <h1 id="archives-title">Arquivos</h1>
           <p>
-            Fotos enviadas no chat ficam preservadas por 72 horas. Publicações
-            excluídas da Comunidade continuam arquivadas por 24 horas.
+            Chamadas encerradas ficam registradas no histórico. Fotos enviadas
+            no chat ficam preservadas por 72 horas e publicações excluídas da
+            Comunidade continuam arquivadas por 24 horas.
           </p>
         </div>
       </div>
@@ -179,6 +222,84 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
 
       {!loading && (
         <>
+          <section className={styles.archiveSection} aria-labelledby="call-archive-title">
+            <div className={styles.archiveSectionHeading}>
+              <span>
+                <PhoneCall aria-hidden="true" />
+                <strong id="call-archive-title">Chamadas</strong>
+              </span>
+              <small>Histórico</small>
+            </div>
+
+            {!calls.length && !error && (
+              <div className={styles.emptyFeed}>
+                <PhoneCall aria-hidden="true" />
+                <strong>Nenhuma chamada arquivada.</strong>
+                <span>Chamadas encerradas, recusadas ou não atendidas aparecerão aqui.</span>
+              </div>
+            )}
+
+            <div className={styles.archiveGrid}>
+              {calls.map((call) => (
+                <article className={styles.archiveCard} key={call.id}>
+                  <div className={styles.archiveTextPreview}>
+                    <PhoneCall aria-hidden="true" />
+                    <span>{callStatusLabel[call.status]}</span>
+                  </div>
+
+                  <div className={styles.archiveDetails}>
+                    <strong>
+                      {call.caller_name} × {call.callee_name}
+                    </strong>
+                    <span>{callStatusLabel[call.status]}</span>
+                    <p>
+                      {call.status === "failed" && call.failure_reason
+                        ? call.failure_reason
+                        : call.answered_at
+                          ? "Ligação atendida."
+                          : call.status === "declined"
+                            ? "Ligação recusada antes de atender."
+                            : call.status === "cancelled"
+                              ? "Ligação cancelada antes de atender."
+                              : "Ligação não atendida."}
+                    </p>
+                    <dl>
+                      <div>
+                        <dt>Iniciada</dt>
+                        <dd>{dateTime.format(new Date(call.created_at))}</dd>
+                      </div>
+                      {call.answered_at && (
+                        <div>
+                          <dt>Atendida</dt>
+                          <dd>{dateTime.format(new Date(call.answered_at))}</dd>
+                        </div>
+                      )}
+                      {call.ended_at && (
+                        <div>
+                          <dt>Encerrada</dt>
+                          <dd>{dateTime.format(new Date(call.ended_at))}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>Duração</dt>
+                        <dd>{callDuration(call.duration_seconds)}</dd>
+                      </div>
+                      {call.ended_by_name && (
+                        <div>
+                          <dt>Encerrada por</dt>
+                          <dd>{call.ended_by_name}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <em>
+                      <Clock aria-hidden="true" /> Salva no histórico de chamadas
+                    </em>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
           <section className={styles.archiveSection} aria-labelledby="chat-archive-title">
             <div className={styles.archiveSectionHeading}>
               <span>
