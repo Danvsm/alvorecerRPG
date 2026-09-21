@@ -274,3 +274,21 @@ test("Bar do Pink keeps a direct-table fallback when the group summary is tempor
   assert.match(migration, /set name='Bar do Pink'/);
   assert.match(migration, /coalesce\(group_name,'Bar do Pink'\)/);
 });
+
+
+test("community inbox exposes Bar do Pink and opens the shared group chat", async () => {
+  const [inbox, chat] = await Promise.all([
+    readFile(new URL("../components/CommunityInbox.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(inbox, /campaign_group_summary/);
+  assert.match(inbox, /Bar do Pink/);
+  assert.match(inbox, /__bar-do-pink__/);
+  assert.match(inbox, /campaign_group_messages/);
+  assert.match(chat, /CAMPAIGN_GROUP_SELECTION/);
+  assert.match(
+    chat,
+    /requestedPeer\.id === CAMPAIGN_GROUP_SELECTION/,
+  );
+});
