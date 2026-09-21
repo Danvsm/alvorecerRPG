@@ -240,7 +240,8 @@ test("chat includes an automatic campaign-wide group for active players and mast
   assert.match(chat, /campaign_group_summary/);
   assert.match(chat, /campaign_group_messages/);
   assert.match(chat, /campaign_group_action/);
-  assert.match(chat, /Grupo Geral/);
+  assert.match(chat, /Bar do Pink/);
+  assert.match(chat, /campaign_group_chats/);
   assert.match(chat, /chat-group-row/);
   assert.match(chat, /campaign_group_messages/);
 
@@ -252,4 +253,24 @@ test("chat includes an automatic campaign-wide group for active players and mast
   assert.match(migration, /member_count/);
   assert.match(migration, /campaign_group_reads/);
   assert.match(migration, /alter publication supabase_realtime add table public\.campaign_group_messages/);
+});
+
+
+test("Bar do Pink keeps a direct-table fallback when the group summary is temporarily unavailable", async () => {
+  const [chat, migration] = await Promise.all([
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921194537_rename_group_bar_do_pink.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(chat, /from\("campaign_group_chats"\)/);
+  assert.match(chat, /maybeSingle\(\)/);
+  assert.match(chat, /Bar do Pink/);
+  assert.match(migration, /set name='Bar do Pink'/);
+  assert.match(migration, /coalesce\(group_name,'Bar do Pink'\)/);
 });
