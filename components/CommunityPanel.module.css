@@ -4137,6 +4137,38 @@ dialog.commentsSheet {
   background: #64605e;
 }
 
+.inboxGroupRow {
+  background:
+    linear-gradient(90deg, #6e1f2a17, transparent 46%);
+}
+
+.inboxGroupRow:hover,
+.inboxGroupRow:active {
+  background:
+    linear-gradient(90deg, #7d28351f, #ffffff03 52%, transparent);
+}
+
+.inboxGroupAvatar {
+  width: 70px;
+  height: 70px;
+  margin-inline: 3px 5px;
+  border: 1px solid #8b5e3c;
+  border-radius: 50%;
+  color: #edc993;
+  background:
+    radial-gradient(circle at 35% 25%, #9a54394f, transparent 44%),
+    linear-gradient(145deg, #291714, #120c0d);
+  box-shadow:
+    inset 0 0 18px #c0783120,
+    0 5px 16px #0005;
+}
+
+.inboxGroupAvatar svg {
+  width: 31px;
+  height: 31px;
+  stroke-width: 1.55;
+}
+
 .inboxRowText {
   display: grid;
   min-width: 0;
