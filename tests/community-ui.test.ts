@@ -343,3 +343,18 @@ test("chat avatars open the matching community profile", async () => {
   assert.match(chat, /chat-contact-avatar-profile/);
   assert.match(chat, /chat-message-avatar-profile/);
 });
+
+
+test("notification bell shows unread count in a red badge", async () => {
+  const [bell, css] = await Promise.all([
+    readFile(new URL("../components/NotificationBell.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(bell, /notification-count-badge/);
+  assert.match(bell, /unreadCount > 99 \? "99\+" : unreadCount/);
+  assert.match(bell, /Notificações, \$\{unreadCount\} não lidas/);
+  assert.match(css, /\.notification-count-badge/);
+  assert.match(css, /background: #e32640/);
+  assert.match(css, /position: absolute/);
+});
