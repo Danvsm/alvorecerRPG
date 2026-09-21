@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Eye, Flag, MessageCircle, RefreshCw, Search } from "lucide-react";
+import { ArrowLeft, Eye, Flag, MessageCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -53,6 +53,7 @@ export default function ConversationMonitor({
   const [query, setQuery] = useState("");
   const [loadingList, setLoadingList] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [deletingReport, setDeletingReport] = useState("");
   const [error, setError] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
 
@@ -155,6 +156,51 @@ export default function ConversationMonitor({
       setError(readableErrorMessage(reason));
     }
   }, [campaign]);
+
+  const deleteReport = async (report: Row) => {
+    const id = String(report.id || "");
+    if (!id || deletingReport) return;
+
+    const reporter = identityById.get(report.reporter_identity_id)?.name;
+    const reported = identityById.get(report.reported_identity_id)?.name;
+    const description =
+      reporter && reported
+        ? `a denúncia de ${reporter} contra ${reported}`
+        : "esta denúncia";
+
+    if (
+      !window.confirm(
+        `Excluir definitivamente ${description}? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+
+    setDeletingReport(id);
+    setError("");
+
+    try {
+      const result = await browserDb()
+        .from("conversation_reports")
+        .delete()
+        .eq("id", id)
+        .eq("campaign_id", campaign)
+        .select("id")
+        .maybeSingle();
+
+      if (result.error) throw result.error;
+      if (!result.data?.id) {
+        throw new Error("Denúncia não encontrada ou sem permissão para excluir.");
+      }
+
+      setReports((current) =>
+        current.filter((item) => String(item.id) !== id),
+      );
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setDeletingReport("");
+    }
+  };
 
   const loadMessages = useCallback(async (conversationId: string) => {
     if (!conversationId) {
@@ -267,6 +313,15 @@ export default function ConversationMonitor({
           schema: "public",
           table: "conversation_reports",
           filter: `campaign_id=eq.${campaign}`,
+        },
+        () => void loadReports(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "conversation_reports",
         },
         () => void loadReports(),
       )
@@ -394,14 +449,27 @@ export default function ConversationMonitor({
                   <strong className="monitor-report-reason-label">Motivo:</strong>{" "}
                   {String(report.reason || "")}
                 </p>
-                <time dateTime={String(report.created_at)}>
-                  {new Date(String(report.created_at)).toLocaleString("pt-BR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </time>
+                <div className="monitor-report-footer">
+                  <time dateTime={String(report.created_at)}>
+                    {new Date(String(report.created_at)).toLocaleString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </time>
+                  <button
+                    type="button"
+                    className="monitor-report-delete"
+                    disabled={Boolean(deletingReport)}
+                    onClick={() => void deleteReport(report)}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    {deletingReport === String(report.id)
+                      ? "Excluindo..."
+                      : "Excluir"}
+                  </button>
+                </div>
               </article>
             ))}
           </div>
