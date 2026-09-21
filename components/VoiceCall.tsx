@@ -766,7 +766,7 @@ const VoiceCall = forwardRef<
     }
   };
 
-  if (!call) return <audio ref={remoteAudioRef} autoPlay playsInline />;
+  if (!call) return <audio ref={remoteAudioRef} autoPlay />;
 
   return (
     <div className={styles.backdrop} role="presentation">
@@ -776,7 +776,7 @@ const VoiceCall = forwardRef<
         aria-modal="true"
         aria-label="Chamada de voz"
       >
-        <audio ref={remoteAudioRef} autoPlay playsInline />
+        <audio ref={remoteAudioRef} autoPlay />
 
         <div className={styles.topline}>
           <Phone size={16} aria-hidden="true" />
