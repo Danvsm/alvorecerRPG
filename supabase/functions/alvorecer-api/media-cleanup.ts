@@ -155,6 +155,56 @@ export async function cleanup(req: Request) {
     if (!saved.error) removedQueuedPosts++;
   }
 
+  const expiredCallRecordings = await db
+    .from("direct_call_recordings")
+    .select("id,storage_path")
+    .is("finalized_at", null)
+    .lte("upload_expires_at", now)
+    .order("upload_expires_at")
+    .limit(100);
+  if (expiredCallRecordings.error)
+    throw new Error("Falha ao listar gravações de chamada abandonadas");
+
+  let removedExpiredCallRecordings = 0;
+  for (const recording of expiredCallRecordings.data || []) {
+    const deletion = await db.storage
+      .from("call-recordings")
+      .remove([recording.storage_path]);
+    if (deletion.error) continue;
+    const saved = await db
+      .from("direct_call_recordings")
+      .delete()
+      .eq("id", recording.id)
+      .is("finalized_at", null);
+    if (saved.error) continue;
+    await db
+      .from("direct_call_recording_cleanup")
+      .delete()
+      .eq("storage_path", recording.storage_path);
+    removedExpiredCallRecordings++;
+  }
+
+  const queuedCallRecordings = await db
+    .from("direct_call_recording_cleanup")
+    .select("storage_path")
+    .order("queued_at")
+    .limit(100);
+  if (queuedCallRecordings.error)
+    throw new Error("Falha ao listar gravações de chamada pendentes");
+
+  let removedQueuedCallRecordings = 0;
+  for (const queued of queuedCallRecordings.data || []) {
+    const deletion = await db.storage
+      .from("call-recordings")
+      .remove([queued.storage_path]);
+    if (deletion.error) continue;
+    const saved = await db
+      .from("direct_call_recording_cleanup")
+      .delete()
+      .eq("storage_path", queued.storage_path);
+    if (!saved.error) removedQueuedCallRecordings++;
+  }
+
   const pendingChat =
     (expiredChat.data || []).length -
     removedChat +
@@ -170,6 +220,11 @@ export async function cleanup(req: Request) {
     removedPosts +
     (queuedPosts.data || []).length -
     removedQueuedPosts;
+  const pendingCallRecordings =
+    (expiredCallRecordings.data || []).length -
+    removedExpiredCallRecordings +
+    (queuedCallRecordings.data || []).length -
+    removedQueuedCallRecordings;
   return Response.json({
     removed:
       removedChat +
@@ -177,8 +232,14 @@ export async function cleanup(req: Request) {
       removedStories +
       removedQueuedStories +
       removedPosts +
-      removedQueuedPosts,
-    pending: pendingChat + pendingStories + pendingPosts,
+      removedQueuedPosts +
+      removedExpiredCallRecordings +
+      removedQueuedCallRecordings,
+    pending:
+      pendingChat +
+      pendingStories +
+      pendingPosts +
+      pendingCallRecordings,
     chat: {
       expired: removedChat,
       abandoned: removedAbandonedChat,
@@ -193,6 +254,11 @@ export async function cleanup(req: Request) {
       expired: removedPosts,
       queued: removedQueuedPosts,
       pending: pendingPosts,
+    },
+    callRecordings: {
+      expired: removedExpiredCallRecordings,
+      queued: removedQueuedCallRecordings,
+      pending: pendingCallRecordings,
     },
   });
 }
