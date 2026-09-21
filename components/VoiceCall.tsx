@@ -443,7 +443,9 @@ const VoiceCall = forwardRef<
         void notifyIncomingCall(next);
       } catch (reason) {
         stopLocalStream();
-        setError(readableErrorMessage(reason));
+        const message = readableErrorMessage(reason);
+        setError(message);
+        throw new Error(message);
       } finally {
         setBusy(false);
       }
