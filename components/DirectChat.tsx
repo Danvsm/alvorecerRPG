@@ -25,7 +25,7 @@ import ChatEmojiPicker from "./ChatEmojiPicker";
 import IdentityAvatar from "./IdentityAvatar";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceCall, { type VoiceCallHandle } from "./VoiceCall";
-import { optimizedWebp } from "@/lib/media";
+import { optimizedWebp, uploadGroupAvatarImage } from "@/lib/media";
 import type { ChatAudioPayload } from "@/lib/chat-audio";
 
 function mediaType(message: Row) {
@@ -90,6 +90,8 @@ export default function DirectChat({
   const [open, setOpen] = useState(false),
     [conversations, setConversations] = useState<Row[]>([]),
     [group, setGroup] = useState<Row | null>(null),
+    [groupAvatarUrl, setGroupAvatarUrl] = useState(""),
+    [groupAvatarBusy, setGroupAvatarBusy] = useState(false),
     [messages, setMessages] = useState<Row[]>([]),
     [peerReadAt, setPeerReadAt] = useState(""),
     [unread, setUnread] = useState(0),
@@ -139,6 +141,7 @@ export default function DirectChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const voiceCallRef = useRef<VoiceCallHandle>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
@@ -496,6 +499,97 @@ export default function DirectChat({
     }
   }, [hideBubble]);
   useEffect(() => {
+    const path = String(group?.avatar_storage_path || "");
+    if (!path) {
+      setGroupAvatarUrl("");
+      return;
+    }
+
+    let valid = true;
+    browserDb()
+      .storage.from("group-avatars")
+      .createSignedUrl(path, 3600)
+      .then((result) => {
+        if (!valid) return;
+        if (result.error) {
+          setGroupAvatarUrl("");
+          return;
+        }
+        setGroupAvatarUrl(result.data.signedUrl);
+      });
+
+    return () => {
+      valid = false;
+    };
+  }, [group?.avatar_storage_path, group?.avatar_updated_at]);
+
+  const changeGroupAvatar = useCallback(
+    async (file: File) => {
+      if (!master || groupAvatarBusy) return;
+
+      setGroupAvatarBusy(true);
+      setError("");
+      let uploadedPath = "";
+      let committed = false;
+
+      try {
+        uploadedPath = await uploadGroupAvatarImage(file, campaign);
+        const saved = await browserDb().rpc("campaign_group_avatar_set", {
+          c: campaign,
+          actor_id: actor,
+          storage_path: uploadedPath,
+        });
+        if (saved.error) throw saved.error;
+        committed = true;
+
+        const signed = await browserDb()
+          .storage.from("group-avatars")
+          .createSignedUrl(uploadedPath, 3600);
+        if (signed.error) throw signed.error;
+
+        setGroupAvatarUrl(signed.data.signedUrl);
+        setGroup((current) => ({
+          ...(current || {}),
+          avatar_storage_path: uploadedPath,
+          avatar_updated_at: new Date().toISOString(),
+        }));
+
+        const previousPath = String(saved.data?.previous_path || "");
+        if (previousPath && previousPath !== uploadedPath) {
+          await browserDb().storage.from("group-avatars").remove([previousPath]);
+        }
+
+        setRefresh((value) => value + 1);
+        window.dispatchEvent(
+          new CustomEvent("alvorecer:chat-updated", {
+            detail: { campaign },
+          }),
+        );
+      } catch (reason) {
+        if (uploadedPath && !committed) {
+          await browserDb().storage.from("group-avatars").remove([uploadedPath]);
+        }
+        setError(readableErrorMessage(reason));
+      } finally {
+        setGroupAvatarBusy(false);
+      }
+    },
+    [actor, campaign, groupAvatarBusy, master],
+  );
+
+  useEffect(() => {
+    const refreshChat = (event: Event) => {
+      const detail = (event as CustomEvent<{ campaign?: string }>).detail;
+      if (!detail?.campaign || detail.campaign === campaign) {
+        setRefresh((value) => value + 1);
+      }
+    };
+    window.addEventListener("alvorecer:chat-updated", refreshChat);
+    return () =>
+      window.removeEventListener("alvorecer:chat-updated", refreshChat);
+  }, [campaign]);
+
+  useEffect(() => {
     if (!requestedPeer?.id || !actor) return;
     if (requestedPeer.nonce === handledRequestNonce.current) return;
     handledRequestNonce.current = requestedPeer.nonce;
@@ -560,7 +654,7 @@ export default function DirectChat({
         const fallbackGroup = await retryNetworkRead(() =>
           browserDb()
             .from("campaign_group_chats")
-            .select("id,name")
+            .select("id,name,avatar_storage_path,avatar_updated_at")
             .eq("campaign_id", campaign)
             .maybeSingle(),
         );
@@ -1144,9 +1238,30 @@ export default function DirectChat({
             </button>
             <div className="chat-thread-peer">
               {selectedGroup ? (
-                <span className="chat-group-header-avatar" aria-hidden="true">
-                  <Users />
-                </span>
+                master ? (
+                  <button
+                    type="button"
+                    className="chat-group-header-avatar chat-group-avatar-editable"
+                    disabled={groupAvatarBusy}
+                    aria-label="Trocar foto do Bar do Pink"
+                    title="Trocar foto do Bar do Pink"
+                    onClick={() => groupAvatarInputRef.current?.click()}
+                  >
+                    {groupAvatarUrl ? (
+                      <img src={groupAvatarUrl} alt="" />
+                    ) : (
+                      <Users aria-hidden="true" />
+                    )}
+                  </button>
+                ) : (
+                  <span className="chat-group-header-avatar" aria-hidden="true">
+                    {groupAvatarUrl ? (
+                      <img src={groupAvatarUrl} alt="" />
+                    ) : (
+                      <Users />
+                    )}
+                  </span>
+                )
               ) : (
                 (selectedPeer || (!selected && actorIdentity)) && (
                   <IdentityAvatar
@@ -1246,7 +1361,11 @@ export default function DirectChat({
                     className="chat-contact-avatar chat-group-avatar"
                     aria-hidden="true"
                   >
-                    <Users />
+                    {groupAvatarUrl ? (
+                      <img src={groupAvatarUrl} alt="" />
+                    ) : (
+                      <Users />
+                    )}
                   </span>
 
                   <span className="chat-contact-copy">
@@ -1716,6 +1835,20 @@ export default function DirectChat({
                 </>
               )}
             </form>
+          )}
+          {master && selectedGroup && (
+            <input
+              ref={groupAvatarInputRef}
+              type="file"
+              hidden
+              accept="image/webp,image/png,image/jpeg"
+              disabled={groupAvatarBusy}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void changeGroupAvatar(file);
+              }}
+            />
           )}
           {messageMenu && !selectedGroup && (
             <>
