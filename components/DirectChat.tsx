@@ -1448,21 +1448,25 @@ export default function DirectChat({
                       <div
                         className={
                           mine
-                            ? "chat-message mine chat-message-actionable"
-                            : "chat-message chat-message-actionable"
+                            ? `chat-message mine${selectedGroup ? "" : " chat-message-actionable"}`
+                            : `chat-message${selectedGroup ? "" : " chat-message-actionable"}`
                         }
-                        role="button"
-                        tabIndex={0}
+                        role={selectedGroup ? undefined : "button"}
+                        tabIndex={selectedGroup ? undefined : 0}
                         aria-label={
-                          mine
-                            ? "Abrir opções da sua mensagem"
-                            : "Abrir opções da mensagem"
+                          selectedGroup
+                            ? undefined
+                            : mine
+                              ? "Abrir opções da sua mensagem"
+                              : "Abrir opções da mensagem"
                         }
                         onClick={(event) => {
+                          if (selectedGroup) return;
                           event.stopPropagation();
                           openMessageMenu(m, event.clientX, event.clientY);
                         }}
                         onKeyDown={(event) => {
+                          if (selectedGroup) return;
                           if (event.key !== "Enter" && event.key !== " ")
                             return;
                           event.preventDefault();
@@ -1475,6 +1479,11 @@ export default function DirectChat({
                           );
                         }}
                       >
+                        {selectedGroup && !mine && (
+                          <strong className="chat-group-sender">
+                            {sender?.name || "Jogador"}
+                          </strong>
+                        )}
                         {m.media_id ? (
                           mediaType(m) === "audio" ? (
                             <ChatAudio id={m.media_id} />
@@ -1494,7 +1503,7 @@ export default function DirectChat({
                               },
                             )}
                           </small>
-                          {mine && (
+                          {mine && !selectedGroup && (
                             <i
                               className={peerHasRead ? "read" : "sent"}
                               role="img"
@@ -1522,11 +1531,21 @@ export default function DirectChat({
                 setBusy(true);
                 setError("");
                 try {
-                  await action("message", {
-                    conversation_id: selected,
-                    body: body.trim(),
-                  });
-                  void pushReceivedMessage(selected);
+                  if (selectedGroup) {
+                    const sent = await browserDb().rpc("campaign_group_action", {
+                      c: campaign,
+                      actor_id: actor,
+                      op: "message",
+                      message_body: body.trim(),
+                    });
+                    if (sent.error) throw sent.error;
+                  } else {
+                    await action("message", {
+                      conversation_id: selected,
+                      body: body.trim(),
+                    });
+                    void pushReceivedMessage(selected);
+                  }
                   setBody("");
                   setEmojiOpen(false);
                   setRefresh((v) => v + 1);
@@ -1553,10 +1572,11 @@ export default function DirectChat({
                 />
               ) : (
                 <>
-                  <label
-                    className="chat-image-button"
-                    aria-label="Enviar imagem"
-                  >
+                  {!selectedGroup && (
+                    <label
+                      className="chat-image-button"
+                      aria-label="Enviar imagem"
+                    >
                     <Plus aria-hidden="true" />
                     <input
                       type="file"
@@ -1603,7 +1623,8 @@ export default function DirectChat({
                         }
                       }}
                     />
-                  </label>
+                    </label>
+                  )}
                   <div className="chat-text-field">
                     <textarea
                       ref={messageInputRef}
@@ -1626,18 +1647,20 @@ export default function DirectChat({
                       >
                         <Smile aria-hidden="true" />
                       </button>
-                      <button
-                        type="button"
-                        className="chat-inline-voice-button"
-                        disabled={busy}
-                        aria-label="Gravar mensagem de voz"
-                        onClick={() => {
-                          setEmojiOpen(false);
-                          setVoiceOpen(true);
-                        }}
-                      >
-                        <Mic aria-hidden="true" />
-                      </button>
+                      {!selectedGroup && (
+                        <button
+                          type="button"
+                          className="chat-inline-voice-button"
+                          disabled={busy}
+                          aria-label="Gravar mensagem de voz"
+                          onClick={() => {
+                            setEmojiOpen(false);
+                            setVoiceOpen(true);
+                          }}
+                        >
+                          <Mic aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <button
@@ -1652,7 +1675,7 @@ export default function DirectChat({
               )}
             </form>
           )}
-          {messageMenu && (
+          {messageMenu && !selectedGroup && (
             <>
               <button
                 type="button"
