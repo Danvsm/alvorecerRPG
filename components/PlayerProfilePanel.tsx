@@ -325,15 +325,21 @@ export default function PlayerProfilePanel({
                 onClick={() => owned && setSelectedFrameId(frame.id)}
               >
                 <span className={styles.frameThumb}>
-                  <AvatarFrame
-                    avatarUrl={urls[identity.avatar_id]}
-                    avatarAlt=""
-                    frame={frame}
-                    frameUrl={urls[frame.id]}
-                    size={76}
-                  />
+                  {frame.secret && !owned ? (
+                    <Lock aria-hidden="true" />
+                  ) : (
+                    <AvatarFrame
+                      avatarUrl={urls[identity.avatar_id]}
+                      avatarAlt=""
+                      frame={frame}
+                      frameUrl={urls[frame.id]}
+                      size={76}
+                    />
+                  )}
                 </span>
-                <strong>{String(frame.name || "Moldura")}</strong>
+                <strong>
+                  {frame.secret && !owned ? "???" : String(frame.name || "Moldura")}
+                </strong>
                 <small className={owned ? styles.available : styles.locked}>
                   {equipped
                     ? "Equipada"
