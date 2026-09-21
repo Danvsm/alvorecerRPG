@@ -830,6 +830,19 @@
   object-fit: contain;
 }
 
+.archiveTextPreview > svg {
+  width: 68px;
+  height: 68px;
+  padding: 15px;
+  border: 1px solid #8e663b;
+  border-radius: 50%;
+  color: #edc47d;
+  background: #1a100d;
+  box-shadow:
+    inset 0 0 18px #b0702830,
+    0 8px 24px #0007;
+}
+
 .archiveTextPreview span {
   font-size: 0.7rem;
   letter-spacing: 0.14em;
