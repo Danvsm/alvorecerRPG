@@ -53,6 +53,7 @@ export default function CommunityInbox({
   urls,
   onlineUserIds,
   openConversation,
+  openProfile,
 }: {
   campaign: string;
   actor: string;
@@ -63,6 +64,7 @@ export default function CommunityInbox({
   urls: Record<string, string>;
   onlineUserIds: Set<string>;
   openConversation: (identityId: string) => void;
+  openProfile?: (identityId: string) => void;
 }) {
   const [conversations, setConversations] = useState<Row[]>([]);
   const [group, setGroup] = useState<Row | null>(null);
@@ -446,7 +448,14 @@ export default function CommunityInbox({
               key={identity.id}
               onClick={() => openConversation(identity.id)}
             >
-              <span className={styles.inboxAvatar}>
+              <span
+                className={`${styles.inboxAvatar} ${styles.inboxProfileAvatar}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  openProfile?.(String(identity.id));
+                }}
+              >
                 <IdentityAvatar
                   identity={identity}
                   cosmetics={cosmetics}
