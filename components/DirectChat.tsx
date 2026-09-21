@@ -1027,7 +1027,7 @@ export default function DirectChat({
                     void voiceCallRef.current?.start(
                       String(selectedConversation.id),
                     );
-                  }
+                  }}
                 >
                   <Phone />
                 </button>
