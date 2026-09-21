@@ -55,6 +55,23 @@ type CallSignal = {
   payload: Record<string, unknown>;
 };
 
+type MicrophonePermission = "unknown" | "requesting" | "granted" | "denied";
+
+function microphoneErrorMessage(reason: unknown) {
+  const error = reason as DOMException | Error | undefined;
+  const name = String((error as DOMException | undefined)?.name || "");
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return "Permita o acesso ao microfone nas configurações do navegador para fazer chamadas.";
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "Nenhum microfone foi encontrado neste aparelho.";
+  }
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "O microfone está indisponível ou sendo usado por outro aplicativo.";
+  }
+  return readableErrorMessage(reason);
+}
+
 export type VoiceCallHandle = {
   start: (conversationId: string) => Promise<void>;
 };
@@ -115,6 +132,8 @@ const VoiceCall = forwardRef<
   const [speakerMuted, setSpeakerMuted] = useState(false);
   const [needsAudioTap, setNeedsAudioTap] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [microphonePermission, setMicrophonePermission] =
+    useState<MicrophonePermission>("unknown");
 
   const callRef = useRef<DirectCall | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -130,6 +149,7 @@ const VoiceCall = forwardRef<
   const disconnectTimerRef = useRef<number | null>(null);
   const ringTimerRef = useRef<number | null>(null);
   const speakerMutedRef = useRef(false);
+  const relayCandidateSeenRef = useRef(false);
   const tabIdRef = useRef("");
 
   const updateCall = useCallback((next: DirectCall | null) => {
@@ -201,6 +221,7 @@ const VoiceCall = forwardRef<
       processedSignalsRef.current.clear();
       offerSentRef.current = false;
       endingRef.current = false;
+      relayCandidateSeenRef.current = false;
       setElapsed(0);
       setMuted(false);
       setSpeakerMuted(false);
@@ -218,21 +239,31 @@ const VoiceCall = forwardRef<
   const prepareLocalMedia = useCallback(async () => {
     const current = localStreamRef.current;
     if (current?.getAudioTracks().some((track) => track.readyState === "live")) {
+      setMicrophonePermission("granted");
       return current;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
+      setMicrophonePermission("denied");
       throw new Error("Este navegador não oferece chamadas de voz.");
     }
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-      video: false,
-    });
-    localStreamRef.current = stream;
-    return stream;
+
+    setMicrophonePermission("requesting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
+      localStreamRef.current = stream;
+      setMicrophonePermission("granted");
+      return stream;
+    } catch (reason) {
+      setMicrophonePermission("denied");
+      throw new Error(microphoneErrorMessage(reason));
+    }
   }, []);
 
   const callAction = useCallback(
@@ -339,6 +370,9 @@ const VoiceCall = forwardRef<
     peer.onicecandidate = (event) => {
       const current = callRef.current;
       if (!event.candidate || !current || current.status !== "active") return;
+      if (event.candidate.type === "relay") {
+        relayCandidateSeenRef.current = true;
+      }
       void sendSignal(
         current,
         "ice",
@@ -347,6 +381,11 @@ const VoiceCall = forwardRef<
         setError(readableErrorMessage(reason));
       });
     };
+
+    const connectionFailureReason = () =>
+      relayCandidateSeenRef.current
+        ? "Falha na conexão WebRTC"
+        : "A rede bloqueou a conexão direta. Servidor TURN necessário.";
 
     peer.onconnectionstatechange = () => {
       if (peer.connectionState === "connected") {
@@ -358,7 +397,7 @@ const VoiceCall = forwardRef<
         return;
       }
       if (peer.connectionState === "failed") {
-        void failCall("Falha na conexão WebRTC");
+        void failCall(connectionFailureReason());
         return;
       }
       if (peer.connectionState === "disconnected") {
@@ -370,7 +409,7 @@ const VoiceCall = forwardRef<
             peer.connectionState === "disconnected" ||
             peer.connectionState === "failed"
           ) {
-            void failCall("Conexão interrompida");
+            void failCall(connectionFailureReason());
           }
         }, 8000);
       }
@@ -923,6 +962,13 @@ const VoiceCall = forwardRef<
           />
           <h2>{peerIdentity?.name || "Contato"}</h2>
           <p>{statusText}</p>
+          {call.status === "ringing" &&
+            incoming &&
+            microphonePermission !== "granted" && (
+              <small>
+                Ao atender, o navegador solicitará acesso ao microfone.
+              </small>
+            )}
         </div>
 
         {error && (
@@ -981,7 +1027,13 @@ const VoiceCall = forwardRef<
                 aria-label="Atender chamada"
               >
                 <Phone aria-hidden="true" />
-                <span>{busy ? "Abrindo..." : "Atender"}</span>
+                <span>
+                  {busy
+                    ? microphonePermission === "requesting"
+                      ? "Permitir microfone..."
+                      : "Abrindo..."
+                    : "Atender"}
+                </span>
               </button>
             )}
           </div>
