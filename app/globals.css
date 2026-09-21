@@ -2704,6 +2704,13 @@ dialog::backdrop {
   place-items: center;
 }
 
+.chat-send-button {
+  color: #fff5f6;
+  border-color: #d54258;
+  background: linear-gradient(145deg, #d02a43, #9e1b32);
+  box-shadow: 0 5px 18px #9e1b3245;
+}
+
 .chat-image-button {
   cursor: pointer;
 }
@@ -2732,6 +2739,7 @@ dialog::backdrop {
 }
 
 .chat-text-field {
+  position: relative;
   min-width: 0;
 }
 
@@ -2740,7 +2748,7 @@ dialog::backdrop {
   min-height: 44px;
   max-height: 120px;
   resize: none;
-  padding: 11px 14px;
+  padding: 11px 52px 11px 14px;
   border: 1px solid #3a312c;
   border-radius: 22px;
   color: #f8f4ef;
@@ -2748,6 +2756,32 @@ dialog::backdrop {
   font: inherit;
   line-height: 1.35;
   outline: 0;
+}
+
+.chat-inline-voice-button {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #e7ded8;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+  place-items: center;
+}
+
+.chat-inline-voice-button svg {
+  width: 21px;
+  height: 21px;
+}
+
+.chat-inline-voice-button:disabled {
+  opacity: 0.45;
 }
 
 .chat-text-field textarea:focus {
@@ -2760,9 +2794,11 @@ dialog::backdrop {
 }
 
 .chat-send-button:disabled {
-  color: #6e6762;
-  border-color: #302a27;
-  opacity: 0.7;
+  color: #8b7b7e;
+  border-color: #3b292d;
+  background: #1a1315;
+  box-shadow: none;
+  opacity: 0.82;
 }
 
 .chat-image {

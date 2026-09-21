@@ -1226,9 +1226,9 @@ export default function DirectChat({
                       }}
                     />
                   </label>
-                  <label className="chat-text-field">
-                    <span className="visually-hidden">Mensagem</span>
+                  <div className="chat-text-field">
                     <textarea
+                      aria-label="Mensagem"
                       required
                       maxLength={4000}
                       rows={1}
@@ -1236,23 +1236,23 @@ export default function DirectChat({
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
                     />
-                  </label>
-                  <button
-                    type={body.trim() ? "submit" : "button"}
-                    className={
-                      body.trim() ? "chat-send-button" : "chat-voice-button"
-                    }
-                    disabled={busy}
-                    aria-label={
-                      body.trim() ? "Enviar mensagem" : "Gravar mensagem de voz"
-                    }
-                    onClick={body.trim() ? undefined : () => setVoiceOpen(true)}
-                  >
-                    {body.trim() ? (
-                      <Send aria-hidden="true" />
-                    ) : (
+                    <button
+                      type="button"
+                      className="chat-inline-voice-button"
+                      disabled={busy}
+                      aria-label="Gravar mensagem de voz"
+                      onClick={() => setVoiceOpen(true)}
+                    >
                       <Mic aria-hidden="true" />
-                    )}
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    className="chat-send-button"
+                    disabled={busy || !body.trim()}
+                    aria-label="Enviar mensagem"
+                  >
+                    <Send aria-hidden="true" />
                   </button>
                 </>
               )}
