@@ -156,12 +156,23 @@ export default function NotificationBell({
   return (
     <div className="notification-container">
       <button
-        aria-label="Notificações"
+        aria-label={
+          unreadCount > 0
+            ? `Notificações, ${unreadCount} não lidas`
+            : "Notificações"
+        }
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
         <Bell size={19} />
-        {unreadCount || ""}
+        {unreadCount > 0 && (
+          <span
+            className="notification-count-badge"
+            aria-hidden="true"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </button>
 
       {open &&
