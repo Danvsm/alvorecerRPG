@@ -566,6 +566,7 @@ export default function CommunityPanel({
           urls={urls}
           composerOpen={view === "create"}
           closeComposer={() => setView("home")}
+          openProfile={revealProfile}
           changeActor={changeActor}
           createWorldCharacter={createWorldCharacter}
         />
