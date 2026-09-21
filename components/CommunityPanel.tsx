@@ -607,6 +607,7 @@ export default function CommunityPanel({
         <CommunityInbox
           campaign={campaign}
           actor={actor}
+          master={master}
           identities={identities}
           cosmetics={cosmetics}
           equipment={equipment}
