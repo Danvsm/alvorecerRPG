@@ -5,10 +5,13 @@ import {
   BellOff,
   ChevronLeft,
   Flag,
-  ImagePlus,
   MessageCircle,
   Mic,
+  MoreVertical,
+  Phone,
+  Plus,
   Send,
+  Smile,
   Trash2,
   X,
 } from "lucide-react";
@@ -26,6 +29,28 @@ function mediaType(message: Row) {
   const relation = message.chat_media;
   const media = Array.isArray(relation) ? relation[0] : relation;
   return media?.media_type === "audio" ? "audio" : "image";
+}
+
+function messageDayKey(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function messageDayLabel(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (messageDayKey(value) === messageDayKey(today.toISOString())) return "Hoje";
+  if (messageDayKey(value) === messageDayKey(yesterday.toISOString())) return "Ontem";
+
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  });
 }
 
 export default function DirectChat({
@@ -722,6 +747,9 @@ export default function DirectChat({
       )
       .join(" e ") ||
     "Conversa";
+  const selectedPeerOnline = Boolean(
+    selectedPeer?.user_id && onlineUserIds.has(selectedPeer.user_id),
+  );
 
   const canSend =
     selectedConversation &&
@@ -882,7 +910,7 @@ export default function DirectChat({
                   cosmetics={cosmetics}
                   equipment={equipment}
                   urls={urls}
-                  size={46}
+                  size={selected ? 58 : 46}
                 />
               )}
               <div>
@@ -892,20 +920,53 @@ export default function DirectChat({
                     : actorIdentity?.name || "Mensagens"}
                 </strong>
                 {selected ? (
-                  <small>Conversa direta</small>
+                  <small className={selectedPeerOnline ? "online" : ""}>
+                    {selectedPeerOnline ? "Online" : "Offline"}
+                  </small>
                 ) : (
                   <small>Mensagens</small>
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              className="chat-thread-close"
-              onClick={closeChat}
-              aria-label="Fechar mensagens"
-            >
-              <X />
-            </button>
+            {selected ? (
+              <div className="chat-thread-actions">
+                <button
+                  type="button"
+                  className="chat-thread-call"
+                  aria-label="Iniciar chamada"
+                  onClick={() => showFeedback("Chamadas estarão disponíveis em breve.")}
+                >
+                  <Phone />
+                </button>
+                <button
+                  type="button"
+                  className="chat-thread-more"
+                  aria-label="Mais opções da conversa"
+                  onClick={(event) => {
+                    if (!selectedConversation || !selectedPeer) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    openContactMenu(
+                      String(selectedConversation.id),
+                      String(selectedPeer.id),
+                      String(selectedPeer.name),
+                      rect.right - 190,
+                      rect.bottom + 8,
+                    );
+                  }}
+                >
+                  <MoreVertical />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="chat-thread-close"
+                onClick={closeChat}
+                aria-label="Fechar mensagens"
+              >
+                <X />
+              </button>
+            )}
           </header>
           {!selected && (
             <div
@@ -1074,65 +1135,83 @@ export default function DirectChat({
                   Carregar anteriores
                 </button>
               )}
-              {messages.map((m) => {
+              {messages.map((m, index) => {
                 const sender = identities.find((i) => i.id === m.sender_id);
+                const mine = m.sender_id === actor;
+                const previous = messages[index - 1];
+                const showDay =
+                  !previous ||
+                  messageDayKey(previous.created_at) !== messageDayKey(m.created_at);
+
                 return (
-                  <div
-                    className={
-                      m.sender_id === actor
-                        ? "chat-message mine chat-message-actionable"
-                        : "chat-message chat-message-actionable"
-                    }
-                    key={m.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={
-                      m.sender_id === actor
-                        ? "Abrir opções da sua mensagem"
-                        : "Abrir opções da mensagem"
-                    }
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openMessageMenu(m, event.clientX, event.clientY);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      openMessageMenu(
-                        m,
-                        rect.left + rect.width / 2,
-                        rect.top + rect.height / 2,
-                      );
-                    }}
-                  >
-                    <div className="chat-message-author">
-                      <IdentityAvatar
-                        identity={sender}
-                        identityId={m.sender_id}
-                        avatarAlt={sender?.name}
-                        cosmetics={cosmetics}
-                        equipment={equipment}
-                        urls={urls}
-                        size={30}
-                      />
-                      <small>{sender?.name || "Perfil indisponível"}</small>
-                    </div>
-                    {m.media_id ? (
-                      mediaType(m) === "audio" ? (
-                        <ChatAudio id={m.media_id} />
-                      ) : (
-                        <ChatImage id={m.media_id} />
-                      )
-                    ) : (
-                      <p>{m.body}</p>
+                  <div className="chat-message-block" key={m.id}>
+                    {showDay && (
+                      <div className="chat-day-separator">
+                        <span>{messageDayLabel(m.created_at)}</span>
+                      </div>
                     )}
-                    <small>
-                      {new Date(m.created_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </small>
+                    <div className={mine ? "chat-message-row mine" : "chat-message-row"}>
+                      {!mine && (
+                        <span className="chat-message-avatar">
+                          <IdentityAvatar
+                            identity={sender}
+                            identityId={m.sender_id}
+                            avatarAlt={sender?.name}
+                            cosmetics={cosmetics}
+                            equipment={equipment}
+                            urls={urls}
+                            size={42}
+                          />
+                        </span>
+                      )}
+                      <div
+                        className={
+                          mine
+                            ? "chat-message mine chat-message-actionable"
+                            : "chat-message chat-message-actionable"
+                        }
+                        role="button"
+                        tabIndex={0}
+                        aria-label={
+                          mine
+                            ? "Abrir opções da sua mensagem"
+                            : "Abrir opções da mensagem"
+                        }
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openMessageMenu(m, event.clientX, event.clientY);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.preventDefault();
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          openMessageMenu(
+                            m,
+                            rect.left + rect.width / 2,
+                            rect.top + rect.height / 2,
+                          );
+                        }}
+                      >
+                        {m.media_id ? (
+                          mediaType(m) === "audio" ? (
+                            <ChatAudio id={m.media_id} />
+                          ) : (
+                            <ChatImage id={m.media_id} />
+                          )
+                        ) : (
+                          <p>{m.body}</p>
+                        )}
+                        <span className="chat-message-time">
+                          <small>
+                            {new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </small>
+                          {mine && <i aria-hidden="true">✓✓</i>}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -1179,7 +1258,7 @@ export default function DirectChat({
                     className="chat-image-button"
                     aria-label="Enviar imagem"
                   >
-                    <ImagePlus aria-hidden="true" />
+                    <Plus aria-hidden="true" />
                     <input
                       type="file"
                       accept="image/png,image/jpeg,image/webp"
@@ -1236,15 +1315,26 @@ export default function DirectChat({
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
                     />
-                    <button
-                      type="button"
-                      className="chat-inline-voice-button"
-                      disabled={busy}
-                      aria-label="Gravar mensagem de voz"
-                      onClick={() => setVoiceOpen(true)}
-                    >
-                      <Mic aria-hidden="true" />
-                    </button>
+                    <div className="chat-inline-actions">
+                      <button
+                        type="button"
+                        className="chat-inline-emoji-button"
+                        disabled={busy}
+                        aria-label="Adicionar emoji"
+                        onClick={() => setBody((current) => `${current}🙂`)}
+                      >
+                        <Smile aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="chat-inline-voice-button"
+                        disabled={busy}
+                        aria-label="Gravar mensagem de voz"
+                        onClick={() => setVoiceOpen(true)}
+                      >
+                        <Mic aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="submit"
