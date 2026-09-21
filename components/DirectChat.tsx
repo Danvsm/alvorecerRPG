@@ -877,6 +877,14 @@ export default function DirectChat({
     }
   };
 
+  const openGroup = () => {
+    if (!group?.id || busy || !contactsInteractive) return;
+    setVoiceOpen(false);
+    setEmojiOpen(false);
+    setSelected(String(group.id));
+    setLimit(50);
+  };
+
   const contactTime = (value?: string) => {
     if (!value) return "";
     const date = new Date(value);
@@ -908,7 +916,10 @@ export default function DirectChat({
     });
   };
 
-  const selectedConversation = conversations.find((c) => c.id === selected);
+  const selectedGroup = Boolean(group?.id && String(group.id) === selected);
+  const selectedConversation = selectedGroup
+    ? undefined
+    : conversations.find((c) => c.id === selected);
   const selectedPeerIds = selectedConversation
     ? [selectedConversation.first_id, selectedConversation.second_id].filter(
         (id) => id !== actor,
@@ -933,9 +944,12 @@ export default function DirectChat({
   );
 
   const canSend =
-    selectedConversation &&
-    [selectedConversation.first_id, selectedConversation.second_id].includes(
-      actor,
+    selectedGroup ||
+    Boolean(
+      selectedConversation &&
+        [selectedConversation.first_id, selectedConversation.second_id].includes(
+          actor,
+        ),
     );
 
   const lockContactList = () => {
@@ -1051,7 +1065,7 @@ export default function DirectChat({
       {open && (
         <aside
           className="chat-window"
-          aria-label="Mensagens diretas"
+          aria-label="Mensagens"
           onPointerUpCapture={(e) => {
             if (performance.now() < suppressContactUntil.current) {
               e.preventDefault();
@@ -1085,31 +1099,43 @@ export default function DirectChat({
               <ChevronLeft />
             </button>
             <div className="chat-thread-peer">
-              {(selectedPeer || (!selected && actorIdentity)) && (
-                <IdentityAvatar
-                  identity={selectedPeer || actorIdentity}
-                  cosmetics={cosmetics}
-                  equipment={equipment}
-                  urls={urls}
-                  size={selected ? 58 : 46}
-                />
+              {selectedGroup ? (
+                <span className="chat-group-header-avatar" aria-hidden="true">
+                  <Users />
+                </span>
+              ) : (
+                (selectedPeer || (!selected && actorIdentity)) && (
+                  <IdentityAvatar
+                    identity={selectedPeer || actorIdentity}
+                    cosmetics={cosmetics}
+                    equipment={equipment}
+                    urls={urls}
+                    size={selected ? 58 : 46}
+                  />
+                )
               )}
               <div>
                 <strong>
                   {selected
-                    ? selectedPeerName
+                    ? selectedGroup
+                      ? String(group?.name || "Grupo Geral")
+                      : selectedPeerName
                     : actorIdentity?.name || "Mensagens"}
                 </strong>
                 {selected ? (
-                  <small className={selectedPeerOnline ? "online" : ""}>
-                    {selectedPeerOnline ? "Online" : "Offline"}
-                  </small>
+                  selectedGroup ? (
+                    <small>{Number(group?.member_count || 0)} participantes</small>
+                  ) : (
+                    <small className={selectedPeerOnline ? "online" : ""}>
+                      {selectedPeerOnline ? "Online" : "Offline"}
+                    </small>
+                  )
                 ) : (
                   <small>Mensagens</small>
                 )}
               </div>
             </div>
-            {selected ? (
+            {selected && !selectedGroup ? (
               <div className="chat-thread-actions">
                 <button
                   type="button"
