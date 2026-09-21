@@ -13,6 +13,7 @@ import {
   Send,
   Smile,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { browserDb } from "@/lib/client";
@@ -86,6 +87,7 @@ export default function DirectChat({
 }) {
   const [open, setOpen] = useState(false),
     [conversations, setConversations] = useState<Row[]>([]),
+    [group, setGroup] = useState<Row | null>(null),
     [messages, setMessages] = useState<Row[]>([]),
     [peerReadAt, setPeerReadAt] = useState(""),
     [unread, setUnread] = useState(0),
@@ -524,9 +526,15 @@ export default function DirectChat({
       retryNetworkRead(() =>
         browserDb().rpc("community_presence", { c: campaign }),
       ),
-    ]).then(async ([c, r, presence]) => {
+      retryNetworkRead(() =>
+        browserDb().rpc("campaign_group_summary", {
+          c: campaign,
+          actor_id: actor,
+        }),
+      ),
+    ]).then(async ([c, r, presence, groupResult]) => {
       if (!valid) return;
-      const failed = [c, r, presence].find((x) => x.error);
+      const failed = [c, r, presence, groupResult].find((x) => x.error);
       if (failed?.error) {
         setError(readableErrorMessage(failed.error));
         return;
@@ -534,6 +542,7 @@ export default function DirectChat({
 
       const nextConversations = c.data || [];
       setConversations(nextConversations);
+      setGroup((groupResult.data || null) as Row | null);
       setUnread(Number(r.data || 0));
       setOnlineUserIds(
         new Set(
