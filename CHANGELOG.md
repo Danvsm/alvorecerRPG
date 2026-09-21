@@ -2,6 +2,16 @@
 
 Todas as mudanças relevantes concluídas neste projeto são registradas aqui. Itens que ainda dependem de validação permanecem fora da lista de entregas concluídas.
 
+## Em desenvolvimento — 2026-09-21
+
+### Entregue
+
+- MVP de chamada de voz 1x1 integrado ao chat direto com WebRTC, solicitação protegida de microfone, aceitar, recusar, cancelar, encerrar, mute, áudio remoto, duração e tratamento básico de falha/desconexão.
+- Sinalização de chamada isolada em `direct_calls` e `direct_call_signals`, com RLS, RPCs autenticadas e Realtime próprio, sem acionar `campaign_events` ou recarregar a campanha inteira.
+- Chamada recebida com overlay mobile e push de prioridade alta; `alvorecer-push` versão 10 ACTIVE e Service Worker revisão 8.
+- Validação automatizada do MVP concluída com 98/98 testes, TypeScript e build de produção aprovados.
+- Gravação e TURN permanecem como próximas etapas, não como funcionalidades concluídas.
+
 ## Em desenvolvimento — 2026-09-18
 
 ### Entregue
