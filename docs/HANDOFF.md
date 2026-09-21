@@ -537,3 +537,26 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 1. Abrir o sino com notificações recentes.
 2. Tocar em `Limpar notificações` e confirmar que a lista e o contador zeram imediatamente.
 3. Fechar e reabrir o painel para confirmar que os itens continuam ocultos.
+
+## MVP de chamada de voz 1x1 — 21/09/2026
+
+- O botão de telefone do chat direto agora inicia uma chamada de voz 1x1 real com WebRTC.
+- O áudio usa conexão WebRTC entre os participantes; o Supabase transporta apenas estado e sinalização (`offer`, `answer` e candidatos ICE), sem enviar o fluxo de voz pelas tabelas ou Storage.
+- A migration `20260921065500_direct_voice_call_mvp.sql` foi aplicada no Supabase real. Ela cria `direct_calls` e `direct_call_signals`, RLS de leitura restrita aos participantes, RPCs autenticadas para iniciar/aceitar/recusar/cancelar/encerrar/falhar e publicação Realtime específica das duas tabelas.
+- O fluxo não escreve em `campaign_events`, portanto iniciar, atender ou negociar uma chamada não dispara o carregamento global da campanha.
+- A interface cobre chamada recebida, chamada efetuada, aceitar, recusar, cancelar, encerrar, silenciar microfone, silenciar áudio remoto, duração, chamada não atendida e falha de conexão.
+- A chamada recebida também usa push de prioridade alta. A Edge Function `alvorecer-push` está ACTIVE na versão 10; o Service Worker foi elevado para a revisão 8.
+- O MVP usa STUN público e ainda não possui TURN. Redes com NAT restritivo, firewall corporativo ou algumas combinações de rede móvel podem impedir a conexão P2P mesmo com a sinalização funcionando.
+- Gravação da chamada, download da gravação, retenção temporária e exclusão pelo Mestre ainda NÃO fazem parte deste MVP.
+- Gates automatizados do código do MVP: `npm test` 98/98, `npm run typecheck` aprovado e `npm run build` aprovado. O deploy Vercel do commit de validação `6f68e45c71b0529154492a695ccd4d90eb32948f` chegou a READY.
+- A migration, as RPCs e as duas tabelas foram verificadas no Supabase real, incluindo presença na publicação `supabase_realtime`.
+- Ainda não foi feita uma chamada real entre dois aparelhos nesta rodada. A validação manual precisa confirmar áudio nos dois sentidos e os estados de chamada em navegadores reais.
+
+### Próximo passo exato para chamadas
+
+1. Abrir Pink e darkvsm em dois aparelhos ou navegadores independentes na mesma campanha.
+2. Permitir microfone nos dois aparelhos.
+3. Testar ligar, atender, falar nos dois sentidos, silenciar microfone e encerrar.
+4. Repetir recusar, cancelar e deixar tocar até chamada não atendida.
+5. Testar primeiro na mesma rede e depois em redes diferentes. Se redes diferentes falharem enquanto a mesma rede funciona, implementar TURN antes de investigar o Supabase.
+6. Depois da estabilidade do núcleo, implementar a próxima fase pedida: gravação temporária, download pelo Mestre para HD e exclusão do arquivo do servidor preservando apenas o histórico leve da chamada.
