@@ -51,6 +51,7 @@ import WallpaperManager from "./WallpaperManager";
 import CommunityPanel from "./CommunityPanel";
 import IdentityAvatar from "./IdentityAvatar";
 import IdentityBadge from "./IdentityBadge";
+import PlayerProfilePanel from "./PlayerProfilePanel";
 import DirectChat from "./DirectChat";
 import ConversationMonitor from "./ConversationMonitor";
 import InteractionsPanel from "./InteractionsPanel";
@@ -363,6 +364,9 @@ export default function Game({ invite }: { invite?: string }) {
   const rows = (t: string) => data[t] || [];
   const chars = rows("characters").filter((c) => !c.archived);
   const character = chars.find((c) => c.id === selected) || chars[0];
+  const ownCharacter = !isMaster
+    ? chars.find((entry) => entry.owner_id === session?.user.id) || character
+    : undefined;
   const ownProfile = rows("profiles").find((p) => p.id === session?.user.id);
   const ownIdentity = rows("social_identities").find(
     (p) => p.user_id === session?.user.id && p.campaign_id === campaign,
@@ -1458,7 +1462,9 @@ export default function Game({ invite }: { invite?: string }) {
           ? "app combat-mode"
           : page === "Comunidade" || page === "Arquivos"
             ? "app community-mode"
-            : "app"
+            : !isMaster && page === "Perfil"
+              ? "app player-profile-mode"
+              : "app"
       }
       style={
         {
@@ -1580,10 +1586,14 @@ export default function Game({ invite }: { invite?: string }) {
               ? "content combat-content"
               : page === "Comunidade"
                 ? "content community-content"
-                : "content"
+                : !isMaster && page === "Perfil"
+                  ? "content player-profile-content"
+                  : "content"
           }
         >
-          {page !== "Combate" && page !== "Comunidade" && (
+          {page !== "Combate" &&
+            page !== "Comunidade" &&
+            !(!isMaster && page === "Perfil") && (
             <div className="page-heading">
               <div>
                 <p className="eyebrow">
@@ -3897,7 +3907,76 @@ export default function Game({ invite }: { invite?: string }) {
               )}
             </section>
           )}
-          {page === "Perfil" && (
+          {page === "Perfil" && !isMaster && ownIdentity && (
+            <PlayerProfilePanel
+              identity={ownIdentity}
+              profile={ownProfile}
+              character={ownCharacter}
+              cosmetics={rows("cosmetics")}
+              grants={rows("cosmetic_grants")}
+              equipment={rows("cosmetic_equipment")}
+              urls={avatarUrls}
+              busy={busy}
+              changeAvatar={() =>
+                setAvatarPickerTarget({
+                  kind: "profile",
+                  identityId: ownIdentity.id,
+                })
+              }
+              openWallet={() => navigate("Carteira")}
+              changePassword={() =>
+                setForm({
+                  title: "Alterar minha senha",
+                  fields: [
+                    {
+                      key: "currentPassword",
+                      label: "Senha atual",
+                      type: "password",
+                      required: true,
+                    },
+                    {
+                      key: "password",
+                      label: "Nova senha",
+                      type: "password",
+                      required: true,
+                    },
+                    {
+                      key: "confirm",
+                      label: "Confirmar nova senha",
+                      type: "password",
+                      required: true,
+                    },
+                  ],
+                  submit: async (values) => {
+                    if (values.password !== values.confirm)
+                      throw new Error("As novas senhas não coincidem");
+                    await admin("self_password", {
+                      currentPassword: values.currentPassword,
+                      password: values.password,
+                    });
+                    setForm(null);
+                    setMessage("Sua senha foi alterada");
+                  },
+                })
+              }
+              signOut={() => {
+                syncPageLocation("Comunidade", "replace");
+                void browserDb().auth.signOut();
+              }}
+              save={async (op, d) => {
+                const request = cosmeticsActionRequest(campaign, op, d);
+                const result = await browserDb().rpc(
+                  request.rpc,
+                  request.params,
+                );
+                if (result.error) throw new Error(result.error.message);
+                await load(campaign, true);
+                return result.data;
+              }}
+            />
+          )}
+
+          {page === "Perfil" && isMaster && (
             <>
               <section className="panel profile-card">
                 {ownIdentity && (
@@ -3910,7 +3989,7 @@ export default function Game({ invite }: { invite?: string }) {
                   />
                 )}
                 <p>
-                  @{ownProfile?.username} {isMaster && "· Mestre"}
+                  @{ownProfile?.username} · Mestre
                 </p>
                 <div className="actions">
                   {ownIdentity && (
