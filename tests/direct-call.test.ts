@@ -131,3 +131,48 @@ test("master can permanently remove archived community items", async () => {
     /grant execute on function public\.master_archive_delete\(uuid,text,uuid\)\s+to authenticated/,
   );
 });
+
+
+test("voice calls automatically archive a private mixed recording without UI indicator", async () => {
+  const [call, archive, migration, cleanup] = await Promise.all([
+    readFile(new URL("../components/VoiceCall.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/CommunityArchives.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921191746_direct_call_recordings.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../supabase/functions/alvorecer-api/media-cleanup.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(call, /createMediaStreamDestination/);
+  assert.match(call, /createMediaStreamSource/);
+  assert.match(call, /direct_call_recording_reserve/);
+  assert.match(call, /direct_call_recording_finalize/);
+  assert.match(call, /from\("call-recordings"\)/);
+  assert.doesNotMatch(call, />Gravando</);
+
+  assert.match(archive, /recording_storage_path/);
+  assert.match(archive, /call-recordings/);
+  assert.match(archive, /Gravação da conversa/);
+  assert.match(archive, /<audio/);
+
+  assert.match(migration, /create table if not exists public\.direct_call_recordings/);
+  assert.match(migration, /'call-recordings'/);
+  assert.match(migration, /file_size_limit=excluded\.file_size_limit/);
+  assert.match(migration, /public\.direct_call_recording_reserve/);
+  assert.match(migration, /public\.direct_call_recording_finalize/);
+  assert.match(migration, /alvorecer_private\.can_read_call_recording/);
+  assert.match(migration, /recording_storage_path text/);
+
+  assert.match(cleanup, /direct_call_recording_cleanup/);
+  assert.match(cleanup, /call-recordings/);
+});
