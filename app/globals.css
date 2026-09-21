@@ -2585,6 +2585,29 @@ dialog::backdrop {
   gap: 10px;
 }
 
+.chat-profile-avatar-button {
+  display: grid;
+  width: fit-content;
+  height: fit-content;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  place-items: center;
+  cursor: pointer;
+}
+
+.chat-profile-avatar-button:hover,
+.chat-profile-avatar-button:focus-visible {
+  border: 0;
+  background: transparent;
+  box-shadow: 0 0 0 2px #c8945840;
+  transform: scale(1.035);
+}
+
 .chat-thread-peer > div:last-child {
   display: grid;
   min-width: 0;
@@ -4702,6 +4725,15 @@ dialog.combat-sheet {
   width: 74px;
   height: 74px;
   place-items: center;
+}
+
+.chat-contact-avatar-profile {
+  cursor: pointer;
+}
+
+.chat-contact-avatar-profile:hover {
+  filter: brightness(1.08);
+  transform: scale(1.025);
 }
 
 .chat-group-row {
@@ -7041,6 +7073,25 @@ dialog.combat-sheet {
   flex: 0 0 42px;
   margin-bottom: 2px;
   place-items: center;
+}
+
+.chat-message-avatar-profile {
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.chat-message-avatar-profile:hover,
+.chat-message-avatar-profile:focus-visible {
+  border: 0;
+  background: transparent;
+  box-shadow: 0 0 0 2px #c8945838;
+  transform: scale(1.04);
 }
 
 .chat-message {
