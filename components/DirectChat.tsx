@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   BellOff,
@@ -20,6 +20,7 @@ import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import ChatImage from "./ChatImage";
 import ChatAudio from "./ChatAudio";
+import ChatEmojiPicker from "./ChatEmojiPicker";
 import IdentityAvatar from "./IdentityAvatar";
 import VoiceRecorder from "./VoiceRecorder";
 import { optimizedWebp } from "@/lib/media";
@@ -44,8 +45,10 @@ function messageDayLabel(value?: string) {
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
 
-  if (messageDayKey(value) === messageDayKey(today.toISOString())) return "Hoje";
-  if (messageDayKey(value) === messageDayKey(yesterday.toISOString())) return "Ontem";
+  if (messageDayKey(value) === messageDayKey(today.toISOString()))
+    return "Hoje";
+  if (messageDayKey(value) === messageDayKey(yesterday.toISOString()))
+    return "Ontem";
 
   return date.toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -83,6 +86,7 @@ export default function DirectChat({
   const [open, setOpen] = useState(false),
     [conversations, setConversations] = useState<Row[]>([]),
     [messages, setMessages] = useState<Row[]>([]),
+    [peerReadAt, setPeerReadAt] = useState(""),
     [unread, setUnread] = useState(0),
     [selected, setSelected] = useState(""),
     [body, setBody] = useState(""),
@@ -124,9 +128,11 @@ export default function DirectChat({
     } | null>(null),
     [messageReportReason, setMessageReportReason] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
@@ -137,6 +143,7 @@ export default function DirectChat({
     y: number;
     moved: boolean;
   } | null>(null);
+  const closeEmoji = useCallback(() => setEmojiOpen(false), []);
 
   const action = async (op: string, d: Row) => {
     const r = await browserDb().rpc("social_action", {
@@ -611,7 +618,82 @@ export default function DirectChat({
   }, [selected, open, actor, revision, refresh, limit, conversations]);
   useEffect(() => {
     setMessages([]);
+    setEmojiOpen(false);
   }, [selected]);
+
+  const insertEmoji = (emoji: string) => {
+    const input = messageInputRef.current;
+    const start = input?.selectionStart ?? body.length;
+    const end = input?.selectionEnd ?? body.length;
+    const next = `${body.slice(0, start)}${emoji}${body.slice(end)}`.slice(
+      0,
+      4000,
+    );
+    const cursor = Math.min(start + emoji.length, next.length);
+    setBody(next);
+    window.requestAnimationFrame(() => {
+      messageInputRef.current?.focus();
+      messageInputRef.current?.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  useEffect(() => {
+    if (!selected || !open) {
+      setPeerReadAt("");
+      return;
+    }
+
+    const conversation = conversations.find((entry) => entry.id === selected);
+    const peerId =
+      conversation?.first_id === actor
+        ? conversation?.second_id
+        : conversation?.first_id;
+    if (!peerId) {
+      setPeerReadAt("");
+      return;
+    }
+
+    let valid = true;
+    const db = browserDb();
+    retryNetworkRead(() =>
+      db
+        .from("conversation_reads")
+        .select("read_at")
+        .eq("conversation_id", selected)
+        .eq("identity_id", peerId)
+        .maybeSingle(),
+    ).then((receipt) => {
+      if (!valid) return;
+      if (receipt.error) {
+        setError(readableErrorMessage(receipt.error));
+        return;
+      }
+      setPeerReadAt(receipt.data?.read_at || "");
+    });
+
+    const channel = db
+      .channel(`chat-receipt:${selected}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversation_reads",
+          filter: `conversation_id=eq.${selected}`,
+        },
+        (payload) => {
+          const receipt = payload.new as Row;
+          if (String(receipt.identity_id) !== String(peerId)) return;
+          setPeerReadAt(String(receipt.read_at || ""));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      valid = false;
+      void db.removeChannel(channel);
+    };
+  }, [selected, open, actor, conversations]);
 
   useEffect(() => {
     if (!open || !selected) return;
@@ -934,7 +1016,9 @@ export default function DirectChat({
                   type="button"
                   className="chat-thread-call"
                   aria-label="Iniciar chamada"
-                  onClick={() => showFeedback("Chamadas estarão disponíveis em breve.")}
+                  onClick={() =>
+                    showFeedback("Chamadas estarão disponíveis em breve.")
+                  }
                 >
                   <Phone />
                 </button>
@@ -1141,7 +1225,15 @@ export default function DirectChat({
                 const previous = messages[index - 1];
                 const showDay =
                   !previous ||
-                  messageDayKey(previous.created_at) !== messageDayKey(m.created_at);
+                  messageDayKey(previous.created_at) !==
+                    messageDayKey(m.created_at);
+                const peerHasRead = Boolean(
+                  mine &&
+                  peerReadAt &&
+                  m.created_at &&
+                  new Date(m.created_at).getTime() <=
+                    new Date(peerReadAt).getTime(),
+                );
 
                 return (
                   <div className="chat-message-block" key={m.id}>
@@ -1150,7 +1242,11 @@ export default function DirectChat({
                         <span>{messageDayLabel(m.created_at)}</span>
                       </div>
                     )}
-                    <div className={mine ? "chat-message-row mine" : "chat-message-row"}>
+                    <div
+                      className={
+                        mine ? "chat-message-row mine" : "chat-message-row"
+                      }
+                    >
                       {!mine && (
                         <span className="chat-message-avatar">
                           <IdentityAvatar
@@ -1182,9 +1278,11 @@ export default function DirectChat({
                           openMessageMenu(m, event.clientX, event.clientY);
                         }}
                         onKeyDown={(event) => {
-                          if (event.key !== "Enter" && event.key !== " ") return;
+                          if (event.key !== "Enter" && event.key !== " ")
+                            return;
                           event.preventDefault();
-                          const rect = event.currentTarget.getBoundingClientRect();
+                          const rect =
+                            event.currentTarget.getBoundingClientRect();
                           openMessageMenu(
                             m,
                             rect.left + rect.width / 2,
@@ -1203,12 +1301,24 @@ export default function DirectChat({
                         )}
                         <span className="chat-message-time">
                           <small>
-                            {new Date(m.created_at).toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(m.created_at).toLocaleTimeString(
+                              "pt-BR",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </small>
-                          {mine && <i aria-hidden="true">✓✓</i>}
+                          {mine && (
+                            <i
+                              className={peerHasRead ? "read" : "sent"}
+                              role="img"
+                              aria-label={peerHasRead ? "Lida" : "Enviada"}
+                              title={peerHasRead ? "Lida" : "Enviada"}
+                            >
+                              ✓✓
+                            </i>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -1233,6 +1343,7 @@ export default function DirectChat({
                   });
                   void pushReceivedMessage(selected);
                   setBody("");
+                  setEmojiOpen(false);
                   setRefresh((v) => v + 1);
                   window.dispatchEvent(
                     new CustomEvent("alvorecer:chat-updated", {
@@ -1246,6 +1357,9 @@ export default function DirectChat({
                 }
               }}
             >
+              {emojiOpen && !voiceOpen && (
+                <ChatEmojiPicker onSelect={insertEmoji} onClose={closeEmoji} />
+              )}
               {voiceOpen ? (
                 <VoiceRecorder
                   disabled={busy}
@@ -1307,6 +1421,7 @@ export default function DirectChat({
                   </label>
                   <div className="chat-text-field">
                     <textarea
+                      ref={messageInputRef}
                       aria-label="Mensagem"
                       required
                       maxLength={4000}
@@ -1321,7 +1436,8 @@ export default function DirectChat({
                         className="chat-inline-emoji-button"
                         disabled={busy}
                         aria-label="Adicionar emoji"
-                        onClick={() => setBody((current) => `${current}🙂`)}
+                        aria-expanded={emojiOpen}
+                        onClick={() => setEmojiOpen((current) => !current)}
                       >
                         <Smile aria-hidden="true" />
                       </button>
@@ -1330,7 +1446,10 @@ export default function DirectChat({
                         className="chat-inline-voice-button"
                         disabled={busy}
                         aria-label="Gravar mensagem de voz"
-                        onClick={() => setVoiceOpen(true)}
+                        onClick={() => {
+                          setEmojiOpen(false);
+                          setVoiceOpen(true);
+                        }}
                       >
                         <Mic aria-hidden="true" />
                       </button>
