@@ -1192,6 +1192,57 @@ export default function DirectChat({
               aria-label="Lista de conversas"
               data-interactive={contactsInteractive ? "true" : "false"}
             >
+              {group?.id && (
+                <button
+                  type="button"
+                  className="chat-contact-row chat-group-row"
+                  disabled={busy || !contactsInteractive}
+                  onClick={openGroup}
+                >
+                  <span
+                    className="chat-contact-avatar chat-group-avatar"
+                    aria-hidden="true"
+                  >
+                    <Users />
+                  </span>
+
+                  <span className="chat-contact-copy">
+                    <strong>{String(group.name || "Grupo Geral")}</strong>
+                    <small>
+                      {group.latest_body ? (
+                        <>
+                          {String(group.latest_sender_id) === actor
+                            ? "Você"
+                            : identities.find(
+                                (identity) =>
+                                  String(identity.id) ===
+                                  String(group.latest_sender_id),
+                              )?.name || "Jogador"}
+                          : {String(group.latest_body)}
+                        </>
+                      ) : (
+                        "Todos os jogadores da campanha"
+                      )}
+                    </small>
+                  </span>
+
+                  <span className="chat-contact-meta">
+                    {Number(group.unread || 0) > 0 && (
+                      <i className="chat-group-unread">
+                        {Number(group.unread) > 99
+                          ? "99+"
+                          : Number(group.unread)}
+                      </i>
+                    )}
+                    {group.latest_created_at && (
+                      <time dateTime={String(group.latest_created_at)}>
+                        {contactTime(String(group.latest_created_at))}
+                      </time>
+                    )}
+                  </span>
+                </button>
+              )}
+
               {contactRows.map(
                 ({ identity, conversation, latest, activityAt, online }) => {
                   const lastMessage = latest?.media_id
