@@ -101,3 +101,33 @@ test("master community archives include finished voice calls", async () => {
     /grant execute on function public\.master_direct_call_archive\(uuid\) to authenticated/,
   );
 });
+
+
+test("master can permanently remove archived community items", async () => {
+  const [archive, migration] = await Promise.all([
+    readFile(new URL("../components/CommunityArchives.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921190649_master_archive_delete.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(archive, /master_archive_delete/);
+  assert.match(archive, /Excluir definitivamente/);
+  assert.match(archive, /"call"/);
+  assert.match(archive, /"chat_media"/);
+  assert.match(archive, /"post"/);
+
+  assert.match(migration, /public\.master_archive_delete/);
+  assert.match(migration, /public\.is_master\(c\)/);
+  assert.match(migration, /delete from public\.direct_calls/);
+  assert.match(migration, /delete from public\.community_posts/);
+  assert.match(migration, /archive_expires_at=least\(archive_expires_at,now\(\)\)/);
+  assert.match(
+    migration,
+    /grant execute on function public\.master_archive_delete\(uuid,text,uuid\)\s+to authenticated/,
+  );
+});
