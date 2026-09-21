@@ -288,6 +288,10 @@ export default function Game({ invite }: { invite?: string }) {
   const [playerSearch, setPlayerSearch] = useState("");
   const [expandedPlayer, setExpandedPlayer] = useState("");
   const [chatPeer, setChatPeer] = useState<{ id: string; nonce: number }>();
+  const [communityProfileRequest, setCommunityProfileRequest] = useState<{
+    id: string;
+    nonce: number;
+  }>();
   const [session, setSession] = useState<Session | null>(null),
     [ready, setReady] = useState(false),
     [members, setMembers] = useState<Row[]>([]),
@@ -3065,6 +3069,7 @@ export default function Game({ invite }: { invite?: string }) {
                 saveNotification={saveNotification}
                 refreshVisuals={() => load(campaign, true)}
                 unreadMessages={unreadMessages}
+                profileRequest={communityProfileRequest}
                 message={(id) => setChatPeer({ id, nonce: Date.now() })}
                 changeActor={isMaster ? setSpeakingAs : undefined}
                 createWorldCharacter={
@@ -4065,6 +4070,16 @@ export default function Game({ invite }: { invite?: string }) {
           docked={page === "Combate"}
           hideBubble={page === "Comunidade"}
           onUnreadChange={setUnreadMessages}
+          openProfile={(identityId) => {
+            if (page !== "Comunidade") {
+              setPage("Comunidade");
+              syncPageLocation("Comunidade", "push");
+            }
+            setCommunityProfileRequest({
+              id: identityId,
+              nonce: Date.now(),
+            });
+          }}
         />
       )}
       {avatarPickerTarget && (
