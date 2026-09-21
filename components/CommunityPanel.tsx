@@ -130,6 +130,7 @@ export default function CommunityPanel({
   saveNotification,
   refreshVisuals,
   unreadMessages,
+  profileRequest,
   message,
   changeActor,
   createWorldCharacter,
@@ -150,6 +151,7 @@ export default function CommunityPanel({
   saveNotification: (op: string, details: Row) => Promise<unknown>;
   refreshVisuals: () => Promise<void>;
   unreadMessages: number;
+  profileRequest?: { id: string; nonce: number };
   message: (id: string) => void;
   changeActor?: (id: string) => void;
   createWorldCharacter?: () => void;
@@ -194,6 +196,7 @@ export default function CommunityPanel({
   const directoryRef = useRef<HTMLElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const handledProfileRequest = useRef(0);
 
   useEffect(() => {
     if (!campaign) return;
@@ -379,6 +382,20 @@ export default function CommunityPanel({
       profileRef.current?.scrollIntoView({ behavior: "smooth" }),
     );
   };
+
+  useEffect(() => {
+    if (!profileRequest?.id || !profileRequest.nonce) return;
+    if (handledProfileRequest.current === profileRequest.nonce) return;
+    if (
+      !activeIdentities.some(
+        (identity) => String(identity.id) === String(profileRequest.id),
+      )
+    )
+      return;
+
+    handledProfileRequest.current = profileRequest.nonce;
+    revealProfile(profileRequest.id);
+  }, [activeIdentities, profileRequest?.id, profileRequest?.nonce]);
 
   const revealLibrary = (category: EditorialCategory) => {
     setSelected("");
@@ -615,6 +632,7 @@ export default function CommunityPanel({
           urls={urls}
           onlineUserIds={onlineUserIds}
           openConversation={message}
+          openProfile={revealProfile}
         />
       )}
 
