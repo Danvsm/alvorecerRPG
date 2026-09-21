@@ -223,3 +223,33 @@ test("master monitoring can permanently delete reports while RLS keeps players b
   assert.match(migration, /for delete/);
   assert.match(migration, /public\.is_master\(campaign_id\)/);
 });
+
+
+test("chat includes an automatic campaign-wide group for active players and master", async () => {
+  const [chat, migration] = await Promise.all([
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921193924_campaign_group_chat.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(chat, /campaign_group_summary/);
+  assert.match(chat, /campaign_group_messages/);
+  assert.match(chat, /campaign_group_action/);
+  assert.match(chat, /Grupo Geral/);
+  assert.match(chat, /chat-group-row/);
+  assert.match(chat, /campaign_group_messages/);
+
+  assert.match(migration, /create table if not exists public\.campaign_group_chats/);
+  assert.match(migration, /create table if not exists public\.campaign_group_messages/);
+  assert.match(migration, /identity\.kind in \('player','master'\)/);
+  assert.match(migration, /identity\.active/);
+  assert.match(migration, /identity\.user_id is not null/);
+  assert.match(migration, /member_count/);
+  assert.match(migration, /campaign_group_reads/);
+  assert.match(migration, /alter publication supabase_realtime add table public\.campaign_group_messages/);
+});
