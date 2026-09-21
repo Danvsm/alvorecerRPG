@@ -124,7 +124,6 @@ export default function PlayerProfilePanel({
   );
 
   const selectedFrame = frames.find((frame) => frame.id === selectedFrameId);
-  const previewFrame = selectedFrameId ? selectedFrame : undefined;
   const previewOwned = selectedFrameId ? frameIsOwned(selectedFrame) : true;
   const username = String(profile?.username || identity.name || "jogador");
   const displayName = String(character?.name || username || identity.name);
@@ -169,26 +168,28 @@ export default function PlayerProfilePanel({
       frameModalOpen,
     );
 
-  const ownedCosmetics = (kind: CosmeticKind) =>
+  const ownedCosmetics = (kind: CosmeticKind): Row[] =>
     cosmetics
       .filter((item) => item.kind === kind && item.active)
-      .map((item) => ({
-        ...item,
-        owned:
-          Boolean(item.owned) ||
-          grants.some(
-            (grant) =>
-              grant.identity_id === identity.id &&
-              grant.cosmetic_id === item.id &&
-              !grant.removed_at,
+      .map(
+        (item): Row => ({
+          ...item,
+          owned:
+            Boolean(item.owned) ||
+            grants.some(
+              (grant) =>
+                grant.identity_id === identity.id &&
+                grant.cosmetic_id === item.id &&
+                !grant.removed_at,
+            ),
+          equipped: equipment.some(
+            (entry) =>
+              entry.identity_id === identity.id &&
+              entry.kind === kind &&
+              entry.cosmetic_id === item.id,
           ),
-        equipped: equipment.some(
-          (entry) =>
-            entry.identity_id === identity.id &&
-            entry.kind === kind &&
-            entry.cosmetic_id === item.id,
-        ),
-      }));
+        }),
+      );
 
   const equipCosmetic = (item: Row) => {
     if (!item.owned || working) return;
