@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CallNegotiator, CallRecovery } from "../lib/call-connection";
-import { issueCallIceConfig, resolveCallIceConfig } from "../lib/call-ice";
+import { buildCallRtcConfiguration, issueCallIceConfig, resolveCallIceConfig } from "../lib/call-ice";
 
 test("Metered uses configured credentials with UDP, TCP and TLS routes", async () => {
   const result = await resolveCallIceConfig({
@@ -31,6 +31,27 @@ test("partial Metered configuration does not silently revert to STUN", async () 
   );
   assert.equal((await resolveCallIceConfig({})).relayAvailable, false);
 });
+
+test("recovery can force TURN without changing the ICE candidate pool", () => {
+  const config = {
+    relayAvailable: true,
+    iceServers: [
+      {
+        urls: "turn:relay.example:443",
+        username: "user",
+        credential: "credential",
+      },
+    ],
+  };
+  const initial = buildCallRtcConfiguration(config);
+  const recovery = buildCallRtcConfiguration(config, true);
+
+  assert.equal(initial.iceCandidatePoolSize, 0);
+  assert.equal(recovery.iceCandidatePoolSize, 0);
+  assert.equal(initial.iceTransportPolicy, "all");
+  assert.equal(recovery.iceTransportPolicy, "relay");
+});
+
 
 type FakePeerState = {
   localDescription: RTCSessionDescriptionInit | null;
