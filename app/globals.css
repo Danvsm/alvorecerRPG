@@ -336,6 +336,41 @@ code {
   max-width: 1500px;
   margin: auto;
 }
+
+/* Perfil do jogador: cabeçalho integrado ao cenário, conforme o mockup. */
+.player-profile-mode .workspace {
+  position: relative;
+  background: #07080a;
+}
+
+.player-profile-mode .topbar {
+  position: absolute;
+  z-index: 19;
+  top: 0;
+  right: 0;
+  left: 0;
+  border-bottom: 0;
+  color: #f6e7d2;
+  background: linear-gradient(180deg, #050506b8 0%, transparent 100%);
+}
+
+.player-profile-mode .topbar > span,
+.player-profile-mode .topbar > small {
+  display: none;
+}
+
+.player-profile-mode .topbar :is(.mobile-toggle, .notification-container > button) {
+  color: #f4eee8;
+}
+
+.player-profile-mode .topbar .notification-container {
+  margin-left: auto;
+}
+
+.player-profile-content {
+  max-width: none;
+  padding: 0 28px 60px;
+}
 .page-heading {
   display: flex;
   justify-content: space-between;
@@ -1101,6 +1136,15 @@ dialog::backdrop {
   }
   .content {
     padding: 24px 16px 60px;
+  }
+
+  .player-profile-mode .topbar {
+    height: 70px;
+    padding-inline: 16px;
+  }
+
+  .player-profile-content {
+    padding: 0 12px 54px;
   }
   h1 {
     font-size: 1.75rem;
