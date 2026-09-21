@@ -8,6 +8,22 @@ export type CallIceConfig = {
   relayAvailable: boolean;
 };
 
+export function buildCallRtcConfiguration(
+  config: CallIceConfig,
+  forceRelay = false,
+): RTCConfiguration {
+  return {
+    iceServers: config.iceServers,
+    // Keep this stable across setConfiguration() calls. Changing the pool size
+    // after setLocalDescription() may throw InvalidModificationError.
+    iceCandidatePoolSize: 0,
+    // Initial setup may use the fastest route. Recovery deliberately switches
+    // to TURN when available so restrictive NATs do not loop on a bad direct path.
+    iceTransportPolicy:
+      forceRelay && config.relayAvailable ? "relay" : "all",
+  };
+}
+
 export async function resolveCallIceConfig(config: {
   meteredUsername?: string;
   meteredCredential?: string;
