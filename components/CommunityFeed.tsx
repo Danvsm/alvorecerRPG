@@ -54,6 +54,7 @@ type FeedProps = {
   urls: Record<string, string>;
   composerOpen: boolean;
   closeComposer: () => void;
+  openProfile?: (identityId: string) => void;
   changeActor?: (id: string) => void;
   createWorldCharacter?: () => void;
 };
@@ -77,6 +78,7 @@ export default function CommunityFeed({
   urls,
   composerOpen,
   closeComposer,
+  openProfile,
   changeActor,
   createWorldCharacter,
 }: FeedProps) {
@@ -412,13 +414,20 @@ export default function CommunityFeed({
             key={post.id}
           >
             <header className={styles.feedAuthor}>
-              <IdentityAvatar
-                identity={author}
-                cosmetics={cosmetics}
-                equipment={equipment}
-                urls={urls}
-                size={54}
-              />
+              <button
+                type="button"
+                className={styles.feedAuthorAvatarButton}
+                aria-label={`Abrir perfil de ${author.name}`}
+                onClick={() => openProfile?.(author.id)}
+              >
+                <IdentityAvatar
+                  identity={author}
+                  cosmetics={cosmetics}
+                  equipment={equipment}
+                  urls={urls}
+                  size={54}
+                />
+              </button>
               <span>
                 <strong>{author.name}</strong>
                 <small>
@@ -563,6 +572,7 @@ export default function CommunityFeed({
           cosmetics={cosmetics}
           equipment={equipment}
           urls={urls}
+          openProfile={openProfile}
           close={() => setCommentsPost(null)}
           act={act}
           changed={setPostCommentCount}
@@ -1040,6 +1050,7 @@ function CommentsSheet({
   cosmetics,
   equipment,
   urls,
+  openProfile,
   close,
   act,
   changed,
@@ -1052,6 +1063,7 @@ function CommentsSheet({
   cosmetics: Row[];
   equipment: Row[];
   urls: Record<string, string>;
+  openProfile?: (identityId: string) => void;
   close: () => void;
   act: (op: string, details: Row) => Promise<Row>;
   changed: (postId: string, commentCount: number) => void;
@@ -1247,13 +1259,23 @@ function CommentsSheet({
         className={`${styles.comment} ${reply ? styles.commentReply : ""}`}
         key={comment.id}
       >
-        <IdentityAvatar
-          identity={author}
-          cosmetics={cosmetics}
-          equipment={equipment}
-          urls={urls}
-          size={reply ? 34 : 40}
-        />
+        <button
+          type="button"
+          className={styles.commentAuthorAvatarButton}
+          aria-label={`Abrir perfil de ${author.name}`}
+          onClick={() => {
+            close();
+            openProfile?.(author.id);
+          }}
+        >
+          <IdentityAvatar
+            identity={author}
+            cosmetics={cosmetics}
+            equipment={equipment}
+            urls={urls}
+            size={reply ? 34 : 40}
+          />
+        </button>
         <div className={styles.commentBody}>
           <p>
             <strong>{author.name}</strong> {comment.body}
