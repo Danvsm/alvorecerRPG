@@ -30,6 +30,7 @@ import {
   BellRing,
   Palette,
   Gem,
+  Gamepad2,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -73,6 +74,7 @@ import {
 import CleanupPanel from "./CleanupPanel";
 import SessionCountManager from "./SessionCountManager";
 import CombatPanel from "./CombatPanel";
+import JokenpoGame from "./JokenpoGame";
 import {
   uploadAvatarImage,
   uploadFrameImage,
@@ -209,6 +211,7 @@ const masterMenu = [
   ["Dados", Users],
   ["Personagens", Shield],
   ["Combate", Swords],
+  ["Jokenpô", Gamepad2],
   ["Carteira", WalletCards],
   ["Criaturas", Skull],
   ["Vantagens", Sparkles],
@@ -230,6 +233,7 @@ const playerMenu = [
   ["Baú", Gem],
   ["Minha Ficha", Shield],
   ["Combate", Swords],
+  ["Jokenpô", Gamepad2],
   ["Carteira", WalletCards],
   ["Inventário", Package],
   ["Vantagens", Sparkles],
@@ -1594,20 +1598,22 @@ export default function Game({ invite }: { invite?: string }) {
           {page !== "Combate" &&
             page !== "Comunidade" &&
             !(!isMaster && page === "Perfil") && (
-            <div className="page-heading">
-              <div>
-                <p className="eyebrow">
-                  {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
-                </p>
-                <h1>{!isMaster && page === "Visão Geral" ? "Início" : page}</h1>
+              <div className="page-heading">
+                <div>
+                  <p className="eyebrow">
+                    {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
+                  </p>
+                  <h1>
+                    {!isMaster && page === "Visão Geral" ? "Início" : page}
+                  </h1>
+                </div>
+                {loading && (
+                  <span className="muted" role="status">
+                    Atualizando...
+                  </span>
+                )}
               </div>
-              {loading && (
-                <span className="muted" role="status">
-                  Atualizando...
-                </span>
-              )}
-            </div>
-          )}
+            )}
           {error && (
             <div className="error" role="alert">
               {error}
@@ -1624,6 +1630,7 @@ export default function Game({ invite }: { invite?: string }) {
           {!campaign && (
             <Empty text="Sua conta ainda não está associada a uma campanha." />
           )}
+          {campaign && page === "Jokenpô" && <JokenpoGame />}
           {campaign && ["Visão Geral", "Início"].includes(page) && (
             <>
               <div className="overview-title">
@@ -3988,9 +3995,7 @@ export default function Game({ invite }: { invite?: string }) {
                     avatarSize="min(34vw, 132px)"
                   />
                 )}
-                <p>
-                  @{ownProfile?.username} · Mestre
-                </p>
+                <p>@{ownProfile?.username} · Mestre</p>
                 <div className="actions">
                   {ownIdentity && (
                     <button
