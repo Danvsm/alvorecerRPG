@@ -26,7 +26,27 @@ Esta atualização:
 - Exibe `Conectando áudio...` / `Reconectando áudio...` até a conexão real.
 - Preserva o botão existente para liberar reprodução quando o navegador bloqueia autoplay.
 
-## Ativação necessária em produção
+## Ativação com Metered, provedor escolhido
+
+Na Vercel, projeto `alvorecer-rpg-vsm`, em **Settings > Environment Variables >
+Production**, configure `METERED_TURN_USERNAME` e `METERED_TURN_CREDENTIAL` com
+os valores `username` e `credential` do painel Metered. Faça um novo deploy.
+
+Quando esses dois valores estão presentes, a aplicação usa Metered com as rotas
+UDP/TCP na porta 80, UDP na 443 e TLS/TCP na 443. Uma configuração parcial é
+recusada, em vez de voltar silenciosamente para STUN. Metered tem prioridade
+sobre a configuração alternativa Cloudflare.
+
+Os valores não ficam no repositório nem no bundle público. A rota autenticada
+entrega as credenciais TURN aos participantes de uma chamada ativa, como exige
+o protocolo WebRTC. Neste modo, a validade das credenciais é a definida na
+Metered; a aplicação não emite credenciais temporárias próprias.
+
+O cadastro das variáveis e a validação manual entre aparelhos são necessários
+para considerar a retransmissão ativada. Os testes locais usam credenciais
+fictícias e não validam a conta ou a franquia da Metered.
+
+## Alternativa: ativação com Cloudflare
 
 1. No Cloudflare Dashboard, abra **Realtime > TURN** e crie uma TURN key.
    Consulte as condições de uso/cobrança da própria conta antes de habilitar.
@@ -55,5 +75,5 @@ e outro na rede móvel: áudio nos dois sentidos por pelo menos 2 minutos, mute,
 alto-falante, troca de rede e encerramento. O usuário optou por fazer os testes
 na aplicação publicada. Nenhuma conta real foi usada nos testes automatizados.
 
-Sem a chave TURN da conta, a rota de retransmissão não está ativada nem validada.
+Sem as credenciais TURN do provedor configuradas, a retransmissão não está ativada.
 Nenhuma migration, política RLS ou Edge Function foi alterada nesta correção.

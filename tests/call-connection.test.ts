@@ -1,7 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CallNegotiator, CallRecovery } from "../lib/call-connection";
-import { issueCallIceConfig } from "../lib/call-ice";
+import { issueCallIceConfig, resolveCallIceConfig } from "../lib/call-ice";
+
+test("Metered uses configured credentials with UDP, TCP and TLS routes", async () => {
+  const result = await resolveCallIceConfig({
+    meteredUsername: "test-user",
+    meteredCredential: "test-credential",
+    cloudflareKeyId: "unused",
+  });
+  assert.equal(result.relayAvailable, true);
+  assert.equal(result.iceServers[1].username, "test-user");
+  assert.equal(result.iceServers[1].credential, "test-credential");
+  assert.deepEqual(result.iceServers[1].urls, [
+    "turn:global.relay.metered.ca:80",
+    "turn:global.relay.metered.ca:80?transport=tcp",
+    "turn:global.relay.metered.ca:443",
+    "turns:global.relay.metered.ca:443?transport=tcp",
+  ]);
+});
+
+test("partial Metered configuration does not silently revert to STUN", async () => {
+  await assert.rejects(
+    resolveCallIceConfig({ meteredUsername: "test-user" }),
+    /incompleta/,
+  );
+  await assert.rejects(
+    resolveCallIceConfig({ meteredCredential: "test-credential" }),
+    /incompleta/,
+  );
+  assert.equal((await resolveCallIceConfig({})).relayAvailable, false);
+});
 
 type FakePeerState = {
   localDescription: RTCSessionDescriptionInit | null;

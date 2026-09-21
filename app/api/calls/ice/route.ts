@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
-import { issueCallIceConfig, type CallIceConfig } from "@/lib/call-ice";
+import { resolveCallIceConfig, type CallIceConfig } from "@/lib/call-ice";
 
 export const runtime = "nodejs";
 const cache = new Map<
@@ -71,10 +71,12 @@ export async function POST(req: Request) {
       if (cache.size >= 256) cache.delete(cache.keys().next().value!);
       item = {
         until: Date.now() + 300000,
-        config: issueCallIceConfig(
-          process.env.TURN_KEY_ID,
-          process.env.TURN_KEY_API_TOKEN,
-        ),
+        config: resolveCallIceConfig({
+          meteredUsername: process.env.METERED_TURN_USERNAME,
+          meteredCredential: process.env.METERED_TURN_CREDENTIAL,
+          cloudflareKeyId: process.env.TURN_KEY_ID,
+          cloudflareApiToken: process.env.TURN_KEY_API_TOKEN,
+        }),
       };
       cache.set(key, item);
     }

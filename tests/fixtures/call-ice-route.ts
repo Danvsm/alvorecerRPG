@@ -7,6 +7,8 @@ async function main() {
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "public-test-key";
   delete process.env.TURN_KEY_ID;
   delete process.env.TURN_KEY_API_TOKEN;
+  delete process.env.METERED_TURN_USERNAME;
+  delete process.env.METERED_TURN_CREDENTIAL;
   const callId = "11111111-1111-4111-8111-111111111111";
   let allowCall = true;
   let validUser = true;

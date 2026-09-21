@@ -8,6 +8,37 @@ export type CallIceConfig = {
   relayAvailable: boolean;
 };
 
+export async function resolveCallIceConfig(config: {
+  meteredUsername?: string;
+  meteredCredential?: string;
+  cloudflareKeyId?: string;
+  cloudflareApiToken?: string;
+}): Promise<CallIceConfig> {
+  const username = config.meteredUsername?.trim();
+  const credential = config.meteredCredential?.trim();
+  if (username || credential) {
+    if (!username || !credential)
+      throw new Error("Configuração Metered TURN incompleta.");
+    return {
+      relayAvailable: true,
+      iceServers: [
+        { urls: "stun:stun.relay.metered.ca:80" },
+        {
+          urls: [
+            "turn:global.relay.metered.ca:80",
+            "turn:global.relay.metered.ca:80?transport=tcp",
+            "turn:global.relay.metered.ca:443",
+            "turns:global.relay.metered.ca:443?transport=tcp",
+          ],
+          username,
+          credential,
+        },
+      ],
+    };
+  }
+  return issueCallIceConfig(config.cloudflareKeyId, config.cloudflareApiToken);
+}
+
 /** Called only by the server route. The long-lived token never leaves it. */
 export async function issueCallIceConfig(
   keyId: string | undefined,
