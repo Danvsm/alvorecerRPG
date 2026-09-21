@@ -1,0 +1,209 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(111 29 45 / 0.2), transparent 34%),
+    rgb(5 5 8 / 0.88);
+  backdrop-filter: blur(16px);
+}
+
+.call {
+  width: min(390px, 100%);
+  min-height: 520px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 24px;
+  padding: 24px 22px 28px;
+  border: 1px solid rgb(134 88 72 / 0.34);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgb(24 18 22 / 0.98), rgb(12 12 16 / 0.99)),
+    #0d0d11;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.5);
+  color: #f5f1ec;
+}
+
+.topline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #bb9b79;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.identity {
+  align-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.identity h2,
+.identity p {
+  margin: 0;
+}
+
+.identity h2 {
+  margin-top: 8px;
+  font-size: clamp(1.55rem, 6vw, 2rem);
+  letter-spacing: -0.03em;
+}
+
+.identity p {
+  min-height: 22px;
+  color: #aaa2a5;
+  font-size: 0.94rem;
+}
+
+.error {
+  margin: -12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(160 57 74 / 0.42);
+  border-radius: 12px;
+  background: rgb(77 18 29 / 0.28);
+  color: #f0b6c0;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.audioResume {
+  justify-self: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #6d553d;
+  border-radius: 999px;
+  background: #201810;
+  color: #e2bf8a;
+}
+
+.ringingActions,
+.activeActions {
+  align-self: end;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 24px;
+}
+
+.ringingActions button,
+.activeActions button {
+  border: 0;
+  box-shadow: none;
+}
+
+.ringingActions button {
+  width: 88px;
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  padding: 0;
+  background: transparent;
+  color: #ded8d3;
+}
+
+.ringingActions button svg {
+  width: 62px;
+  height: 62px;
+  padding: 18px;
+  border-radius: 50%;
+}
+
+.ringingActions button span,
+.activeActions button span {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.decline svg,
+.hangup svg {
+  background: #7e1f31;
+  color: #fff;
+}
+
+.accept svg {
+  background: #2d7a50;
+  color: #fff;
+}
+
+.activeActions {
+  gap: 12px;
+}
+
+.control,
+.controlActive,
+.hangup {
+  min-width: 88px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  color: #c9c3c0;
+}
+
+.control svg,
+.controlActive svg,
+.hangup svg {
+  width: 54px;
+  height: 54px;
+  padding: 15px;
+  border-radius: 50%;
+}
+
+.control svg {
+  background: #25252b;
+}
+
+.controlActive svg {
+  background: #4a3440;
+  color: #f0c0ca;
+}
+
+.hangup svg {
+  width: 60px;
+  height: 60px;
+  padding: 18px;
+}
+
+.finished {
+  align-self: end;
+  min-height: 70px;
+  display: grid;
+  place-items: center;
+  color: #8f888b;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .call {
+    width: 100%;
+    min-height: 100%;
+    border: 0;
+    border-radius: 0;
+    padding:
+      max(24px, env(safe-area-inset-top))
+      20px
+      max(28px, env(safe-area-inset-bottom));
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop {
+    backdrop-filter: none;
+  }
+}
