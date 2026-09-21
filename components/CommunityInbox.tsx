@@ -282,6 +282,39 @@ export default function CommunityInbox({
       </header>
 
       <div className={styles.inboxList}>
+        <button
+          type="button"
+          className={styles.inboxRow + " " + styles.inboxGroupRow}
+          onClick={() => openConversation("__bar-do-pink__")}
+        >
+          <span className={styles.inboxAvatar + " " + styles.inboxGroupAvatar}>
+            <Users aria-hidden="true" />
+          </span>
+
+          <span className={styles.inboxRowText}>
+            <strong>{String(group?.name || "Bar do Pink")}</strong>
+            <small className={styles.inboxLastMessage}>
+              {group?.latest_body
+                ? (String(group.latest_sender_id) === actor
+                    ? "Você"
+                    : identities.find(
+                        (identity) =>
+                          String(identity.id) ===
+                          String(group.latest_sender_id),
+                      )?.name || "Jogador") +
+                  ": " +
+                  String(group.latest_body)
+                : String(Number(group?.member_count || 0)) + " participantes"}
+            </small>
+          </span>
+
+          {group?.latest_created_at && (
+            <time dateTime={String(group.latest_created_at)}>
+              {conversationTime(String(group.latest_created_at))}
+            </time>
+          )}
+        </button>
+
         {contacts.map(({ identity, conversation, latest, activityAt, online }) => {
           const lastMessage = latest?.media_id
             ? inboxMediaType(latest) === "audio"
