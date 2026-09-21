@@ -586,3 +586,15 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Nenhuma migration adicional foi necessária.
 - Teste de integração atualizado para exigir ownership por aba e a proteção de `signalingState`.
 - Validação manual pendente: atualizar as páginas nos dois aparelhos, iniciar nova chamada darkvsm → Pink, atender apenas em um dispositivo Pink e confirmar que a chamada permanece ativa com áudio nos dois sentidos.
+
+
+## Diagnóstico de rede e permissão de microfone — 21/09/2026
+
+- As duas tentativas mais recentes após a correção de SDP permaneceram ativas por aproximadamente 16 segundos depois de atendidas e terminaram com `Falha na conexão WebRTC`. Isso confirma que a negociação SDP deixou de ser o gargalo; o problema atual está na conectividade ICE entre os aparelhos.
+- O MVP continua usando apenas STUN. Quando os peers não conseguem abrir rota direta, é necessário um servidor TURN para retransmitir o áudio.
+- `VoiceCall.tsx` agora diferencia falha de conexão direta sem candidato relay e registra `A rede bloqueou a conexão direta. Servidor TURN necessário.` em vez da mensagem genérica.
+- A coleta ICE passa a registrar se algum candidato do tipo `relay` foi obtido. Quando TURN for configurado, falhas posteriores continuam usando o diagnóstico genérico para não culpar a rede direta incorretamente.
+- O acesso ao microfone foi tornado explícito: ao atender, a interface informa que o navegador solicitará acesso ao microfone; `getUserMedia` continua sendo chamado diretamente a partir da ação do usuário e erros de permissão, ausência ou indisponibilidade do microfone recebem mensagens específicas.
+- O navegador só mostra o prompt nativo quando a permissão ainda está em estado de solicitação. Se o usuário já concedeu ou negou anteriormente, o navegador pode reutilizar essa decisão e não mostrar o prompt novamente.
+- Ainda falta configurar TURN. A documentação oficial do Open Relay/Metered informa que TURN é necessário quando a conexão direta WebRTC não pode ser estabelecida e oferece obtenção de `iceServers` por API. A integração deve usar credencial própria antes de ser considerada concluída.
+- Nenhuma migration foi necessária nesta correção.
