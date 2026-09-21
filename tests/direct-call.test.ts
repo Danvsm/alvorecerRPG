@@ -73,3 +73,31 @@ test("chat integrates WebRTC voice calls and high priority call push", async () 
   assert.match(push, /payload\.kind === "call"/);
   assert.match(worker, /payload\.kind === "call"/);
 });
+
+
+test("master community archives include finished voice calls", async () => {
+  const [archive, migration] = await Promise.all([
+    readFile(new URL("../components/CommunityArchives.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921190046_master_direct_call_archive.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(archive, /master_direct_call_archive/);
+  assert.match(archive, /Chamadas/);
+  assert.match(archive, /duration_seconds/);
+  assert.match(migration, /public\.master_direct_call_archive/);
+  assert.match(migration, /public\.is_master\(c\)/);
+  assert.match(
+    migration,
+    /'ended','declined','cancelled','missed','failed'/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.master_direct_call_archive\(uuid\) to authenticated/,
+  );
+});
