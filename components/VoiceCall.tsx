@@ -120,6 +120,8 @@ const VoiceCall = forwardRef<
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
+  const peerPromiseRef = useRef<Promise<RTCPeerConnection> | null>(null);
+  const signalQueueRef = useRef<Promise<void>>(Promise.resolve());
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const processedSignalsRef = useRef<Set<number>>(new Set());
@@ -151,6 +153,8 @@ const VoiceCall = forwardRef<
       }
       peerRef.current?.close();
       peerRef.current = null;
+      peerPromiseRef.current = null;
+      signalQueueRef.current = Promise.resolve();
       remoteStreamRef.current = null;
       pendingCandidatesRef.current = [];
       processedSignalsRef.current.clear();
@@ -242,17 +246,24 @@ const VoiceCall = forwardRef<
 
   const ensurePeer = useCallback(async () => {
     if (peerRef.current) return peerRef.current;
+    if (peerPromiseRef.current) return peerPromiseRef.current;
 
-    const target = callRef.current;
-    if (!target || target.status !== "active") {
-      throw new Error("A chamada ainda não está ativa.");
-    }
+    const operation = (async () => {
+      const target = callRef.current;
+      if (!target || target.status !== "active") {
+        throw new Error("A chamada ainda não está ativa.");
+      }
 
-    const localStream = await prepareLocalMedia();
-    const peer = new RTCPeerConnection({
-      iceServers: ICE_SERVERS,
-      iceCandidatePoolSize: 2,
-    });
+      const localStream = await prepareLocalMedia();
+      const current = callRef.current;
+      if (!current || current.id !== target.id || current.status !== "active") {
+        throw new Error("A chamada não está mais ativa.");
+      }
+
+      const peer = new RTCPeerConnection({
+        iceServers: ICE_SERVERS,
+        iceCandidatePoolSize: 2,
+      });
 
     for (const track of localStream.getTracks()) {
       peer.addTrack(track, localStream);
@@ -324,8 +335,18 @@ const VoiceCall = forwardRef<
       }
     };
 
-    peerRef.current = peer;
-    return peer;
+      peerRef.current = peer;
+      return peer;
+    })();
+
+    peerPromiseRef.current = operation;
+    try {
+      return await operation;
+    } finally {
+      if (peerPromiseRef.current === operation) {
+        peerPromiseRef.current = null;
+      }
+    }
   }, [failCall, prepareLocalMedia, sendSignal]);
 
   const drainCandidates = useCallback(async (peer: RTCPeerConnection) => {
@@ -339,7 +360,7 @@ const VoiceCall = forwardRef<
     }
   }, []);
 
-  const processSignal = useCallback(
+  const processSignalNow = useCallback(
     async (signal: CallSignal) => {
       if (processedSignalsRef.current.has(signal.id)) return;
       processedSignalsRef.current.add(signal.id);
@@ -384,11 +405,21 @@ const VoiceCall = forwardRef<
           else pendingCandidatesRef.current.push(candidate);
         }
       } catch (reason) {
-        setError(readableErrorMessage(reason));
-        void failCall("Falha durante a negociação da chamada");
+        const detail = readableErrorMessage(reason);
+        setError(detail);
+        void failCall(`Falha na negociação: ${detail}`);
       }
     },
     [actor, drainCandidates, ensurePeer, failCall, sendSignal],
+  );
+
+  const processSignal = useCallback(
+    (signal: CallSignal) => {
+      const queued = signalQueueRef.current.then(() => processSignalNow(signal));
+      signalQueueRef.current = queued.catch(() => undefined);
+      return queued;
+    },
+    [processSignalNow],
   );
 
   const notifyIncomingCall = useCallback(
