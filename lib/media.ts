@@ -56,6 +56,19 @@ export async function uploadAvatarImage(file: File, campaign: string) {
   return path;
 }
 
+export async function uploadGroupAvatarImage(file: File, campaign: string) {
+  const blob = await optimizedWebp(file, 512);
+  const path = `${campaign}/groups/${crypto.randomUUID()}.webp`;
+  const { error } = await browserDb()
+    .storage.from("group-avatars")
+    .upload(path, blob, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+    });
+  if (error) throw error;
+  return path;
+}
+
 export async function uploadFrameImage(file: File, campaign: string) {
   if (
     file.size > 8 * 1024 * 1024 ||
