@@ -534,7 +534,7 @@ export default function DirectChat({
       ),
     ]).then(async ([c, r, presence, groupResult]) => {
       if (!valid) return;
-      const failed = [c, r, presence, groupResult].find((x) => x.error);
+      const failed = [c, r, presence].find((x) => x.error);
       if (failed?.error) {
         setError(readableErrorMessage(failed.error));
         return;
@@ -542,7 +542,42 @@ export default function DirectChat({
 
       const nextConversations = c.data || [];
       setConversations(nextConversations);
-      setGroup((groupResult.data || null) as Row | null);
+
+      let nextGroup = groupResult.error
+        ? null
+        : ((groupResult.data || null) as Row | null);
+
+      if (!nextGroup?.id) {
+        const fallbackGroup = await retryNetworkRead(() =>
+          browserDb()
+            .from("campaign_group_chats")
+            .select("id,name")
+            .eq("campaign_id", campaign)
+            .maybeSingle(),
+        );
+
+        if (fallbackGroup.data?.id) {
+          nextGroup = {
+            ...fallbackGroup.data,
+            name: fallbackGroup.data.name || "Bar do Pink",
+            member_count: identities.filter(
+              (identity) =>
+                identity.active &&
+                identity.user_id &&
+                ["player", "master"].includes(String(identity.kind)),
+            ).length,
+            unread: 0,
+            latest_id: null,
+            latest_sender_id: null,
+            latest_body: null,
+            latest_created_at: null,
+          };
+        } else if (groupResult.error && fallbackGroup.error) {
+          setError(readableErrorMessage(groupResult.error));
+        }
+      }
+
+      if (valid) setGroup(nextGroup);
       setUnread(Number(r.data || 0));
       setOnlineUserIds(
         new Set(
@@ -1118,7 +1153,7 @@ export default function DirectChat({
                 <strong>
                   {selected
                     ? selectedGroup
-                      ? String(group?.name || "Grupo Geral")
+                      ? String(group?.name || "Bar do Pink")
                       : selectedPeerName
                     : actorIdentity?.name || "Mensagens"}
                 </strong>
@@ -1207,7 +1242,7 @@ export default function DirectChat({
                   </span>
 
                   <span className="chat-contact-copy">
-                    <strong>{String(group.name || "Grupo Geral")}</strong>
+                    <strong>{String(group.name || "Bar do Pink")}</strong>
                     <small>
                       {group.latest_body ? (
                         <>
