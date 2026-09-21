@@ -440,6 +440,28 @@
   padding: 14px 18px 11px;
 }
 
+.feedAuthorAvatarButton {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  place-items: center;
+  cursor: pointer;
+}
+
+.feedAuthorAvatarButton:hover,
+.feedAuthorAvatarButton:focus-visible {
+  border: 0;
+  background: transparent;
+  box-shadow: 0 0 0 2px #c98a4b42;
+  transform: scale(1.035);
+}
+
 .feedAuthor > span:nth-child(2) {
   display: grid;
   min-width: 0;
@@ -2525,6 +2547,29 @@ dialog.commentsSheet {
 .commentReply {
   margin-left: 46px;
   padding-top: 10px;
+}
+
+.commentAuthorAvatarButton {
+  display: grid;
+  width: fit-content;
+  height: fit-content;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  place-items: center;
+  cursor: pointer;
+}
+
+.commentAuthorAvatarButton:hover,
+.commentAuthorAvatarButton:focus-visible {
+  border: 0;
+  background: transparent;
+  box-shadow: 0 0 0 2px #c98a4b38;
+  transform: scale(1.04);
 }
 
 .commentBody {
