@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Archive, Clock, Images, LoaderCircle, PhoneCall } from "lucide-react";
+import { Archive, Clock, Images, LoaderCircle, PhoneCall, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -53,6 +53,8 @@ type ArchivedCall = Row & {
   duration_seconds: number;
 };
 
+type ArchiveDeleteType = "call" | "chat_media" | "post";
+
 const dateTime = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "2-digit",
@@ -94,6 +96,7 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
   const [postUrls, setPostUrls] = useState<Record<string, string>>({});
   const [chatUrls, setChatUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState("");
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
@@ -197,6 +200,59 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
     return () => window.clearInterval(interval);
   }, []);
 
+  const deleteArchivedItem = async (
+    type: ArchiveDeleteType,
+    id: string,
+    label: string,
+  ) => {
+    if (deleting) return;
+    if (
+      !window.confirm(
+        `Excluir definitivamente ${label}? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+
+    const key = `${type}:${id}`;
+    setDeleting(key);
+    setError("");
+
+    try {
+      const response = await browserDb().rpc("master_archive_delete", {
+        c: campaign,
+        item_type: type,
+        target_id: id,
+      });
+
+      if (response.error) {
+        setError(readableErrorMessage(response.error));
+        return;
+      }
+
+      if (type === "call") {
+        setCalls((current) => current.filter((item) => item.id !== id));
+      } else if (type === "chat_media") {
+        setChatPhotos((current) => current.filter((item) => item.id !== id));
+        setChatUrls((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+      } else {
+        setPosts((current) => current.filter((item) => item.id !== id));
+        setPostUrls((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+      }
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setDeleting("");
+    }
+  };
+
   return (
     <section className={styles.archives} aria-labelledby="archives-title">
       <div className={styles.archivesHeading}>
@@ -294,6 +350,25 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
                     <em>
                       <Clock aria-hidden="true" /> Salva no histórico de chamadas
                     </em>
+                    <button
+                      type="button"
+                      className={styles.archiveDeleteButton}
+                      disabled={Boolean(deleting)}
+                      onClick={() =>
+                        void deleteArchivedItem(
+                          "call",
+                          call.id,
+                          `a chamada entre ${call.caller_name} e ${call.callee_name}`,
+                        )
+                      }
+                    >
+                      {deleting === `call:${call.id}` ? (
+                        <LoaderCircle aria-hidden="true" />
+                      ) : (
+                        <Trash2 aria-hidden="true" />
+                      )}
+                      Excluir definitivamente
+                    </button>
                   </div>
                 </article>
               ))}
@@ -364,6 +439,25 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
                       <Clock aria-hidden="true" /> Arquivo expira em{" "}
                       {remainingTime(photo.archive_expires_at, now)}
                     </em>
+                    <button
+                      type="button"
+                      className={styles.archiveDeleteButton}
+                      disabled={Boolean(deleting)}
+                      onClick={() =>
+                        void deleteArchivedItem(
+                          "chat_media",
+                          photo.id,
+                          `a foto enviada por ${photo.sender_name}`,
+                        )
+                      }
+                    >
+                      {deleting === `chat_media:${photo.id}` ? (
+                        <LoaderCircle aria-hidden="true" />
+                      ) : (
+                        <Trash2 aria-hidden="true" />
+                      )}
+                      Excluir definitivamente
+                    </button>
                   </div>
                 </article>
               ))}
@@ -433,6 +527,25 @@ export default function CommunityArchives({ campaign }: { campaign: string }) {
                       <Clock aria-hidden="true" /> Exclusão definitiva em{" "}
                       {remainingTime(post.expires_at, now)}
                     </em>
+                    <button
+                      type="button"
+                      className={styles.archiveDeleteButton}
+                      disabled={Boolean(deleting)}
+                      onClick={() =>
+                        void deleteArchivedItem(
+                          "post",
+                          post.id,
+                          `a publicação de ${post.author_name}`,
+                        )
+                      }
+                    >
+                      {deleting === `post:${post.id}` ? (
+                        <LoaderCircle aria-hidden="true" />
+                      ) : (
+                        <Trash2 aria-hidden="true" />
+                      )}
+                      Excluir definitivamente
+                    </button>
                   </div>
                 </article>
               ))}
