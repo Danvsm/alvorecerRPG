@@ -589,44 +589,132 @@ export default function DirectChat({
   useEffect(() => {
     if (!selected || !open) return;
     let valid = true;
-    browserDb()
-      .from("direct_messages")
-      .select("*,chat_media(media_type)")
-      .eq("conversation_id", selected)
-      .order("created_at", { ascending: false })
-      .limit(limit)
-      .then(async (r) => {
+    const isGroup = Boolean(group?.id && String(group.id) === selected);
+
+    if (isGroup) {
+      retryNetworkRead(() =>
+        browserDb().rpc("campaign_group_messages", {
+          c: campaign,
+          actor_id: actor,
+          page_size: limit,
+        }),
+      ).then(async (result) => {
         if (!valid) return;
-        if (r.error) {
-          setError(readableErrorMessage(r.error));
+        if (result.error) {
+          setError(readableErrorMessage(result.error));
           return;
         }
-        setMessages((r.data || []).reverse());
-        if (
-          conversations.some(
-            (c) =>
-              c.id === selected && [c.first_id, c.second_id].includes(actor),
-          )
-        ) {
-          try {
-            await action("read", { conversation_id: selected });
-            const unreadResult = await retryNetworkRead(() =>
-              browserDb().rpc("unread_messages", {
-                c: campaign,
-                actor,
-              }),
-            );
-            if (!unreadResult.error && valid)
-              setUnread(Number(unreadResult.data || 0));
-          } catch (e) {
-            setError(readableErrorMessage(e));
-          }
+        setMessages(((result.data || []) as Row[]).reverse());
+
+        const readResult = await browserDb().rpc("campaign_group_action", {
+          c: campaign,
+          actor_id: actor,
+          op: "read",
+          message_body: null,
+        });
+        if (readResult.error) {
+          setError(readableErrorMessage(readResult.error));
+          return;
+        }
+
+        const unreadResult = await retryNetworkRead(() =>
+          browserDb().rpc("unread_messages", { c: campaign, actor }),
+        );
+        if (!unreadResult.error && valid) {
+          setUnread(Number(unreadResult.data || 0));
+          setGroup((current) =>
+            current ? { ...current, unread: 0 } : current,
+          );
         }
       });
+    } else {
+      browserDb()
+        .from("direct_messages")
+        .select("*,chat_media(media_type)")
+        .eq("conversation_id", selected)
+        .order("created_at", { ascending: false })
+        .limit(limit)
+        .then(async (r) => {
+          if (!valid) return;
+          if (r.error) {
+            setError(readableErrorMessage(r.error));
+            return;
+          }
+          setMessages((r.data || []).reverse());
+          if (
+            conversations.some(
+              (c) =>
+                c.id === selected && [c.first_id, c.second_id].includes(actor),
+            )
+          ) {
+            try {
+              await action("read", { conversation_id: selected });
+              const unreadResult = await retryNetworkRead(() =>
+                browserDb().rpc("unread_messages", {
+                  c: campaign,
+                  actor,
+                }),
+              );
+              if (!unreadResult.error && valid)
+                setUnread(Number(unreadResult.data || 0));
+            } catch (e) {
+              setError(readableErrorMessage(e));
+            }
+          }
+        });
+    }
+
     return () => {
       valid = false;
     };
-  }, [selected, open, actor, revision, refresh, limit, conversations]);
+  }, [
+    selected,
+    open,
+    actor,
+    campaign,
+    revision,
+    refresh,
+    limit,
+    conversations,
+    group?.id,
+  ]);
+  useEffect(() => {
+    if (!group?.id) return;
+    const db = browserDb();
+    const channel = db
+      .channel(`campaign-group:${group.id}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "campaign_group_messages",
+          filter: `group_id=eq.${group.id}`,
+        },
+        (payload) => {
+          const message = payload.new as Row;
+          if (String(group.id) === selected) {
+            setMessages((current) => {
+              if (current.some((item) => item.id === message.id)) return current;
+              return [...current, message].slice(-200);
+            });
+            void browserDb().rpc("campaign_group_action", {
+              c: campaign,
+              actor_id: actor,
+              op: "read",
+              message_body: null,
+            });
+          }
+          setRefresh((value) => value + 1);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void db.removeChannel(channel);
+    };
+  }, [actor, campaign, group?.id, selected]);
+
   useEffect(() => {
     setMessages([]);
     setEmojiOpen(false);
