@@ -572,3 +572,17 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Nenhuma migration nova foi necessária.
 - Teste estático de integração atualizado em `tests/direct-call.test.ts` para exigir a trava de criação e a fila de sinalização.
 - Validação manual pendente: repetir Pink → darkvsm, atender e confirmar áudio nos dois sentidos. Se ainda falhar, consultar `failure_reason` da tentativa nova antes de alterar TURN ou outras camadas.
+
+
+## Correção de respostas SDP duplicadas — 21/09/2026
+
+- O erro real reproduzido no aparelho foi: `Failed to set remote answer sdp: Called in wrong state: stable`.
+- As chamadas afetadas confirmaram que o chamador era darkvsm e que a falha acontecia logo após Pink atender.
+- A causa foi isolada no modelo multiaba/multidispositivo: todas as sessões autenticadas como o destinatário observavam a mesma chamada ativa e podiam negociar WebRTC, mesmo que somente uma delas tivesse recebido o toque em `Atender`. Isso podia gerar mais de uma resposta SDP para a mesma oferta; depois da primeira resposta colocar o peer em `stable`, a seguinte falhava exatamente com o erro observado.
+- Cada chamada agora fica vinculada à aba que a iniciou e, no lado receptor, somente à aba em que o usuário tocou em `Atender`. Outras abas/dispositivos com a mesma conta deixam de participar da negociação daquela chamada.
+- A vinculação usa um identificador por aba em `sessionStorage` e um dono por chamada em `localStorage`. O chamador reivindica a chamada ao iniciar; o receptor reivindica somente ao atender.
+- A assinatura de sinais e o início da negociação WebRTC só são executados pela aba dona da chamada.
+- Também foi adicionada defesa de protocolo: respostas SDP só são aplicadas em `have-local-offer`, e ofertas extras são ignoradas depois que uma descrição remota já foi estabelecida.
+- Nenhuma migration adicional foi necessária.
+- Teste de integração atualizado para exigir ownership por aba e a proteção de `signalingState`.
+- Validação manual pendente: atualizar as páginas nos dois aparelhos, iniciar nova chamada darkvsm → Pink, atender apenas em um dispositivo Pink e confirmar que a chamada permanece ativa com áudio nos dois sentidos.
