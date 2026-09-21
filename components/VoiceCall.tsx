@@ -19,6 +19,7 @@ import {
 } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
+import { playAlvorecerSound } from "@/lib/site-sounds";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import styles from "./VoiceCall.module.css";
@@ -684,6 +685,14 @@ const VoiceCall = forwardRef<
   const incoming = Boolean(
     call && call.status === "ringing" && call.callee_id === actor,
   );
+
+  useEffect(() => {
+    if (!call || call.status !== "ringing" || call.callee_id !== actor) return;
+    void playAlvorecerSound("notification");
+    if ("vibrate" in navigator) {
+      navigator.vibrate([180, 80, 180, 80, 260]);
+    }
+  }, [actor, call?.id, call?.status]);
 
   const statusText = useMemo(() => {
     if (!call) return "";
