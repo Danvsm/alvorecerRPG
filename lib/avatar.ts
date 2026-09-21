@@ -11,7 +11,28 @@ type SocialIdentity = {
 };
 
 export type AvatarPolicyOperation =
-  "block" | "unblock" | "share" | "unshare" | "exclusive" | "clear_exclusive";
+  | "block"
+  | "unblock"
+  | "share"
+  | "unshare"
+  | "exclusive"
+  | "clear_exclusive"
+  | "archive"
+  | "reactivate"
+  | "disable"
+  | "enable"
+  | `rarity:${string}`;
+
+export const avatarRarityLabels: Record<string, string> = {
+  common: "Comum",
+  uncommon: "Incomum",
+  rare: "Rara",
+  epic: "Épica",
+  legendary: "Lendária",
+  event: "Evento",
+  supporter: "Apoiador",
+  master: "Mestre",
+};
 
 export const avatarStateLabels: Record<string, string> = {
   available: "Disponível",
@@ -20,6 +41,7 @@ export const avatarStateLabels: Record<string, string> = {
   exclusive: "Exclusivo",
   shared: "Compartilhável",
   archived: "Arquivado",
+  disabled: "Desativado",
 };
 
 export function avatarSelectableFor(
@@ -31,6 +53,9 @@ export function avatarSelectableFor(
     exclusive_user_id?: string | null;
     usage?: Array<{ user_id?: string }>;
     occupied_by_other?: boolean;
+    archived_at?: string | null;
+    chest_only?: boolean;
+    owned?: boolean;
   },
   targetUserId?: string | null,
   targetIsMaster = false,
@@ -40,6 +65,7 @@ export function avatarSelectableFor(
   if (!avatar.active) return false;
   if (targetIsMaster || !targetUserId) return true;
   if (avatar.blocked) return false;
+  if ((avatar.archived_at || avatar.chest_only) && !avatar.owned) return false;
   if (avatar.exclusive_user_id && avatar.exclusive_user_id !== targetUserId)
     return false;
   if (avatar.shared) return true;

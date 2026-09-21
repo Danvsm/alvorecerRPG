@@ -11,11 +11,13 @@ import {
   UnlockKeyhole,
   Share2,
   UserRoundCheck,
+  Power,
 } from "lucide-react";
 import { useState } from "react";
 import type { Row } from "@/lib/types";
 import {
   avatarSelectableFor,
+  avatarRarityLabels,
   avatarStateLabels,
   type AvatarPolicyOperation,
 } from "@/lib/avatar";
@@ -44,7 +46,7 @@ export default function AvatarGallery({
   compact?: boolean;
   busy: boolean;
   onSelect?: (id: string) => Promise<void>;
-  onUpload?: (file: File, name: string) => Promise<void>;
+  onUpload?: (file: File, name: string, rarity: string) => Promise<void>;
   onRename?: (avatar: Row) => void;
   onArchive?: (avatar: Row) => Promise<void>;
   onDelete?: (avatar: Row) => Promise<void>;
@@ -111,7 +113,7 @@ export default function AvatarGallery({
             setUploadError("");
             if (!(file instanceof File) || !file.size || !name) return;
             try {
-              await onUpload(file, name);
+              await onUpload(file, name, String(values.get("avatarRarity") || "common"));
               form.reset();
             } catch (error) {
               setUploadError((error as Error).message);
@@ -137,6 +139,19 @@ export default function AvatarGallery({
               accept="image/webp,image/png,image/jpeg"
               disabled={busy}
             />
+          </label>
+          <label>
+            Raridade
+            <select name="avatarRarity" defaultValue="common" disabled={busy}>
+              <option value="common">Comum</option>
+              <option value="uncommon">Incomum</option>
+              <option value="rare">Rara</option>
+              <option value="epic">Épica</option>
+              <option value="legendary">Lendária</option>
+              <option value="event">Evento</option>
+              <option value="supporter">Apoiador</option>
+              <option value="master">Mestre</option>
+            </select>
           </label>
           <button type="submit" className="primary" disabled={busy}>
             <ImagePlus size={17} /> Cadastrar avatar
@@ -219,6 +234,10 @@ export default function AvatarGallery({
               <span className={`avatar-state ${state}`}>
                 {avatarStateLabels[state] || state}
               </span>
+              <small className="avatar-rarity">
+                {avatarRarityLabels[avatar.rarity] || avatar.rarity || "Comum"}
+                {avatar.chest_only ? " · Baú" : ""}
+              </small>
               {manager && usage.length > 0 && (
                 <small className="avatar-usage">
                   Em uso por:{" "}
@@ -318,12 +337,25 @@ export default function AvatarGallery({
                       disabled={busy}
                       onClick={() => onArchive?.(avatar)}
                     >
-                      {avatar.active ? (
+                      {!avatar.archived_at ? (
                         <Archive size={15} />
                       ) : (
                         <RotateCcw size={15} />
                       )}
-                      {avatar.active ? "Arquivar" : "Reativar"}
+                      {!avatar.archived_at ? "Arquivar" : "Reativar"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void onPolicy?.(
+                          avatar,
+                          avatar.active ? "disable" : "enable",
+                        )
+                      }
+                    >
+                      <Power size={15} />
+                      {avatar.active ? "Desativar para todos" : "Ativar uso"}
                     </button>
                     <button
                       type="button"

@@ -17,6 +17,7 @@ import {
   Lock,
   Moon,
   Pencil,
+  Power,
   RotateCcw,
   Shield,
   Sparkles,
@@ -654,7 +655,10 @@ export default function CosmeticsPanel({
           </button>
           {frames
             .filter(
-              (frame) => frame.active && !frame.archived_at && frame.visible,
+              (frame) =>
+                frame.active &&
+                ((ownedIds.has(frame.id) || frame.owned) ||
+                  (!frame.archived_at && frame.visible && !frame.chest_only)),
             )
             .map((frame) => {
               const owned = ownedIds.has(frame.id) || Boolean(frame.owned);
@@ -687,6 +691,7 @@ export default function CosmeticsPanel({
                   <small>
                     {equipped ? "Equipada" : owned ? "Disponível" : "Bloqueada"}
                   </small>
+                  {frame.archived_at && owned && <small>Arquivada · sua</small>}
                 </button>
               );
             })}
@@ -935,6 +940,21 @@ export default function CosmeticsPanel({
                         <Archive size={14} />
                       )}{" "}
                       {frame.archived_at ? "Reativar" : "Arquivar"}
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() =>
+                        run(
+                          frame.active ? "disable" : "enable",
+                          { frame_id: frame.id },
+                          frame.active
+                            ? "Moldura desativada para todos"
+                            : "Uso da moldura ativado",
+                        )
+                      }
+                    >
+                      <Power size={14} />{" "}
+                      {frame.active ? "Desativar para todos" : "Ativar uso"}
                     </button>
                     <button
                       disabled={busy}

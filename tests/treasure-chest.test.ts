@@ -27,6 +27,14 @@ const rewardDeleteMigration = () =>
     ),
     "utf8",
   );
+const legendaryExclusivityMigration = () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260921004852_legendary_chest_exclusivity.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
 
 test("chest rarity configuration totals exactly 100 percent", async () => {
   const sql = await migration();
@@ -135,6 +143,28 @@ test("only Pink can permanently remove a configured chest reward", async () => {
   assert.match(sql, /op='reward_delete'/);
   assert.match(sql, /delete from public\.chest_rewards/);
   assert.match(sql, /set chest_only=false/);
+});
+
+test("legendary chest cosmetics have one global owner and an explicit release flow", async () => {
+  const [sql, admin, gallery, avatarRules] = await Promise.all([
+    legendaryExclusivityMigration(),
+    readFile(new URL("../components/ChestAdmin.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/AvatarGallery.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/avatar.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(sql, /select \* into settings from public\.chest_settings where campaign_id=c for update/);
+  assert.match(sql, /set exclusive_user_id=auth\.uid\(\),shared=false/);
+  assert.match(sql, /set exclusive_identity_id=identity\.id/);
+  assert.match(sql, /claimed_by_identity_id=identity\.id/);
+  assert.match(sql, /op='reward_release'/);
+  assert.match(sql, /create unique index chest_rewards_campaign_avatar_unique/);
+  assert.match(sql, /create unique index chest_rewards_campaign_cosmetic_unique/);
+  assert.match(sql, /item_rarity:=d->>'rarity'/);
+  assert.match(admin, /A raridade vem da galeria do item/);
+  assert.match(admin, /Liberar novamente/);
+  assert.match(gallery, /Desativar para todos/);
+  assert.match(gallery, /name="avatarRarity"/);
+  assert.match(avatarRules, /disabled: "Desativado"/);
 });
 
 test("chest opening and gifting debit once and deliver rewards atomically", async () => {

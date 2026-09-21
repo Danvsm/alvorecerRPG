@@ -83,6 +83,7 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
   }
   const assets = type === "avatar" ? data?.avatars || [] : data?.frames || [];
   const chosen = assets.find((a: Row) => a.id === asset);
+  const itemRarity = chosen?.rarity || rarity;
   const rewards = useMemo(() => data?.rewards || [], [data?.rewards]);
   const rarityWeightTotals = useMemo(
     () =>
@@ -106,7 +107,9 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
         rewardType === "all" || reward.reward_type === rewardType;
       const matchesStatus =
         rewardStatus === "all" ||
-        (rewardStatus === "active" ? reward.active : !reward.active);
+        (rewardStatus === "active" && reward.active) ||
+        (rewardStatus === "paused" && !reward.active && !reward.claimed_at) ||
+        (rewardStatus === "claimed" && Boolean(reward.claimed_at));
       return matchesSearch && matchesRarity && matchesType && matchesStatus;
     });
   }, [rewardRarity, rewardSearch, rewardStatus, rewardType, rewards]);
@@ -120,7 +123,7 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
     const isValueReward = type === "xp" || type === "dracmas";
     if ((!isValueReward && !chosen) || (isValueReward && amount <= 0)) return;
     await act("reward_save", {
-      rarity,
+      rarity: itemRarity,
       reward_type: type,
       label: isValueReward
         ? `${amount.toLocaleString("pt-BR")} ${type === "xp" ? "XP" : "Dracmas"}`
@@ -283,13 +286,20 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
           )}
           <label className={styles.field}>
             Raridade do prêmio
-            <select value={rarity} onChange={(e) => setRarity(e.target.value)}>
+            <select
+              value={type === "frame" || type === "avatar" ? itemRarity : rarity}
+              disabled={type === "frame" || type === "avatar"}
+              onChange={(e) => setRarity(e.target.value)}
+            >
               {Object.entries(rarityNames).map(([k, v]) => (
                 <option value={k} key={k}>
                   {v}
                 </option>
               ))}
             </select>
+            {(type === "frame" || type === "avatar") && (
+              <small>A raridade vem da galeria do item.</small>
+            )}
           </label>
           <label className={styles.field}>
             Peso dentro da raridade
@@ -362,6 +372,7 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
               <option value="all">Todos</option>
               <option value="active">Ativos</option>
               <option value="paused">Pausados</option>
+              <option value="claimed">Conquistados</option>
             </select>
           </label>
         </div>
@@ -377,6 +388,12 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
               <small>
                 {rarityNames[r.rarity]} · peso {r.weight}
               </small>
+              {r.claimed_at && (
+                <small>
+                  Conquistado por {r.claimed_name || r.claimed_username} em{" "}
+                  {new Date(r.claimed_at).toLocaleDateString("pt-BR")}
+                </small>
+              )}
             </div>
             <div className={styles.rewardInfo}>
               <span className={styles.badge}>{typeNames[r.reward_type]}</span>
@@ -393,13 +410,22 @@ export default function ChestAdmin({ campaign }: { campaign: string }) {
             <div className={styles.rewardActions}>
               <button
                 className={styles.button}
-                disabled={busy}
+                disabled={busy || Boolean(r.claimed_at)}
                 onClick={() =>
                   act("reward_toggle", { id: r.id, active: !r.active })
                 }
               >
                 {r.active ? "Pausar" : "Ativar"}
               </button>
+              {r.claimed_at && r.rarity === "legendary" && (
+                <button
+                  className={styles.button}
+                  disabled={busy}
+                  onClick={() => act("reward_release", { id: r.id })}
+                >
+                  Liberar novamente
+                </button>
+              )}
               <button
                 className={styles.deleteButton}
                 disabled={busy}

@@ -792,7 +792,7 @@ export default function CommunityProfile({
   const titles = owned.filter((entry) => entry.kind === "title");
   const frames = owned.filter((entry) => {
     if (entry.kind !== "frame" || !entry.item) return false;
-    if (!entry.item.active || entry.item.archived_at) return false;
+    if (!entry.item.active) return false;
     if (identity.kind === "master") return true;
     if (entry.item.rarity === "master") return false;
     return (

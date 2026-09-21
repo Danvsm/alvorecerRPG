@@ -3270,14 +3270,19 @@ export default function Game({ invite }: { invite?: string }) {
                   urls={avatarUrls}
                   players={avatarPlayers}
                   busy={busy}
-                  onUpload={(file, name) =>
+                  onUpload={(file, name, rarity) =>
                     perform(async () => {
                       const path = await uploadAvatarImage(file, campaign);
                       try {
-                        await action("avatar", {
+                        const created = await action("avatar", {
                           name,
                           storage_path: path,
                         });
+                        await admin("avatar_policy", {
+                          avatarId: created.id,
+                          avatarOperation: `rarity:${rarity}`,
+                        });
+                        await load(campaign, true);
                       } catch (caught) {
                         const saved = await browserDb()
                           .from("campaign_avatars")
@@ -3294,7 +3299,7 @@ export default function Game({ invite }: { invite?: string }) {
                   }
                   onRename={(avatar) =>
                     setForm({
-                      title: "Editar nome do avatar",
+                      title: "Editar avatar",
                       fields: [
                         {
                           key: "name",
@@ -3302,23 +3307,47 @@ export default function Game({ invite }: { invite?: string }) {
                           required: true,
                           value: avatar.name,
                         },
+                        {
+                          key: "rarity",
+                          label: "Raridade",
+                          value: avatar.rarity || "common",
+                          options: [
+                            { id: "common", name: "Comum" },
+                            { id: "uncommon", name: "Incomum" },
+                            { id: "rare", name: "Rara" },
+                            { id: "epic", name: "Épica" },
+                            { id: "legendary", name: "Lendária" },
+                            { id: "event", name: "Evento" },
+                            { id: "supporter", name: "Apoiador" },
+                            { id: "master", name: "Mestre" },
+                          ],
+                        },
                       ],
                       submit: async (values) => {
                         await action("avatar", {
                           id: avatar.id,
                           name: values.name,
                         });
+                        if (values.rarity !== avatar.rarity)
+                          await admin("avatar_policy", {
+                            avatarId: avatar.id,
+                            avatarOperation: `rarity:${values.rarity}`,
+                          });
+                        await load(campaign, true);
                         setForm(null);
                       },
                     })
                   }
                   onArchive={(avatar) =>
-                    run(() =>
-                      action("avatar", {
-                        id: avatar.id,
-                        active: !avatar.active,
-                      }),
-                    )
+                    run(async () => {
+                      await admin("avatar_policy", {
+                        avatarId: avatar.id,
+                        avatarOperation: avatar.archived_at
+                          ? "reactivate"
+                          : "archive",
+                      });
+                      await load(campaign, true);
+                    })
                   }
                   onDelete={(avatar) =>
                     run(async () => {
