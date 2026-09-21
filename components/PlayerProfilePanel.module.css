@@ -1,0 +1,817 @@
+.profile {
+  position: relative;
+  width: min(100%, 860px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #5f49361f;
+  border-radius: 28px;
+  color: #f6eee6;
+  background:
+    radial-gradient(circle at 50% 0%, #3213175e, transparent 27rem),
+    linear-gradient(180deg, #09090bdc 0%, #0b0b0ded 46%, #090a0ce8 100%);
+  box-shadow:
+    0 30px 80px #0009,
+    inset 0 1px #ffffff05;
+  isolation: isolate;
+}
+
+.profile::after {
+  position: absolute;
+  z-index: -1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 230px;
+  background:
+    linear-gradient(180deg, transparent 0%, #08090ae8 78%),
+    url("/community/community-wallpaper.webp") 50% 88% / cover no-repeat;
+  content: "";
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.hero {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-height: 520px;
+  padding: 54px 28px 26px;
+  overflow: hidden;
+  background: url("/community/community-wallpaper.webp") 62% 31% / cover
+    no-repeat;
+}
+
+.heroShade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 20%, transparent 0 9rem, #09090b28 19rem),
+    linear-gradient(180deg, #08070835 0%, #08090bc7 60%, #09090bf8 100%);
+  pointer-events: none;
+}
+
+.avatarWrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+}
+
+.hero h1 {
+  position: relative;
+  z-index: 1;
+  max-width: 90%;
+  margin: 7px 0 0;
+  overflow: hidden;
+  color: #fff8ef;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-shadow: 0 5px 22px #000d;
+  white-space: nowrap;
+}
+
+.username {
+  position: relative;
+  z-index: 1;
+  margin: 7px 0 0;
+  color: #aaa3a1;
+  font-size: 1.02rem;
+  font-weight: 500;
+}
+
+.adventurer {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(620px, 92%);
+  grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-top: 25px;
+}
+
+.adventurer span {
+  position: relative;
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b97836);
+}
+
+.adventurer span:last-child {
+  background: linear-gradient(90deg, #b97836, transparent);
+}
+
+.adventurer span::after {
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #d3964e;
+  background: #120d0c;
+  content: "";
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.adventurer span:last-child::after {
+  right: auto;
+  left: -3px;
+}
+
+.adventurer strong {
+  color: #d7a163;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(0.72rem, 2vw, 0.88rem);
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.accountActions {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(680px, 100%);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.accountActions button {
+  display: grid;
+  min-height: 110px;
+  align-content: center;
+  justify-items: center;
+  gap: 13px;
+  padding: 14px 10px;
+  border: 1px solid #4f535b;
+  border-radius: 18px;
+  color: #f0eef0;
+  background: #111318c7;
+  box-shadow:
+    inset 0 1px #ffffff08,
+    0 8px 26px #0005;
+}
+
+.accountActions button:hover {
+  border-color: #777d86;
+  background: #181a20e5;
+}
+
+.accountActions button svg {
+  width: 26px;
+  height: 26px;
+}
+
+.accountActions button span {
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.accountActions .signOut {
+  border-color: #97263a;
+  color: #ff576b;
+  background: linear-gradient(145deg, #2b1117dd, #170d10e8);
+}
+
+.divider {
+  width: min(640px, calc(100% - 48px));
+  height: 28px;
+  margin: 3px auto;
+  background: url("/community/feed-composer-divider.webp") center / contain
+    no-repeat;
+  opacity: 0.88;
+}
+
+.section {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 18px 24px 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.sectionTitle {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.sectionEmblem {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  color: #d69a55;
+}
+
+.sectionEmblem svg {
+  width: 29px;
+  height: 29px;
+}
+
+.sectionTitle h2 {
+  margin: 0;
+  color: #fff6ed;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.55rem, 5vw, 2.15rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.sectionTitle p {
+  margin: 5px 0 0;
+  color: #9b989a;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.seeAll {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 3px;
+  padding: 0 2px;
+  border: 0;
+  color: #c8c2bc;
+  background: transparent;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.seeAll:hover {
+  border: 0;
+  color: #f0d4af;
+  background: transparent;
+}
+
+.seeAll svg {
+  width: 18px;
+  height: 18px;
+}
+
+.currentFrameCard {
+  display: grid;
+  min-height: 176px;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 16px 24px;
+  border: 1px solid #46494f;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 22% 50%, #24283166, transparent 38%),
+    linear-gradient(145deg, #111318e6, #0b0c10dc);
+  box-shadow: inset 0 1px #ffffff07;
+}
+
+.currentAvatar {
+  display: grid;
+  min-height: 145px;
+  place-items: center;
+  overflow: visible;
+}
+
+.currentFrameCard > div:last-child {
+  display: grid;
+  gap: 7px;
+}
+
+.currentFrameCard small {
+  color: #d39b51;
+  font-size: 0.73rem;
+  letter-spacing: 0.18em;
+}
+
+.currentFrameCard strong {
+  color: #fff5eb;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  font-weight: 500;
+}
+
+.currentFrameCard p {
+  margin: 0;
+  color: #8f8c90;
+}
+
+.frameStrip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 11px;
+  margin-top: 15px;
+}
+
+.frameChoice,
+.modalFrame,
+.cosmeticCard {
+  position: relative;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  min-width: 0;
+  padding: 8px 6px 10px;
+  border: 1px solid #343941;
+  border-radius: 14px;
+  color: #f3ebe6;
+  background: #0f1115e8;
+  box-shadow: inset 0 1px #ffffff06;
+  text-align: center;
+}
+
+.frameChoice {
+  min-height: 143px;
+}
+
+.frameChoice:hover:not(:disabled),
+.modalFrame:hover:not(:disabled),
+.cosmeticCard:hover:not(:disabled) {
+  border-color: #7a674f;
+  background: #17191edf;
+}
+
+.frameChoice:disabled,
+.modalFrame:disabled,
+.cosmeticCard:disabled {
+  opacity: 0.58;
+}
+
+.selected {
+  border-color: #e6a24f !important;
+  box-shadow:
+    inset 0 0 18px #d58f2930,
+    0 0 0 1px #e4a44a77 !important;
+}
+
+.frameThumb {
+  display: grid;
+  min-height: 80px;
+  place-items: center;
+  overflow: visible;
+}
+
+.frameChoice strong,
+.modalFrame strong,
+.cosmeticCard strong {
+  width: 100%;
+  overflow: hidden;
+  color: #f8f1eb;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frameChoice small,
+.modalFrame small,
+.cosmeticCard small {
+  margin-top: 5px;
+  color: #8d8989;
+  font-size: 0.66rem;
+}
+
+.available {
+  color: #d9a45f !important;
+}
+
+.locked {
+  color: #999397 !important;
+}
+
+.lockBadge {
+  position: absolute;
+  right: 7px;
+  bottom: 8px;
+  width: 13px;
+  height: 13px;
+  color: #e33b54;
+}
+
+.noFrameIcon,
+.modalNoFrame {
+  display: grid;
+  place-items: center;
+  color: #757980;
+  font-size: 3rem;
+  font-weight: 200;
+}
+
+.noFrameIcon {
+  min-height: 80px;
+}
+
+.frameActions,
+.modalActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  margin-top: 18px;
+}
+
+.frameActions button,
+.modalActions button {
+  min-height: 54px;
+  border: 1px solid #444951;
+  border-radius: 15px;
+  color: #eee8e4;
+  background: #16191fe8;
+  font-weight: 600;
+}
+
+.frameActions .primary,
+.modalActions .primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-color: #d2354b;
+  color: white;
+  background: linear-gradient(145deg, #d52c42, #92172b);
+  box-shadow: 0 7px 24px #9d1c3040;
+}
+
+.primary svg {
+  width: 19px;
+  height: 19px;
+}
+
+.cosmeticLinks {
+  display: grid;
+  gap: 8px;
+}
+
+.cosmeticLinks button {
+  display: grid;
+  min-height: 64px;
+  grid-template-columns: 48px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid #3d4147;
+  border-radius: 14px;
+  color: #f4eeea;
+  background: linear-gradient(145deg, #15171be6, #0e0f13e8);
+  text-align: left;
+}
+
+.cosmeticLinks button > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #ce9354;
+}
+
+.cosmeticLinks button > strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cosmeticLinks button > svg {
+  width: 20px;
+  height: 20px;
+  color: #c5c2bd;
+}
+
+.footer {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-height: 165px;
+  align-content: end;
+  padding: 20px 20px 30px;
+}
+
+.footer p {
+  margin: 6px 0 0;
+  color: #b98b54;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.modalBackdrop {
+  position: fixed;
+  z-index: 1300;
+  inset: 0;
+  display: grid;
+  align-items: end;
+  padding: 24px;
+  background: #000a;
+  backdrop-filter: blur(8px);
+}
+
+.modal {
+  width: min(760px, 100%);
+  max-height: min(86dvh, 820px);
+  margin: 0 auto;
+  padding: 22px;
+  overflow-y: auto;
+  border: 1px solid #66513c;
+  border-radius: 24px;
+  color: #f5eee8;
+  background:
+    radial-gradient(circle at 50% 0%, #43182052, transparent 22rem),
+    #0b0c0feF;
+  box-shadow: 0 26px 80px #000c;
+}
+
+.modal > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.modal > header small {
+  color: #c99457;
+  letter-spacing: 0.18em;
+}
+
+.modal > header h2 {
+  margin: 3px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+.modal > header > button {
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid #4a4543;
+  border-radius: 50%;
+  color: #e4ded9;
+  background: #151417;
+  place-items: center;
+}
+
+.modalFrames {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modalFrame {
+  min-height: 150px;
+  padding: 10px 7px 12px;
+}
+
+.modalFrameArt {
+  display: grid;
+  min-height: 102px;
+  place-items: center;
+  overflow: visible;
+}
+
+.modalFrameArt > svg {
+  width: 30px;
+  height: 30px;
+  color: #a8a2a4;
+}
+
+.modalNoFrame {
+  min-height: 102px;
+}
+
+.cosmeticGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cosmeticCard {
+  min-height: 130px;
+  align-content: center;
+  gap: 8px;
+}
+
+.cosmeticIcon {
+  display: grid;
+  min-height: 58px;
+  place-items: center;
+}
+
+.cosmeticIcon :global(.cosmetic-medal-image) {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.feedback,
+.error {
+  position: fixed;
+  z-index: 1400;
+  right: 20px;
+  bottom: 20px;
+  max-width: min(420px, calc(100% - 40px));
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 14px 38px #000a;
+}
+
+.feedback {
+  border: 1px solid #476d52;
+  color: #b9e7c3;
+  background: #132219f2;
+}
+
+.error {
+  border: 1px solid #8c3341;
+  color: #ffc0c9;
+  background: #321017f2;
+}
+
+@media (max-width: 680px) {
+  .profile {
+    width: calc(100% + 24px);
+    margin: -18px -12px -54px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .hero {
+    min-height: 480px;
+    padding: 42px 14px 20px;
+  }
+
+  .avatarWrap {
+    min-height: 190px;
+  }
+
+  .accountActions {
+    gap: 8px;
+    margin-top: 29px;
+  }
+
+  .accountActions button {
+    min-height: 98px;
+    padding-inline: 5px;
+    border-radius: 14px;
+  }
+
+  .accountActions button svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .accountActions button span {
+    font-size: 0.76rem;
+  }
+
+  .section {
+    padding-inline: 14px;
+  }
+
+  .sectionHeader {
+    align-items: center;
+  }
+
+  .sectionTitle {
+    gap: 8px;
+  }
+
+  .sectionTitle p {
+    font-size: 0.78rem;
+  }
+
+  .currentFrameCard {
+    min-height: 150px;
+    grid-template-columns: 132px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 15px;
+  }
+
+  .currentAvatar {
+    min-height: 128px;
+  }
+
+  .currentFrameCard strong {
+    font-size: 1.25rem;
+  }
+
+  .frameStrip {
+    gap: 7px;
+  }
+
+  .frameChoice {
+    min-height: 128px;
+    padding-inline: 3px;
+  }
+
+  .frameThumb {
+    min-height: 70px;
+    transform: scale(0.88);
+  }
+
+  .frameChoice strong {
+    font-size: 0.68rem;
+  }
+
+  .frameChoice small {
+    font-size: 0.59rem;
+  }
+
+  .frameActions {
+    gap: 9px;
+  }
+
+  .frameActions button {
+    min-height: 50px;
+    font-size: 0.82rem;
+  }
+
+  .modalBackdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal {
+    max-height: 88dvh;
+    padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .modalFrames,
+  .cosmeticGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .modalFrame {
+    min-height: 140px;
+  }
+
+  .footer {
+    min-height: 145px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero {
+    min-height: 455px;
+  }
+
+  .accountActions button {
+    min-height: 92px;
+  }
+
+  .accountActions button span {
+    font-size: 0.69rem;
+  }
+
+  .adventurer {
+    gap: 10px;
+  }
+
+  .adventurer strong {
+    font-size: 0.63rem;
+    letter-spacing: 0.2em;
+  }
+
+  .currentFrameCard {
+    grid-template-columns: 115px minmax(0, 1fr);
+  }
+
+  .frameStrip {
+    grid-template-columns: repeat(5, minmax(58px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+
+  .frameChoice {
+    min-width: 64px;
+  }
+
+  .modalFrames,
+  .cosmeticGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
