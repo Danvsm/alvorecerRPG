@@ -1024,9 +1024,11 @@ export default function DirectChat({
                       showFeedback("Este perfil não pode receber chamadas.");
                       return;
                     }
-                    void voiceCallRef.current?.start(
-                      String(selectedConversation.id),
-                    );
+                    void voiceCallRef.current
+                      ?.start(String(selectedConversation.id))
+                      .catch((reason) =>
+                        showFeedback(readableErrorMessage(reason)),
+                      );
                   }}
                 >
                   <Phone />
