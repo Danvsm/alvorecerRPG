@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Gift, Sparkles, X } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage } from "@/lib/network";
-import { playChestReveal } from "@/lib/site-sounds";
+import { playChestReveal, startChestSuspense } from "@/lib/site-sounds";
 import styles from "./TreasureChest.module.css";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
@@ -48,6 +48,15 @@ const rarityName: Record<Rarity, string> = {
   legendary: "Lendário",
 };
 
+const chestFrames = Array.from(
+  { length: 10 },
+  (_, index) =>
+    `/treasure/chest/frame-${String(index + 1).padStart(2, "0")}.webp`,
+);
+const openingFrames = [4, 5, 6, 7, 8, 9, 10] as const;
+const wait = (duration: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, duration));
+
 export default function TreasureChest({
   campaign,
   urls,
@@ -60,7 +69,10 @@ export default function TreasureChest({
   const [data, setData] = useState<Dashboard | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [phase, setPhase] = useState<"idle" | "shaking" | "opened">("idle");
+  const [phase, setPhase] = useState<"idle" | "shaking" | "opening" | "opened">(
+    "idle",
+  );
+  const [chestFrame, setChestFrame] = useState(1);
   const [result, setResult] = useState<Opening | null>(null);
   const [giftOpen, setGiftOpen] = useState(false);
   const [recipient, setRecipient] = useState("");
@@ -76,6 +88,12 @@ export default function TreasureChest({
   useEffect(() => {
     load().catch((e) => setError(readableErrorMessage(e)));
   }, [load]);
+  useEffect(() => {
+    chestFrames.forEach((source) => {
+      const image = new window.Image();
+      image.src = source;
+    });
+  }, []);
   const canOpen = Boolean(
     data?.enabled && !busy && (data?.gems || 0) >= (data?.cost_gems || 30),
   );
@@ -97,6 +115,16 @@ export default function TreasureChest({
     setError("");
     setResult(null);
     setPhase("shaking");
+    setChestFrame(2);
+    const suspense = startChestSuspense().catch(() => () => {});
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const shakingTimer = reduceMotion
+      ? undefined
+      : window.setInterval(() => {
+          setChestFrame((current) => (current === 2 ? 3 : 2));
+        }, 130);
     try {
       const requestId = crypto.randomUUID();
       const [response] = await Promise.all([
@@ -110,15 +138,31 @@ export default function TreasureChest({
       ]);
       if (response.error) throw response.error;
       const won = response.data as Opening;
+      window.clearInterval(shakingTimer);
+      setPhase("opening");
+      if (reduceMotion) {
+        setChestFrame(10);
+      } else {
+        for (const frame of openingFrames) {
+          setChestFrame(frame);
+          await wait(frame === 4 ? 90 : 120);
+        }
+      }
       setResult(won);
       setPhase("opened");
+      (await suspense)();
       void playChestReveal(won.rarity);
       await load();
       await onChanged?.();
     } catch (e) {
+      window.clearInterval(shakingTimer);
+      (await suspense)();
+      setChestFrame(1);
       setPhase("idle");
       setError(readableErrorMessage(e));
     } finally {
+      window.clearInterval(shakingTimer);
+      (await suspense)();
       setBusy(false);
     }
   }
@@ -147,6 +191,7 @@ export default function TreasureChest({
   }
   function reset() {
     setResult(null);
+    setChestFrame(1);
     setPhase("idle");
   }
   return (
@@ -175,11 +220,18 @@ export default function TreasureChest({
             <i />
             <i />
           </div>
-          <div className={styles.chest} aria-label="Baú dourado">
-            <div className={styles.lid} />
-            <div className={styles.base} />
-            <div className={styles.band} />
-            <div className={styles.lock} />
+          <div className={styles.chestFrame} aria-label="Baú de tesouro">
+            <Image
+              className={styles.chestImage}
+              src={chestFrames[chestFrame - 1]}
+              width={720}
+              height={720}
+              sizes="(max-width: 520px) 86vw, 340px"
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              unoptimized
+            />
           </div>
           {result && (
             <div

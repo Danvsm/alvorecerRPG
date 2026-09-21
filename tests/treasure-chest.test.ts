@@ -87,6 +87,9 @@ test("player chest includes gift, next-opening loop, odds and reduced-motion sup
   assert.match(component, /Presentear um Baú/);
   assert.match(component, /Chances por raridade/);
   assert.match(component, /\/treasure\/gems\.webp/);
+  assert.match(component, /current === 2 \? 3 : 2/);
+  assert.match(component, /openingFrames = \[4, 5, 6, 7, 8, 9, 10\]/);
+  assert.match(component, /startChestSuspense/);
   assert.match(component, /Prêmio extraordinário/);
   assert.match(component, /cosmeticResult/);
   assert.match(component, /crypto\.randomUUID\(\)/);
@@ -108,6 +111,22 @@ test("official Gem asset is optimized for the interface", async () => {
   );
   assert.ok(asset.size > 1_000);
   assert.ok(asset.size < 80_000);
+});
+
+test("animated chest frames are present and optimized", async () => {
+  const frames = await Promise.all(
+    Array.from({ length: 10 }, (_, index) =>
+      stat(
+        new URL(
+          `../public/treasure/chest/frame-${String(index + 1).padStart(2, "0")}.webp`,
+          import.meta.url,
+        ),
+      ),
+    ),
+  );
+  assert.equal(frames.length, 10);
+  assert.ok(frames.every((frame) => frame.size > 20_000));
+  assert.ok(frames.every((frame) => frame.size < 250_000));
 });
 
 test("only Pink can permanently remove a configured chest reward", async () => {

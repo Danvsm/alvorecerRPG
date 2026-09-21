@@ -66,78 +66,27 @@
   filter: drop-shadow(0 0 9px rgba(170, 62, 255, 0.9));
 }
 .chestStage {
-  height: 230px;
+  height: 330px;
   display: grid;
   place-items: center;
   perspective: 700px;
 }
-.chest {
+.chestFrame {
   position: relative;
-  width: 190px;
-  height: 142px;
-  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.6));
-  transform-origin: 50% 100%;
-  transition: transform 0.35s;
-}
-.lid,
-.base {
-  position: absolute;
-  left: 10px;
-  width: 170px;
-  border: 3px solid #6e3f12;
-  background: linear-gradient(
-    100deg,
-    #6e330b,
-    #e7a936 45%,
-    #875016 72%,
-    #3f210a
-  );
-  box-shadow:
-    inset 0 0 0 5px rgba(255, 220, 123, 0.13),
-    0 0 24px rgba(214, 143, 34, 0.2);
-}
-.lid {
-  top: 12px;
-  height: 54px;
-  border-radius: 54px 54px 9px 9px;
-  transform-origin: 50% 100%;
-  transition: transform 0.65s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.base {
-  top: 65px;
-  height: 72px;
-  border-radius: 6px 6px 18px 18px;
-}
-.band {
-  position: absolute;
   z-index: 2;
-  left: 82px;
-  top: 15px;
-  width: 26px;
-  height: 117px;
-  background: linear-gradient(90deg, #6e430f, #ffd477, #8d5619);
-  border: 2px solid #5d350c;
+  width: min(340px, 92vw);
+  aspect-ratio: 1;
+  transform-origin: 50% 72%;
+  transition: transform 0.35s;
+  filter: drop-shadow(0 20px 24px rgba(0, 0, 0, 0.62));
+  user-select: none;
 }
-.lock {
-  position: absolute;
-  z-index: 4;
-  left: 76px;
-  top: 69px;
-  width: 38px;
-  height: 42px;
-  border-radius: 7px 7px 13px 13px;
-  background: linear-gradient(#ffe5a2, #b87316);
-  border: 2px solid #68400e;
-}
-.lock:after {
-  content: "";
-  position: absolute;
-  left: 14px;
-  top: 11px;
-  width: 7px;
-  height: 15px;
-  border-radius: 9px;
-  background: #2a1607;
+.chestImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
 }
 .glow {
   position: absolute;
@@ -155,14 +104,14 @@
   transform: translateY(40px);
   transition: 0.35s;
 }
-.shaking .chest {
-  animation: shake 0.14s infinite;
+.shaking .chestFrame {
+  animation: shake 0.13s infinite;
 }
 .shaking .glow {
   animation: pulse 0.55s infinite;
 }
-.opened .lid {
-  transform: translateY(-15px) rotateX(-105deg);
+.opening .chestFrame {
+  animation: openingSurge 0.72s ease-out both;
 }
 .opened .glow {
   opacity: 1;
@@ -541,6 +490,11 @@
     transform: rotate(3deg) translateX(2px);
   }
 }
+@keyframes openingSurge {
+  40% {
+    transform: scale(1.045) translateY(-3px);
+  }
+}
 @keyframes pulse {
   50% {
     transform: translateY(22px) scale(1.25);
@@ -599,7 +553,10 @@
     padding-inline: 12px;
   }
   .chestStage {
-    height: 215px;
+    height: 285px;
+  }
+  .chestFrame {
+    width: min(300px, 92vw);
   }
   .odds {
     grid-template-columns: repeat(3, 1fr);
@@ -620,7 +577,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .hero:before,
-  .shaking .chest,
+  .shaking .chestFrame,
+  .opening .chestFrame,
   .shaking .glow,
   .particles i,
   .result,
@@ -629,9 +587,8 @@
   .prizeSparkles i {
     animation: none;
   }
-  .lid,
   .glow,
-  .chest {
+  .chestFrame {
     transition: none;
   }
 }
