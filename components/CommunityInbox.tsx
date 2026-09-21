@@ -109,21 +109,28 @@ export default function CommunityInbox({
         ["player", "master"].includes(String(identity.kind)),
     ).length;
 
-    setGroup(
-      groupResult.error
-        ? {
-            name: "Bar do Pink",
-            member_count: fallbackMemberCount,
-            unread: 0,
-          }
-        : ({
-            ...(groupResult.data || {}),
-            name: groupResult.data?.name || "Bar do Pink",
-            member_count:
-              Number(groupResult.data?.member_count || 0) ||
-              fallbackMemberCount,
-          } as Row),
-    );
+    let groupData = groupResult.error
+      ? null
+      : ((groupResult.data || null) as Row | null);
+
+    if (!groupData?.id) {
+      const fallbackGroup = await retryNetworkRead(() =>
+        browserDb()
+          .from("campaign_group_chats")
+          .select("id,name,avatar_storage_path,avatar_updated_at")
+          .eq("campaign_id", campaign)
+          .maybeSingle(),
+      );
+      if (fallbackGroup.data?.id) groupData = fallbackGroup.data as Row;
+    }
+
+    setGroup({
+      ...(groupData || {}),
+      name: groupData?.name || "Bar do Pink",
+      member_count:
+        Number(groupData?.member_count || 0) || fallbackMemberCount,
+      unread: Number(groupData?.unread || 0),
+    });
 
     const nextConversations = conversationResult.data || [];
     setConversations(nextConversations);
