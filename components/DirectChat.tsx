@@ -1524,7 +1524,7 @@ export default function DirectChat({
           )}
           {canSend && (
             <form
-              className={`chat-composer${voiceOpen ? " voice-active" : ""}`}
+              className={`chat-composer${voiceOpen ? " voice-active" : ""}${selectedGroup ? " group-chat-composer" : ""}`}
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (busy || !body.trim()) return;
