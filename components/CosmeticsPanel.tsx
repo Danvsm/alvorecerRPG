@@ -95,7 +95,6 @@ export function CosmeticIcon({
   const Icon = icons[item.icon as keyof typeof icons] || Star;
   return <Icon size={28} style={{ color: item.color }} />;
 }
-
 function FrameEditor({
   frame,
   collections,
@@ -556,9 +555,12 @@ export default function CosmeticsPanel({
       .catch((reason) => setError((reason as Error).message));
   const frames = cosmetics.filter((item) => item.kind === "frame");
   const ownedIds = new Set(
-    grants
-      .filter((g) => g.identity_id === identity?.id && !g.removed_at)
-      .map((g) => g.cosmetic_id),
+    [
+      ...grants
+        .filter((g) => g.identity_id === identity?.id && !g.removed_at)
+        .map((g) => g.cosmetic_id),
+      ...frames.filter((frame) => frame.owned).map((frame) => frame.id),
+    ].filter(Boolean),
   );
   const equippedId = equipment.find(
     (e) => e.identity_id === identity?.id && e.kind === "frame",

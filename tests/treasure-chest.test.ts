@@ -67,12 +67,16 @@ test("supporter, event and master frames cannot enter the chest catalog", async 
 });
 
 test("player chest includes gift, next-opening loop, odds and reduced-motion support", async () => {
-  const [component, admin, css, game] = await Promise.all([
+  const [component, admin, cosmetics, css, game] = await Promise.all([
     readFile(
       new URL("../components/TreasureChest.tsx", import.meta.url),
       "utf8",
     ),
     readFile(new URL("../components/ChestAdmin.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../components/CosmeticsPanel.tsx", import.meta.url),
+      "utf8",
+    ),
     readFile(
       new URL("../components/TreasureChest.module.css", import.meta.url),
       "utf8",
@@ -86,11 +90,13 @@ test("player chest includes gift, next-opening loop, odds and reduced-motion sup
   assert.match(component, /Prêmio extraordinário/);
   assert.match(component, /cosmeticResult/);
   assert.match(component, /crypto\.randomUUID\(\)/);
+  assert.match(component, /await onChanged\?\.\(\)/);
   assert.match(admin, /option value="xp"/);
   assert.match(admin, /option value="dracmas"/);
   assert.match(admin, /reward_delete/);
   assert.match(admin, /chance base/);
   assert.match(admin, /rewardRarity/);
+  assert.match(cosmetics, /frames\.filter\(\(frame\) => frame\.owned\)/);
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(game, /\["Baú", Gem\]/);
   assert.match(game, /<ChestAdmin campaign=\{campaign\}/);

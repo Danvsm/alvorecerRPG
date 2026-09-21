@@ -55,7 +55,7 @@ export default function TreasureChest({
 }: {
   campaign: string;
   urls: Record<string, string>;
-  onChanged?: () => void;
+  onChanged?: () => void | Promise<void>;
 }) {
   const [data, setData] = useState<Dashboard | null>(null);
   const [busy, setBusy] = useState(false);
@@ -114,7 +114,7 @@ export default function TreasureChest({
       setPhase("opened");
       void playChestReveal(won.rarity);
       await load();
-      onChanged?.();
+      await onChanged?.();
     } catch (e) {
       setPhase("idle");
       setError(readableErrorMessage(e));
@@ -138,7 +138,7 @@ export default function TreasureChest({
       setRecipient("");
       setMessage("");
       await load();
-      onChanged?.();
+      await onChanged?.();
     } catch (e) {
       setError(readableErrorMessage(e));
     } finally {
