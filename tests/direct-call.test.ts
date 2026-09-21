@@ -54,6 +54,10 @@ test("chat integrates WebRTC voice calls and high priority call push", async () 
   assert.match(call, /peerPromiseRef/);
   assert.match(call, /signalQueueRef/);
   assert.match(call, /processSignalNow/);
+  assert.match(call, /alvorecer-call-owner:/);
+  assert.match(call, /claimCallOwnership/);
+  assert.match(call, /ownsCall/);
+  assert.match(call, /peer\.signalingState !== "have-local-offer"/);
   assert.match(call, /direct_call_start/);
   assert.match(call, /direct_call_action/);
   assert.match(call, /direct_call_signal/);
