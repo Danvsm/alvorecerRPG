@@ -292,3 +292,34 @@ test("community inbox exposes Bar do Pink and opens the shared group chat", asyn
     /requestedPeer\.id === CAMPAIGN_GROUP_SELECTION/,
   );
 });
+
+
+test("master can replace the Bar do Pink avatar from the chat UI", async () => {
+  const [inbox, chat, media, migration] = await Promise.all([
+    readFile(new URL("../components/CommunityInbox.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/media.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921200606_group_chat_avatar.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(inbox, /campaign_group_avatar_set/);
+  assert.match(inbox, /Trocar foto do Bar do Pink/);
+  assert.match(inbox, /group-avatars/);
+  assert.match(chat, /campaign_group_avatar_set/);
+  assert.match(chat, /chat-group-avatar-editable/);
+  assert.match(chat, /group-avatars/);
+  assert.match(media, /uploadGroupAvatarImage/);
+  assert.match(media, /storage\.from\("group-avatars"\)/);
+
+  assert.match(migration, /avatar_storage_path/);
+  assert.match(migration, /campaign_group_chat_master_avatar_update/);
+  assert.match(migration, /security invoker/i);
+  assert.match(migration, /public\.is_master\(c\)/);
+  assert.match(migration, /bucket_id='group-avatars'/);
+});
