@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Mic,
-  MicOff,
-  Phone,
-  PhoneOff,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -18,6 +11,8 @@ import {
   useState,
 } from "react";
 import { browserDb } from "@/lib/client";
+import { CallNegotiator, CallRecovery } from "@/lib/call-connection";
+import type { CallIceConfig } from "@/lib/call-ice";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import { playAlvorecerSound } from "@/lib/site-sounds";
 import type { Row } from "@/lib/types";
@@ -84,11 +79,6 @@ const TERMINAL = new Set<CallStatus>([
   "failed",
 ]);
 
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-];
-
 function normalizedCall(row: Row): DirectCall {
   return {
     id: String(row.id),
@@ -132,6 +122,7 @@ const VoiceCall = forwardRef<
   const [speakerMuted, setSpeakerMuted] = useState(false);
   const [needsAudioTap, setNeedsAudioTap] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [connection, setConnection] = useState("connecting");
   const [microphonePermission, setMicrophonePermission] =
     useState<MicrophonePermission>("unknown");
 
@@ -142,11 +133,12 @@ const VoiceCall = forwardRef<
   const peerPromiseRef = useRef<Promise<RTCPeerConnection> | null>(null);
   const signalQueueRef = useRef<Promise<void>>(Promise.resolve());
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
-  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const negotiatorRef = useRef<CallNegotiator | null>(null);
+  const recoveryRef = useRef<CallRecovery | null>(null);
+  const relayConfiguredRef = useRef(false);
   const processedSignalsRef = useRef<Set<number>>(new Set());
   const offerSentRef = useRef(false);
   const endingRef = useRef(false);
-  const disconnectTimerRef = useRef<number | null>(null);
   const ringTimerRef = useRef<number | null>(null);
   const speakerMutedRef = useRef(false);
   const relayCandidateSeenRef = useRef(false);
@@ -204,10 +196,10 @@ const VoiceCall = forwardRef<
 
   const clearPeer = useCallback(
     (stopLocal = true) => {
-      if (disconnectTimerRef.current !== null) {
-        window.clearTimeout(disconnectTimerRef.current);
-        disconnectTimerRef.current = null;
-      }
+      recoveryRef.current?.dispose();
+      recoveryRef.current = null;
+      negotiatorRef.current = null;
+      setConnection("connecting");
       if (ringTimerRef.current !== null) {
         window.clearTimeout(ringTimerRef.current);
         ringTimerRef.current = null;
@@ -217,7 +209,6 @@ const VoiceCall = forwardRef<
       peerPromiseRef.current = null;
       signalQueueRef.current = Promise.resolve();
       remoteStreamRef.current = null;
-      pendingCandidatesRef.current = [];
       processedSignalsRef.current.clear();
       offerSentRef.current = false;
       endingRef.current = false;
@@ -238,7 +229,9 @@ const VoiceCall = forwardRef<
 
   const prepareLocalMedia = useCallback(async () => {
     const current = localStreamRef.current;
-    if (current?.getAudioTracks().some((track) => track.readyState === "live")) {
+    if (
+      current?.getAudioTracks().some((track) => track.readyState === "live")
+    ) {
       setMicrophonePermission("granted");
       return current;
     }
@@ -316,6 +309,33 @@ const VoiceCall = forwardRef<
     [callAction, clearPeer, updateCall],
   );
 
+  const loadIceConfig = useCallback(
+    async (callId: string): Promise<CallIceConfig> => {
+      const {
+        data: { session },
+      } = await browserDb().auth.getSession();
+      if (!session) throw new Error("Entre novamente para fazer uma chamada.");
+      const response = await fetch("/api/calls/ice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ callId }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(15000),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !Array.isArray(body?.iceServers)) {
+        throw new Error(
+          body?.error || "Não foi possível preparar a conexão de voz.",
+        );
+      }
+      return body as CallIceConfig;
+    },
+    [],
+  );
+
   const ensurePeer = useCallback(async () => {
     if (peerRef.current) return peerRef.current;
     if (peerPromiseRef.current) return peerPromiseRef.current;
@@ -326,94 +346,110 @@ const VoiceCall = forwardRef<
         throw new Error("A chamada ainda não está ativa.");
       }
 
-      const localStream = await prepareLocalMedia();
+      const [localStream, iceConfig] = await Promise.all([
+        prepareLocalMedia(),
+        loadIceConfig(target.id),
+      ]);
       const current = callRef.current;
       if (!current || current.id !== target.id || current.status !== "active") {
         throw new Error("A chamada não está mais ativa.");
       }
 
       const peer = new RTCPeerConnection({
-        iceServers: ICE_SERVERS,
+        iceServers: iceConfig.iceServers,
         iceCandidatePoolSize: 2,
       });
 
-    for (const track of localStream.getTracks()) {
-      peer.addTrack(track, localStream);
-    }
+      relayConfiguredRef.current = iceConfig.relayAvailable;
+      const negotiator = new CallNegotiator(
+        peer,
+        actor === target.caller_id,
+        (kind, payload) => sendSignal(target, kind, payload),
+      );
+      negotiatorRef.current = negotiator;
 
-    const remoteStream = new MediaStream();
-    remoteStreamRef.current = remoteStream;
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.srcObject = remoteStream;
-      remoteAudioRef.current.muted = speakerMutedRef.current;
-    }
+      for (const track of localStream.getTracks()) {
+        peer.addTrack(track, localStream);
+      }
 
-    peer.ontrack = (event) => {
-      const stream = event.streams[0];
-      for (const track of stream?.getTracks() || [event.track]) {
-        if (!remoteStream.getTracks().some((item) => item.id === track.id)) {
-          remoteStream.addTrack(track);
-        }
+      const remoteStream = new MediaStream();
+      remoteStreamRef.current = remoteStream;
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStream;
+        remoteAudioRef.current.muted = speakerMutedRef.current;
       }
-      const audio = remoteAudioRef.current;
-      if (!audio) return;
-      audio.srcObject = remoteStream;
-      audio.muted = speakerMutedRef.current;
-      if (!speakerMutedRef.current) {
-        void audio.play().then(
-          () => setNeedsAudioTap(false),
-          () => setNeedsAudioTap(true),
-        );
-      }
-    };
 
-    peer.onicecandidate = (event) => {
-      const current = callRef.current;
-      if (!event.candidate || !current || current.status !== "active") return;
-      if (event.candidate.type === "relay") {
-        relayCandidateSeenRef.current = true;
-      }
-      void sendSignal(
-        current,
-        "ice",
-        event.candidate.toJSON() as unknown as Record<string, unknown>,
-      ).catch((reason) => {
-        setError(readableErrorMessage(reason));
-      });
-    };
-
-    const connectionFailureReason = () =>
-      relayCandidateSeenRef.current
-        ? "Falha na conexão WebRTC"
-        : "A rede bloqueou a conexão direta. Servidor TURN necessário.";
-
-    peer.onconnectionstatechange = () => {
-      if (peer.connectionState === "connected") {
-        if (disconnectTimerRef.current !== null) {
-          window.clearTimeout(disconnectTimerRef.current);
-          disconnectTimerRef.current = null;
-        }
-        setError("");
-        return;
-      }
-      if (peer.connectionState === "failed") {
-        void failCall(connectionFailureReason());
-        return;
-      }
-      if (peer.connectionState === "disconnected") {
-        if (disconnectTimerRef.current !== null) {
-          window.clearTimeout(disconnectTimerRef.current);
-        }
-        disconnectTimerRef.current = window.setTimeout(() => {
-          if (
-            peer.connectionState === "disconnected" ||
-            peer.connectionState === "failed"
-          ) {
-            void failCall(connectionFailureReason());
+      peer.ontrack = (event) => {
+        const stream = event.streams[0];
+        for (const track of stream?.getTracks() || [event.track]) {
+          if (!remoteStream.getTracks().some((item) => item.id === track.id)) {
+            remoteStream.addTrack(track);
           }
-        }, 8000);
-      }
-    };
+        }
+        const audio = remoteAudioRef.current;
+        if (!audio) return;
+        audio.srcObject = remoteStream;
+        audio.muted = speakerMutedRef.current;
+        if (!speakerMutedRef.current) {
+          void audio.play().then(
+            () => setNeedsAudioTap(false),
+            () => setNeedsAudioTap(true),
+          );
+        }
+      };
+
+      peer.onicecandidate = (event) => {
+        const current = callRef.current;
+        if (!event.candidate || !current || current.status !== "active") return;
+        if (event.candidate.type === "relay") {
+          relayCandidateSeenRef.current = true;
+        }
+        void sendSignal(
+          current,
+          "ice",
+          event.candidate.toJSON() as unknown as Record<string, unknown>,
+        ).catch((reason) => {
+          setError(readableErrorMessage(reason));
+        });
+      };
+
+      const connectionFailureReason = () =>
+        relayCandidateSeenRef.current
+          ? "Não foi possível restabelecer a conexão de voz."
+          : relayConfiguredRef.current
+            ? "O servidor de voz não conseguiu abrir uma rota nesta rede."
+            : "A rede bloqueou a conexão direta. Servidor TURN necessário.";
+
+      const recovery = new CallRecovery({
+        state: (state) => {
+          setConnection(state);
+          if (state === "connected") setError("");
+        },
+        fail: () => {
+          void failCall(connectionFailureReason());
+        },
+        restart: async () => {
+          if (actor !== target.caller_id) return;
+          const operation = signalQueueRef.current.then(async () => {
+            const config = await loadIceConfig(target.id);
+            if (
+              peerRef.current !== peer ||
+              callRef.current?.status !== "active"
+            )
+              return;
+            peer.setConfiguration({ iceServers: config.iceServers });
+            relayConfiguredRef.current = config.relayAvailable;
+            await negotiator.offer(true);
+          });
+          signalQueueRef.current = operation.catch(() => undefined);
+          await operation;
+        },
+      });
+      recoveryRef.current = recovery;
+      peer.onconnectionstatechange = () =>
+        recovery.update(peer.connectionState);
+      // Also handles stalled initial negotiation, which may never emit "failed".
+      recovery.update("connecting");
 
       peerRef.current = peer;
       return peer;
@@ -427,18 +463,7 @@ const VoiceCall = forwardRef<
         peerPromiseRef.current = null;
       }
     }
-  }, [failCall, prepareLocalMedia, sendSignal]);
-
-  const drainCandidates = useCallback(async (peer: RTCPeerConnection) => {
-    const pending = pendingCandidatesRef.current.splice(0);
-    for (const candidate of pending) {
-      try {
-        await peer.addIceCandidate(candidate);
-      } catch {
-        // Candidatos incompatíveis são ignorados; outros ainda podem conectar.
-      }
-    }
-  }, []);
+  }, [actor, failCall, loadIceConfig, prepareLocalMedia, sendSignal]);
 
   const processSignalNow = useCallback(
     async (signal: CallSignal) => {
@@ -455,57 +480,27 @@ const VoiceCall = forwardRef<
       if (signal.sender_id === actor) return;
 
       try {
-        const peer = await ensurePeer();
-
-        if (signal.kind === "offer" && actor === target.callee_id) {
-          if (peer.signalingState !== "stable" || peer.remoteDescription) {
-            return;
-          }
-          await peer.setRemoteDescription(
-            signal.payload as unknown as RTCSessionDescriptionInit,
-          );
-          await drainCandidates(peer);
-          const answer = await peer.createAnswer();
-          await peer.setLocalDescription(answer);
-          await sendSignal(
-            target,
-            "answer",
-            peer.localDescription?.toJSON() as unknown as Record<
-              string,
-              unknown
-            >,
-          );
-          return;
-        }
-
-        if (signal.kind === "answer" && actor === target.caller_id) {
-          if (peer.signalingState !== "have-local-offer") {
-            return;
-          }
-          await peer.setRemoteDescription(
-            signal.payload as unknown as RTCSessionDescriptionInit,
-          );
-          await drainCandidates(peer);
-          return;
-        }
-
-        if (signal.kind === "ice") {
-          const candidate = signal.payload as unknown as RTCIceCandidateInit;
-          if (peer.remoteDescription) await peer.addIceCandidate(candidate);
-          else pendingCandidatesRef.current.push(candidate);
-        }
+        await ensurePeer();
+        await negotiatorRef.current?.receive(signal.kind, signal.payload);
       } catch (reason) {
+        if (
+          callRef.current?.id !== target.id ||
+          callRef.current.status !== "active"
+        )
+          return;
         const detail = readableErrorMessage(reason);
         setError(detail);
         void failCall(`Falha na negociação: ${detail}`);
       }
     },
-    [actor, drainCandidates, ensurePeer, failCall, ownsCall, sendSignal],
+    [actor, ensurePeer, failCall, ownsCall],
   );
 
   const processSignal = useCallback(
     (signal: CallSignal) => {
-      const queued = signalQueueRef.current.then(() => processSignalNow(signal));
+      const queued = signalQueueRef.current.then(() =>
+        processSignalNow(signal),
+      );
       signalQueueRef.current = queued.catch(() => undefined);
       return queued;
     },
@@ -594,25 +589,57 @@ const VoiceCall = forwardRef<
     let valid = true;
     const db = browserDb();
 
-    retryNetworkRead(() =>
-      db
-        .from("direct_calls")
-        .select("*")
-        .eq("campaign_id", campaign)
-        .or(`caller_id.eq.${actor},callee_id.eq.${actor}`)
-        .in("status", ["ringing", "active"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ).then((response) => {
-      if (!valid || response.error || !response.data) return;
-      const restored = normalizedCall(response.data as Row);
-      const outgoing = restored.caller_id === actor;
-      const active = restored.status === "active";
-      if ((outgoing || active) && !ownsCall(restored.id)) return;
-      updateCall(restored);
-    });
-
+    const applyRow = (row: DirectCall) => {
+      if (!valid || (actor !== row.caller_id && actor !== row.callee_id))
+        return;
+      const current = callRef.current;
+      if (current && current.id !== row.id && !TERMINAL.has(current.status))
+        return;
+      if (current?.id === row.id) {
+        if (TERMINAL.has(current.status) && !TERMINAL.has(row.status)) return;
+        if (current.status === "active" && row.status === "ringing") return;
+      }
+      if (
+        row.status === "ringing" &&
+        row.caller_id === actor &&
+        !ownsCall(row.id)
+      )
+        return;
+      if (row.status === "active" && !ownsCall(row.id)) {
+        if (current?.id === row.id) updateCall(null);
+        return;
+      }
+      updateCall(row);
+    };
+    let loading = false;
+    const loadCurrent = async () => {
+      if (!valid || loading) return;
+      loading = true;
+      const current = callRef.current;
+      try {
+        let query = db
+          .from("direct_calls")
+          .select("*")
+          .eq("campaign_id", campaign)
+          .or(`caller_id.eq.${actor},callee_id.eq.${actor}`);
+        query =
+          current && !TERMINAL.has(current.status)
+            ? query.eq("id", current.id)
+            : query.in("status", ["ringing", "active"]);
+        const response = await retryNetworkRead(() =>
+          query
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        );
+        if (!response.error && response.data)
+          applyRow(normalizedCall(response.data as Row));
+      } catch {
+        // Reconcile again when the connection returns.
+      } finally {
+        loading = false;
+      }
+    };
     const channel = db
       .channel(`direct-calls:${campaign}:${actor}`)
       .on(
@@ -623,35 +650,21 @@ const VoiceCall = forwardRef<
           table: "direct_calls",
           filter: `campaign_id=eq.${campaign}`,
         },
-        (payload) => {
-          const row = normalizedCall((payload.new || payload.old) as Row);
-          if (actor !== row.caller_id && actor !== row.callee_id) return;
-
-          const current = callRef.current;
-          if (
-            current &&
-            current.id !== row.id &&
-            !TERMINAL.has(current.status)
-          ) {
-            return;
-          }
-
-          if (row.status === "ringing" && row.caller_id === actor) {
-            if (!ownsCall(row.id)) return;
-          }
-
-          if (row.status === "active" && !ownsCall(row.id)) {
-            if (current?.id === row.id) updateCall(null);
-            return;
-          }
-
-          updateCall(row);
-        },
+        (payload) =>
+          applyRow(normalizedCall((payload.new || payload.old) as Row)),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void loadCurrent();
+      });
+    void loadCurrent();
+    const poll = window.setInterval(() => {
+      if (callRef.current && !TERMINAL.has(callRef.current.status))
+        void loadCurrent();
+    }, 5000);
 
     return () => {
       valid = false;
+      window.clearInterval(poll);
       clearPeer();
       updateCall(null);
       void db.removeChannel(channel);
@@ -664,21 +677,30 @@ const VoiceCall = forwardRef<
     let valid = true;
     const db = browserDb();
 
+    let loading = false;
     const loadExisting = async () => {
-      const response = await retryNetworkRead(() =>
-        db
-          .from("direct_call_signals")
-          .select("id,call_id,sender_id,kind,payload")
-          .eq("call_id", call.id)
-          .order("id", { ascending: true }),
-      );
-      if (!valid || response.error) return;
-      for (const row of response.data || []) {
-        if (!valid) break;
-        await processSignal({
-          ...row,
-          id: Number(row.id),
-        } as CallSignal);
+      if (!valid || loading) return;
+      loading = true;
+      try {
+        const response = await retryNetworkRead(() =>
+          db
+            .from("direct_call_signals")
+            .select("id,call_id,sender_id,kind,payload")
+            .eq("call_id", call.id)
+            .order("id", { ascending: true }),
+        );
+        if (!valid || response.error) return;
+        for (const row of response.data || []) {
+          if (!valid) break;
+          await processSignal({
+            ...row,
+            id: Number(row.id),
+          } as CallSignal);
+        }
+      } catch {
+        // The polling fallback retries while audio is connecting.
+      } finally {
+        loading = false;
       }
     };
 
@@ -703,12 +725,19 @@ const VoiceCall = forwardRef<
           });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void loadExisting();
+      });
 
     void loadExisting();
+    const poll = window.setInterval(() => {
+      // Established audio does not need continuous database polling.
+      if (peerRef.current?.connectionState !== "connected") void loadExisting();
+    }, 2500);
 
     return () => {
       valid = false;
+      window.clearInterval(poll);
       void db.removeChannel(channel);
     };
   }, [actor, call?.id, call?.status, ownsCall, processSignal]);
@@ -720,22 +749,14 @@ const VoiceCall = forwardRef<
     const begin = async () => {
       try {
         const peer = await ensurePeer();
-        if (
-          active &&
-          actor === call.caller_id &&
-          !offerSentRef.current
-        ) {
+        if (active && actor === call.caller_id && !offerSentRef.current) {
           offerSentRef.current = true;
-          const offer = await peer.createOffer();
-          await peer.setLocalDescription(offer);
-          await sendSignal(
-            call,
-            "offer",
-            peer.localDescription?.toJSON() as unknown as Record<
-              string,
-              unknown
-            >,
-          );
+          const operation = signalQueueRef.current.then(async () => {
+            if (!active || peerRef.current !== peer) return;
+            await negotiatorRef.current?.offer();
+          });
+          signalQueueRef.current = operation.catch(() => undefined);
+          await operation;
         }
       } catch (reason) {
         if (!active) return;
@@ -788,7 +809,15 @@ const VoiceCall = forwardRef<
         ringTimerRef.current = null;
       }
     };
-  }, [actor, call?.created_at, call?.id, call?.status, callAction, clearPeer, updateCall]);
+  }, [
+    actor,
+    call?.created_at,
+    call?.id,
+    call?.status,
+    callAction,
+    clearPeer,
+    updateCall,
+  ]);
 
   useEffect(() => {
     if (!call || call.status !== "active" || !call.answered_at) {
@@ -820,13 +849,7 @@ const VoiceCall = forwardRef<
       if (callRef.current?.id === call.id) updateCall(null);
     }, 2200);
     return () => window.clearTimeout(timer);
-  }, [
-    call?.id,
-    call?.status,
-    clearPeer,
-    releaseCallOwnership,
-    updateCall,
-  ]);
+  }, [call?.id, call?.status, clearPeer, releaseCallOwnership, updateCall]);
 
   const peerIdentity = useMemo(() => {
     if (!call) return undefined;
@@ -853,14 +876,18 @@ const VoiceCall = forwardRef<
         ? "Chamada de voz recebida"
         : `Ligando para ${peerIdentity?.name || "contato"}...`;
     }
-    if (call.status === "active") return durationLabel(elapsed);
+    if (call.status === "active") {
+      if (connection === "reconnecting") return "Reconectando áudio...";
+      if (connection !== "connected") return "Conectando áudio...";
+      return durationLabel(elapsed);
+    }
     if (call.status === "declined") return "Chamada recusada";
     if (call.status === "cancelled") return "Chamada cancelada";
     if (call.status === "missed") return "Chamada não atendida";
     if (call.status === "failed")
       return call.failure_reason || "Não foi possível conectar";
     return "Chamada encerrada";
-  }, [call, elapsed, incoming, peerIdentity?.name]);
+  }, [call, connection, elapsed, incoming, peerIdentity?.name]);
 
   const accept = async () => {
     if (!call || call.status !== "ringing" || !incoming || busy) return;
@@ -931,7 +958,7 @@ const VoiceCall = forwardRef<
     }
   };
 
-  if (!call) return <audio ref={remoteAudioRef} autoPlay />;
+  if (!call) return <audio ref={remoteAudioRef} autoPlay playsInline />;
 
   return (
     <div className={styles.backdrop} role="presentation">
@@ -941,7 +968,7 @@ const VoiceCall = forwardRef<
         aria-modal="true"
         aria-label="Chamada de voz"
       >
-        <audio ref={remoteAudioRef} autoPlay />
+        <audio ref={remoteAudioRef} autoPlay playsInline />
 
         <div className={styles.topline}>
           <Phone size={16} aria-hidden="true" />
@@ -983,9 +1010,9 @@ const VoiceCall = forwardRef<
             className={styles.audioResume}
             onClick={() => {
               if (!remoteAudioRef.current) return;
-              void remoteAudioRef.current.play().then(() =>
-                setNeedsAudioTap(false),
-              );
+              void remoteAudioRef.current
+                .play()
+                .then(() => setNeedsAudioTap(false));
             }}
           >
             Ativar áudio
@@ -1052,9 +1079,7 @@ const VoiceCall = forwardRef<
 
             <button
               type="button"
-              className={
-                speakerMuted ? styles.controlActive : styles.control
-              }
+              className={speakerMuted ? styles.controlActive : styles.control}
               onClick={toggleSpeaker}
               aria-pressed={speakerMuted}
               aria-label={speakerMuted ? "Ativar áudio" : "Silenciar áudio"}
