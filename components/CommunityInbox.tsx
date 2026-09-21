@@ -1,8 +1,9 @@
 "use client";
 
 import { ChevronDown, SquarePen, Users } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
+import { uploadGroupAvatarImage } from "@/lib/media";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
@@ -45,6 +46,7 @@ function conversationTime(value?: string) {
 export default function CommunityInbox({
   campaign,
   actor,
+  master,
   identities,
   cosmetics,
   equipment,
@@ -54,6 +56,7 @@ export default function CommunityInbox({
 }: {
   campaign: string;
   actor: string;
+  master: boolean;
   identities: Row[];
   cosmetics: Row[];
   equipment: Row[];
@@ -63,10 +66,13 @@ export default function CommunityInbox({
 }) {
   const [conversations, setConversations] = useState<Row[]>([]);
   const [group, setGroup] = useState<Row | null>(null);
+  const [groupAvatarUrl, setGroupAvatarUrl] = useState("");
+  const [groupAvatarBusy, setGroupAvatarBusy] = useState(false);
   const [latestByConversation, setLatestByConversation] = useState<
     Record<string, Row>
   >({});
   const [error, setError] = useState("");
+  const groupAvatarInputRef = useRef<HTMLInputElement>(null);
 
   const actorIdentity = identities.find((identity) => identity.id === actor);
 
@@ -166,6 +172,84 @@ export default function CommunityInbox({
       window.removeEventListener("focus", refresh);
     };
   }, [campaign, load]);
+
+  useEffect(() => {
+    const path = String(group?.avatar_storage_path || "");
+    if (!path) {
+      setGroupAvatarUrl("");
+      return;
+    }
+
+    let valid = true;
+    browserDb()
+      .storage.from("group-avatars")
+      .createSignedUrl(path, 3600)
+      .then((result) => {
+        if (!valid) return;
+        if (result.error) {
+          setGroupAvatarUrl("");
+          return;
+        }
+        setGroupAvatarUrl(result.data.signedUrl);
+      });
+
+    return () => {
+      valid = false;
+    };
+  }, [group?.avatar_storage_path, group?.avatar_updated_at]);
+
+  const changeGroupAvatar = useCallback(
+    async (file: File) => {
+      if (!master || groupAvatarBusy) return;
+
+      setGroupAvatarBusy(true);
+      setError("");
+      let uploadedPath = "";
+      let committed = false;
+
+      try {
+        uploadedPath = await uploadGroupAvatarImage(file, campaign);
+        const saved = await browserDb().rpc("campaign_group_avatar_set", {
+          c: campaign,
+          actor_id: actor,
+          storage_path: uploadedPath,
+        });
+        if (saved.error) throw saved.error;
+        committed = true;
+
+        const signed = await browserDb()
+          .storage.from("group-avatars")
+          .createSignedUrl(uploadedPath, 3600);
+        if (signed.error) throw signed.error;
+
+        setGroupAvatarUrl(signed.data.signedUrl);
+        setGroup((current) => ({
+          ...(current || {}),
+          avatar_storage_path: uploadedPath,
+          avatar_updated_at: new Date().toISOString(),
+        }));
+
+        const previousPath = String(saved.data?.previous_path || "");
+        if (previousPath && previousPath !== uploadedPath) {
+          await browserDb().storage.from("group-avatars").remove([previousPath]);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("alvorecer:chat-updated", {
+            detail: { campaign },
+          }),
+        );
+      } catch (reason) {
+        if (uploadedPath && !committed) {
+          await browserDb().storage.from("group-avatars").remove([uploadedPath]);
+        }
+        setError(readableErrorMessage(reason));
+      } finally {
+        setGroupAvatarBusy(false);
+      }
+    },
+    [actor, campaign, groupAvatarBusy, master],
+  );
 
   useEffect(() => {
     const groupId = String(group?.id || "");
@@ -287,8 +371,26 @@ export default function CommunityInbox({
           className={styles.inboxRow + " " + styles.inboxGroupRow}
           onClick={() => openConversation("__bar-do-pink__")}
         >
-          <span className={styles.inboxAvatar + " " + styles.inboxGroupAvatar}>
-            <Users aria-hidden="true" />
+          <span
+            className={
+              styles.inboxAvatar +
+              " " +
+              styles.inboxGroupAvatar +
+              (master ? " " + styles.inboxGroupAvatarEditable : "")
+            }
+            title={master ? "Trocar foto do Bar do Pink" : undefined}
+            onClick={(event) => {
+              if (!master) return;
+              event.preventDefault();
+              event.stopPropagation();
+              groupAvatarInputRef.current?.click();
+            }}
+          >
+            {groupAvatarUrl ? (
+              <img src={groupAvatarUrl} alt="" />
+            ) : (
+              <Users aria-hidden="true" />
+            )}
           </span>
 
           <span className={styles.inboxRowText}>
@@ -389,6 +491,21 @@ export default function CommunityInbox({
           </p>
         )}
       </div>
+
+      {master && (
+        <input
+          ref={groupAvatarInputRef}
+          type="file"
+          hidden
+          accept="image/webp,image/png,image/jpeg"
+          disabled={groupAvatarBusy}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void changeGroupAvatar(file);
+          }}
+        />
+      )}
     </section>
   );
 }
