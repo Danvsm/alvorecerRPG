@@ -529,3 +529,36 @@ Evidências:
 - `npm run build`: aprovado, com seis rotas geradas.
 
 Não testado: interrupção real de rede, comportamento entre Wi-Fi e rede móvel, aparência no navegador e responsividade em celular. A validação permanece manual com o usuário.
+
+## Chamada de voz 1x1 — 21/09/2026
+
+### Automatizado e infraestrutura
+
+- Migration `direct_voice_call_mvp` aplicada no Supabase real.
+- `direct_calls`, `direct_call_signals`, `direct_call_start`, `direct_call_action` e `direct_call_signal` confirmados no banco.
+- As duas tabelas estão publicadas no `supabase_realtime`.
+- `alvorecer-push` versão 10 está ACTIVE e reconhece `chat_call` como push de prioridade alta.
+- `npm test`: 98/98.
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado.
+- Deploy Vercel do commit de validação `6f68e45c71b0529154492a695ccd4d90eb32948f`: READY.
+
+### Teste manual pendente
+
+1. Pink abre uma conversa com darkvsm e toca no telefone.
+2. Confirmar solicitação de microfone e tela "Ligando".
+3. No segundo aparelho, confirmar tela de chamada recebida e testar "Atender".
+4. Falar nos dois sentidos por pelo menos 30 segundos.
+5. Testar mute e retorno do microfone.
+6. Encerrar de cada lado e conferir fechamento nos dois aparelhos.
+7. Repetir com "Recusar", "Cancelar" e timeout de não atendida.
+8. Com notificações permitidas e receptor em segundo plano, confirmar o push de chamada.
+9. Repetir em redes diferentes. O MVP usa somente STUN; falha apenas entre redes restritivas indica necessidade de TURN.
+
+### Fora deste MVP
+
+- gravação do áudio da chamada;
+- download da gravação pelo Mestre;
+- exclusão manual/automática do arquivo de gravação;
+- TURN para fallback de redes restritivas;
+- chamadas em grupo.
