@@ -323,3 +323,23 @@ test("master can replace the Bar do Pink avatar from the chat UI", async () => {
   assert.match(migration, /public\.is_master\(c\)/);
   assert.match(migration, /bucket_id='group-avatars'/);
 });
+
+
+test("chat avatars open the matching community profile", async () => {
+  const [game, panel, chat, inbox] = await Promise.all([
+    readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/CommunityPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/CommunityInbox.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(game, /communityProfileRequest/);
+  assert.match(game, /openProfile=\{\(identityId\)/);
+  assert.match(panel, /profileRequest\?: \{ id: string; nonce: number \}/);
+  assert.match(panel, /handledProfileRequest/);
+  assert.match(inbox, /openProfile\?\.\(String\(identity\.id\)\)/);
+  assert.match(chat, /openIdentityProfile/);
+  assert.match(chat, /chat-profile-avatar-button/);
+  assert.match(chat, /chat-contact-avatar-profile/);
+  assert.match(chat, /chat-message-avatar-profile/);
+});
