@@ -13,6 +13,7 @@ import {
 import { browserDb } from "@/lib/client";
 import { CallNegotiator, CallRecovery } from "@/lib/call-connection";
 import { buildCallRtcConfiguration, type CallIceConfig } from "@/lib/call-ice";
+import { selectChatAudioFormat } from "@/lib/chat-audio";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import { playAlvorecerSound } from "@/lib/site-sounds";
 import type { Row } from "@/lib/types";
@@ -48,6 +49,13 @@ type CallSignal = {
   sender_id: string;
   kind: "offer" | "answer" | "ice";
   payload: Record<string, unknown>;
+};
+
+type CallRecordingReservation = {
+  id: string;
+  callId: string;
+  path: string;
+  mimeType: "audio/webm" | "audio/ogg" | "audio/mp4";
 };
 
 type MicrophonePermission = "unknown" | "requesting" | "granted" | "denied";
@@ -143,6 +151,12 @@ const VoiceCall = forwardRef<
   const speakerMutedRef = useRef(false);
   const relayCandidateSeenRef = useRef(false);
   const tabIdRef = useRef("");
+  const recordingContextRef = useRef<AudioContext | null>(null);
+  const recordingRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingStartedAtRef = useRef(0);
+  const recordingReservationRef = useRef<CallRecordingReservation | null>(null);
+  const recordingStartingRef = useRef(false);
 
   const updateCall = useCallback((next: DirectCall | null) => {
     callRef.current = next;
@@ -187,6 +201,203 @@ const VoiceCall = forwardRef<
       window.localStorage.removeItem(ownershipKey(callId));
     },
     [ownershipKey, ownsCall],
+  );
+
+  const closeRecordingContext = useCallback(() => {
+    const context = recordingContextRef.current;
+    recordingContextRef.current = null;
+    if (context && context.state !== "closed") {
+      void context.close().catch(() => undefined);
+    }
+  }, []);
+
+  const primeRecordingContext = useCallback(async () => {
+    if (typeof AudioContext === "undefined") return null;
+    let context = recordingContextRef.current;
+    if (!context || context.state === "closed") {
+      context = new AudioContext();
+      recordingContextRef.current = context;
+    }
+    if (context.state === "suspended") {
+      await context.resume().catch(() => undefined);
+    }
+    return context;
+  }, []);
+
+  const uploadCallRecording = useCallback(
+    async (
+      reservation: CallRecordingReservation,
+      blob: Blob,
+      durationMs: number,
+    ) => {
+      try {
+        if (blob.size < 1 || durationMs < 250) return;
+        const db = browserDb();
+        const upload = await db.storage
+          .from("call-recordings")
+          .upload(reservation.path, blob, {
+            contentType: reservation.mimeType,
+            cacheControl: "3600",
+            upsert: false,
+          });
+        if (upload.error) throw upload.error;
+
+        const finalized = await db.rpc("direct_call_recording_finalize", {
+          c: campaign,
+          actor_id: actor,
+          call_id: reservation.callId,
+          recording_id: reservation.id,
+          claimed_duration_ms: durationMs,
+        });
+        if (finalized.error) throw finalized.error;
+      } catch (reason) {
+        console.warn("Não foi possível arquivar a gravação da chamada.", reason);
+      }
+    },
+    [actor, campaign],
+  );
+
+  const stopCallRecording = useCallback(() => {
+    recordingStartingRef.current = false;
+    const recorder = recordingRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      try {
+        recorder.stop();
+        return;
+      } catch {
+        recordingRecorderRef.current = null;
+      }
+    }
+    recordingChunksRef.current = [];
+    recordingReservationRef.current = null;
+    recordingStartedAtRef.current = 0;
+    closeRecordingContext();
+  }, [closeRecordingContext]);
+
+  const startCallRecording = useCallback(
+    async (
+      target: DirectCall,
+      localStream: MediaStream,
+      remoteStream: MediaStream,
+    ) => {
+      if (
+        actor !== target.caller_id ||
+        !ownsCall(target.id) ||
+        recordingRecorderRef.current ||
+        recordingStartingRef.current ||
+        !remoteStream.getAudioTracks().some((track) => track.readyState === "live") ||
+        typeof MediaRecorder === "undefined"
+      )
+        return;
+
+      const format = selectChatAudioFormat((mime) =>
+        MediaRecorder.isTypeSupported(mime),
+      );
+      if (!format) return;
+
+      recordingStartingRef.current = true;
+      try {
+        const reservation = await browserDb().rpc(
+          "direct_call_recording_reserve",
+          {
+            c: campaign,
+            actor_id: actor,
+            call_id: target.id,
+            requested_mime: format.storageMime,
+          },
+        );
+        if (reservation.error) throw reservation.error;
+        if (reservation.data?.ready) return;
+
+        const current = callRef.current;
+        if (
+          !current ||
+          current.id !== target.id ||
+          current.status !== "active" ||
+          !ownsCall(target.id)
+        )
+          return;
+
+        const context = await primeRecordingContext();
+        if (!context) return;
+        const localTracks = localStream
+          .getAudioTracks()
+          .filter((track) => track.readyState === "live");
+        const remoteTracks = remoteStream
+          .getAudioTracks()
+          .filter((track) => track.readyState === "live");
+        if (!localTracks.length || !remoteTracks.length) return;
+
+        const destination = context.createMediaStreamDestination();
+        const localSource = context.createMediaStreamSource(
+          new MediaStream(localTracks),
+        );
+        const remoteSource = context.createMediaStreamSource(
+          new MediaStream(remoteTracks),
+        );
+        localSource.connect(destination);
+        remoteSource.connect(destination);
+
+        const savedReservation: CallRecordingReservation = {
+          id: String(reservation.data.id),
+          callId: target.id,
+          path: String(reservation.data.path),
+          mimeType: format.storageMime,
+        };
+        recordingReservationRef.current = savedReservation;
+        recordingChunksRef.current = [];
+
+        const recorder = new MediaRecorder(destination.stream, {
+          mimeType: format.recorderMime,
+          audioBitsPerSecond: 24_000,
+        });
+        recordingRecorderRef.current = recorder;
+        recordingStartedAtRef.current = Date.now();
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size) recordingChunksRef.current.push(event.data);
+        };
+        recorder.onstop = () => {
+          const chunks = recordingChunksRef.current;
+          const reservationToUpload = recordingReservationRef.current;
+          const durationMs = Math.max(
+            0,
+            Math.min(
+              14_400_000,
+              Date.now() - recordingStartedAtRef.current,
+            ),
+          );
+          const blob = new Blob(chunks, { type: format.storageMime });
+
+          recordingRecorderRef.current = null;
+          recordingChunksRef.current = [];
+          recordingReservationRef.current = null;
+          recordingStartedAtRef.current = 0;
+          localSource.disconnect();
+          remoteSource.disconnect();
+          destination.disconnect();
+          closeRecordingContext();
+
+          if (reservationToUpload && blob.size > 0 && durationMs >= 250) {
+            void uploadCallRecording(reservationToUpload, blob, durationMs);
+          }
+        };
+
+        recorder.start(1000);
+      } catch (reason) {
+        console.warn("Gravação automática da chamada indisponível.", reason);
+      } finally {
+        recordingStartingRef.current = false;
+      }
+    },
+    [
+      actor,
+      campaign,
+      closeRecordingContext,
+      ownsCall,
+      primeRecordingContext,
+      uploadCallRecording,
+    ],
   );
 
   const stopLocalStream = useCallback(() => {
@@ -395,6 +606,9 @@ const VoiceCall = forwardRef<
             () => setNeedsAudioTap(true),
           );
         }
+        if (actor === target.caller_id && ownsCall(target.id)) {
+          void startCallRecording(target, localStream, remoteStream);
+        }
       };
 
       peer.onicecandidate = (event) => {
@@ -474,7 +688,15 @@ const VoiceCall = forwardRef<
         peerPromiseRef.current = null;
       }
     }
-  }, [actor, failCall, loadIceConfig, prepareLocalMedia, sendSignal]);
+  }, [
+    actor,
+    failCall,
+    loadIceConfig,
+    ownsCall,
+    prepareLocalMedia,
+    sendSignal,
+    startCallRecording,
+  ]);
 
   const processSignalNow = useCallback(
     async (signal: CallSignal) => {
@@ -560,6 +782,7 @@ const VoiceCall = forwardRef<
 
       try {
         await prepareLocalMedia();
+        await primeRecordingContext();
         const response = await browserDb().rpc("direct_call_start", {
           c: campaign,
           actor_id: actor,
@@ -587,6 +810,7 @@ const VoiceCall = forwardRef<
       clearPeer,
       notifyIncomingCall,
       prepareLocalMedia,
+      primeRecordingContext,
       stopLocalStream,
       updateCall,
     ],
@@ -676,11 +900,19 @@ const VoiceCall = forwardRef<
     return () => {
       valid = false;
       window.clearInterval(poll);
+      stopCallRecording();
       clearPeer();
       updateCall(null);
       void db.removeChannel(channel);
     };
-  }, [actor, campaign, clearPeer, ownsCall, updateCall]);
+  }, [
+    actor,
+    campaign,
+    clearPeer,
+    ownsCall,
+    stopCallRecording,
+    updateCall,
+  ]);
 
   useEffect(() => {
     if (!call || call.status !== "active" || !ownsCall(call.id)) return;
@@ -854,13 +1086,21 @@ const VoiceCall = forwardRef<
 
   useEffect(() => {
     if (!call || !TERMINAL.has(call.status)) return;
+    stopCallRecording();
     clearPeer();
     releaseCallOwnership(call.id);
     const timer = window.setTimeout(() => {
       if (callRef.current?.id === call.id) updateCall(null);
     }, 2200);
     return () => window.clearTimeout(timer);
-  }, [call?.id, call?.status, clearPeer, releaseCallOwnership, updateCall]);
+  }, [
+    call?.id,
+    call?.status,
+    clearPeer,
+    releaseCallOwnership,
+    stopCallRecording,
+    updateCall,
+  ]);
 
   const peerIdentity = useMemo(() => {
     if (!call) return undefined;
