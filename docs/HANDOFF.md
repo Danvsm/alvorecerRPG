@@ -560,3 +560,15 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 4. Repetir recusar, cancelar e deixar tocar até chamada não atendida.
 5. Testar primeiro na mesma rede e depois em redes diferentes. Se redes diferentes falharem enquanto a mesma rede funciona, implementar TURN antes de investigar o Supabase.
 6. Depois da estabilidade do núcleo, implementar a próxima fase pedida: gravação temporária, download pelo Mestre para HD e exclusão do arquivo do servidor preservando apenas o histórico leve da chamada.
+
+
+## Correção da negociação da chamada 1x1 — 21/09/2026
+
+- O banco confirmou que as três tentativas mais recentes Pink → darkvsm foram atendidas e falharam menos de dois segundos depois, todas com `Falha durante a negociação da chamada`; portanto o problema não estava no botão Atender nem na transição `ringing → active`.
+- A causa provável estava no cliente WebRTC: sinais `offer` e `ice` podiam chegar quase juntos e executar `ensurePeer()` em paralelo antes de `peerRef` ser preenchido, criando duas `RTCPeerConnection` concorrentes no mesmo lado.
+- `VoiceCall.tsx` agora usa `peerPromiseRef` para garantir uma única criação de peer por chamada e `signalQueueRef` para processar a sinalização de forma serial.
+- Antes de concluir a criação do peer, o código revalida se a mesma chamada continua ativa.
+- Falhas de negociação agora preservam no histórico da chamada a mensagem técnica resumida (`Falha na negociação: ...`) em vez de apenas o texto genérico, para facilitar diagnóstico caso ainda exista incompatibilidade específica de navegador.
+- Nenhuma migration nova foi necessária.
+- Teste estático de integração atualizado em `tests/direct-call.test.ts` para exigir a trava de criação e a fila de sinalização.
+- Validação manual pendente: repetir Pink → darkvsm, atender e confirmar áudio nos dois sentidos. Se ainda falhar, consultar `failure_reason` da tentativa nova antes de alterar TURN ou outras camadas.
