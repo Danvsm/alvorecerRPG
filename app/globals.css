@@ -6740,7 +6740,6 @@ dialog.combat-sheet {
   }
 }
 
-
 /* Direct chat 2026: mobile-first visual aligned with the approved reference. */
 .chat-window {
   background:
@@ -6860,8 +6859,7 @@ dialog.combat-sheet {
   gap: 0;
   padding: 18px 18px 30px;
   background:
-    radial-gradient(circle at 16% 44%, #7a52230a, transparent 18rem),
-    #080808;
+    radial-gradient(circle at 16% 44%, #7a52230a, transparent 18rem), #080808;
 }
 
 .chat-message-block {
@@ -6925,8 +6923,7 @@ dialog.combat-sheet {
   border: 1px solid #ffffff0d;
   border-radius: 18px 18px 18px 6px;
   color: #fff7ef;
-  background:
-    linear-gradient(145deg, #242223 0%, #191819 100%);
+  background: linear-gradient(145deg, #242223 0%, #191819 100%);
   box-shadow:
     inset 0 1px #ffffff08,
     0 5px 16px #0004;
@@ -6969,11 +6966,20 @@ dialog.combat-sheet {
 }
 
 .chat-message-time i {
-  color: #eb7280;
   font-family: Arial, sans-serif;
   font-size: 0.68rem;
   font-style: normal;
   letter-spacing: -0.14em;
+  transition: color 0.18s ease;
+}
+
+.chat-message-time i.sent {
+  color: #aaa29d;
+}
+
+.chat-message-time i.read {
+  color: #53bdeb;
+  text-shadow: 0 0 7px #53bdeb38;
 }
 
 .chat-message-author {
@@ -7035,6 +7041,7 @@ dialog.combat-sheet {
 }
 
 .chat-composer {
+  position: relative;
   grid-template-columns: 48px minmax(0, 1fr) 50px;
   align-items: center;
   gap: 9px;
@@ -7051,8 +7058,7 @@ dialog.combat-sheet {
   border: 1px solid #a97843;
   color: #f0c77e;
   background:
-    radial-gradient(circle at 50% 30%, #a46b2a22, transparent 64%),
-    #17120f;
+    radial-gradient(circle at 50% 30%, #a46b2a22, transparent 64%), #17120f;
   box-shadow:
     inset 0 0 12px #bb762a12,
     0 3px 12px #0005;
@@ -7070,8 +7076,7 @@ dialog.combat-sheet {
   border: 1px solid #49413d;
   border-radius: 26px;
   color: #f7f3ef;
-  background:
-    linear-gradient(180deg, #211f1f 0%, #171616 100%);
+  background: linear-gradient(180deg, #211f1f 0%, #171616 100%);
   box-shadow:
     inset 0 1px #ffffff0b,
     0 2px 10px #0003;
@@ -7121,6 +7126,156 @@ dialog.combat-sheet {
   width: 21px;
   height: 21px;
   stroke-width: 1.7;
+}
+
+.chat-emoji-picker {
+  position: absolute;
+  z-index: 12;
+  right: 16px;
+  bottom: calc(100% + 10px);
+  display: grid;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(440px, 62dvh);
+  overflow: hidden;
+  border: 1px solid #ffffff18;
+  border-radius: 18px;
+  color: #f5eee9;
+  background: #171717f8;
+  box-shadow: 0 18px 55px #000c;
+  backdrop-filter: blur(18px);
+}
+
+.chat-emoji-picker > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+  padding: 12px 12px 8px;
+}
+
+.chat-emoji-picker > header > button,
+.chat-emoji-picker nav button,
+.chat-emoji-grid button {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+}
+
+.chat-emoji-picker > header > button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  place-items: center;
+}
+
+.chat-emoji-picker > header > button:hover {
+  background: #ffffff0d;
+}
+
+.chat-emoji-search {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #ffffff12;
+  border-radius: 20px;
+  background: #252525;
+}
+
+.chat-emoji-search svg {
+  width: 17px;
+  color: #aaa39e;
+}
+
+.chat-emoji-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 0;
+  border: 0;
+  color: #f5eee9;
+  background: transparent;
+  outline: 0;
+}
+
+.chat-emoji-picker nav {
+  display: flex;
+  overflow-x: auto;
+  padding: 0 8px;
+  border-bottom: 1px solid #ffffff10;
+  scrollbar-width: none;
+}
+
+.chat-emoji-picker nav::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-emoji-picker nav button {
+  position: relative;
+  flex: 1 0 45px;
+  height: 45px;
+  border-radius: 9px 9px 0 0;
+  filter: grayscale(0.35);
+  font-size: 1.2rem;
+}
+
+.chat-emoji-picker nav button.active {
+  background: #ffffff08;
+  filter: none;
+}
+
+.chat-emoji-picker nav button.active::after {
+  position: absolute;
+  right: 7px;
+  bottom: 0;
+  left: 7px;
+  height: 2px;
+  border-radius: 2px;
+  background: #53bdeb;
+  content: "";
+}
+
+.chat-emoji-picker > strong {
+  padding: 10px 14px 5px;
+  color: #aaa39e;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  overflow-y: auto;
+  gap: 2px;
+  padding: 5px 10px 14px;
+  overscroll-behavior: contain;
+}
+
+.chat-emoji-grid button {
+  display: grid;
+  aspect-ratio: 1;
+  border-radius: 9px;
+  font-size: 1.65rem;
+  line-height: 1;
+  place-items: center;
+}
+
+.chat-emoji-grid button:hover,
+.chat-emoji-grid button:focus-visible {
+  background: #ffffff10;
+  transform: scale(1.08);
+}
+
+.chat-emoji-grid p {
+  grid-column: 1 / -1;
+  margin: 24px 0;
+  color: #aaa39e;
+  text-align: center;
 }
 
 .chat-send-button {
@@ -7248,6 +7403,17 @@ dialog.combat-sheet {
     grid-template-columns: 44px minmax(0, 1fr) 46px;
     gap: 8px;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .chat-emoji-picker {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: min(390px, 58dvh);
+  }
+
+  .chat-emoji-grid {
+    grid-template-columns: repeat(7, 1fr);
   }
 
   .chat-image-button {
