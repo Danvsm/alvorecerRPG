@@ -51,6 +51,9 @@ test("chat integrates WebRTC voice calls and high priority call push", async () 
 
   assert.match(call, /navigator\.mediaDevices\.getUserMedia/);
   assert.match(call, /new RTCPeerConnection/);
+  assert.match(call, /peerPromiseRef/);
+  assert.match(call, /signalQueueRef/);
+  assert.match(call, /processSignalNow/);
   assert.match(call, /direct_call_start/);
   assert.match(call, /direct_call_action/);
   assert.match(call, /direct_call_signal/);
