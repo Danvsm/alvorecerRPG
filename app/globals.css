@@ -3126,6 +3126,34 @@ dialog::backdrop {
 .notification-container {
   position: relative;
 }
+
+.notification-container > button {
+  position: relative;
+}
+
+.notification-count-badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid #0b0809;
+  border-radius: 999px;
+  color: #fff;
+  background: #e32640;
+  box-shadow:
+    0 0 0 1px #5d111a,
+    0 0 9px #e3264088;
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
 .chat-image {
   max-width: 100%;
   max-height: 280px;
@@ -3418,6 +3446,15 @@ dialog::backdrop {
   background: #321116;
 }
 @media (max-width: 600px) {
+  .notification-count-badge {
+    top: 1px;
+    right: 0;
+    min-width: 17px;
+    height: 17px;
+    padding-inline: 4px;
+    font-size: 0.61rem;
+  }
+
   .notification-screen {
     padding: max(18px, env(safe-area-inset-top)) 14px
       max(28px, env(safe-area-inset-bottom));
