@@ -195,3 +195,31 @@ test("community moves the real unread count from the floating chat to Conversar"
   assert.match(community, /mensagens não lidas/);
   assert.match(community, /unreadMessages > 99 \? "99\+"/);
 });
+
+
+test("master monitoring can permanently delete reports while RLS keeps players blocked", async () => {
+  const [monitor, migration] = await Promise.all([
+    readFile(new URL("../components/ConversationMonitor.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260921192840_master_delete_conversation_reports.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(monitor, /conversation_reports/);
+  assert.match(monitor, /\.delete\(\)/);
+  assert.match(monitor, /monitor-report-delete/);
+  assert.match(monitor, /Excluir definitivamente/);
+  assert.match(monitor, /event: "DELETE"/);
+
+  assert.match(
+    migration,
+    /grant delete on table public\.conversation_reports to authenticated/,
+  );
+  assert.match(migration, /conversation_reports_master_delete/);
+  assert.match(migration, /for delete/);
+  assert.match(migration, /public\.is_master\(campaign_id\)/);
+});
