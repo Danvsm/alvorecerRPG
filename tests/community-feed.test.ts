@@ -623,3 +623,18 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     /\.textFeedCard \.postBody\s*\{[^}]*background:\s*transparent;/s,
   );
 });
+
+
+test("feed author avatars open the corresponding community profile", async () => {
+  const [feed, panel] = await Promise.all([
+    readFile(new URL("../components/CommunityFeed.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/CommunityPanel.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(feed, /openProfile\?: \(identityId: string\) => void/);
+  assert.match(feed, /feedAuthorAvatarButton/);
+  assert.match(feed, /Abrir perfil de/);
+  assert.match(feed, /openProfile\?\.\(author\.id\)/);
+  assert.match(feed, /commentAuthorAvatarButton/);
+  assert.match(panel, /openProfile=\{revealProfile\}/);
+});
