@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, SquarePen } from "lucide-react";
+import { ChevronDown, SquarePen, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
@@ -62,6 +62,7 @@ export default function CommunityInbox({
   openConversation: (identityId: string) => void;
 }) {
   const [conversations, setConversations] = useState<Row[]>([]);
+  const [group, setGroup] = useState<Row | null>(null);
   const [latestByConversation, setLatestByConversation] = useState<
     Record<string, Row>
   >({});
@@ -73,19 +74,50 @@ export default function CommunityInbox({
     if (!actor) return;
     setError("");
 
-    const conversationResult = await retryNetworkRead(() =>
-      browserDb()
-        .from("direct_conversations")
-        .select("*")
-        .eq("campaign_id", campaign)
-        .or(`first_id.eq.${actor},second_id.eq.${actor}`)
-        .order("created_at", { ascending: false }),
-    );
+    const [conversationResult, groupResult] = await Promise.all([
+      retryNetworkRead(() =>
+        browserDb()
+          .from("direct_conversations")
+          .select("*")
+          .eq("campaign_id", campaign)
+          .or(`first_id.eq.${actor},second_id.eq.${actor}`)
+          .order("created_at", { ascending: false }),
+      ),
+      retryNetworkRead(() =>
+        browserDb().rpc("campaign_group_summary", {
+          c: campaign,
+          actor_id: actor,
+        }),
+      ),
+    ]);
 
     if (conversationResult.error) {
       setError(readableErrorMessage(conversationResult.error));
       return;
     }
+
+    const fallbackMemberCount = identities.filter(
+      (identity) =>
+        identity.active &&
+        identity.user_id &&
+        ["player", "master"].includes(String(identity.kind)),
+    ).length;
+
+    setGroup(
+      groupResult.error
+        ? {
+            name: "Bar do Pink",
+            member_count: fallbackMemberCount,
+            unread: 0,
+          }
+        : ({
+            ...(groupResult.data || {}),
+            name: groupResult.data?.name || "Bar do Pink",
+            member_count:
+              Number(groupResult.data?.member_count || 0) ||
+              fallbackMemberCount,
+          } as Row),
+    );
 
     const nextConversations = conversationResult.data || [];
     setConversations(nextConversations);
@@ -116,7 +148,7 @@ export default function CommunityInbox({
       }
     }
     setLatestByConversation(latest);
-  }, [actor, campaign]);
+  }, [actor, campaign, identities]);
 
   useEffect(() => {
     void load();
@@ -134,6 +166,30 @@ export default function CommunityInbox({
       window.removeEventListener("focus", refresh);
     };
   }, [campaign, load]);
+
+  useEffect(() => {
+    const groupId = String(group?.id || "");
+    if (!groupId) return;
+
+    const db = browserDb();
+    const channel = db
+      .channel(`community-inbox-group:${groupId}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "campaign_group_messages",
+          filter: `group_id=eq.${groupId}`,
+        },
+        () => void load(),
+      )
+      .subscribe();
+
+    return () => {
+      void db.removeChannel(channel);
+    };
+  }, [actor, group?.id, load]);
 
   const contacts = useMemo(() => {
     const conversationByPeer = new Map<string, Row>();
