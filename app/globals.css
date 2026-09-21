@@ -6273,6 +6273,43 @@ dialog.combat-sheet {
   font-size: 0.68rem;
 }
 
+.monitor-report-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 3px;
+  padding-top: 8px;
+  border-top: 1px solid #ffffff0b;
+}
+
+.monitor-report-delete {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #7a2a35;
+  border-radius: 9px;
+  color: #efb0b8;
+  background: #241015;
+  box-shadow: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.monitor-report-delete:hover:not(:disabled) {
+  border-color: #ad3b4a;
+  color: #ffd9de;
+  background: #36151c;
+}
+
+.monitor-report-delete:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
 @media (max-width: 720px) {
   .monitor-report-list {
     grid-template-columns: 1fr;
