@@ -10,6 +10,7 @@ const VALID_KINDS = new Set([
   "event",
   "reward",
   "warning",
+  "call",
 ]);
 
 function serviceClient() {
@@ -81,7 +82,7 @@ async function conversationContext(
 
   const { data: actor, error: actorError } = await db
     .from("social_identities")
-    .select("id,user_id,kind,active")
+    .select("id,user_id,kind,active,name")
     .eq("id", actorId)
     .eq("campaign_id", campaign)
     .maybeSingle();
@@ -189,8 +190,16 @@ async function pushToUsers(
             kind: payload.kind || "announcement",
           }),
           {
-            TTL: payload.kind === "message" ? 86400 : 259200,
-            urgency: payload.kind === "message" ? "high" : "normal",
+            TTL:
+              payload.kind === "call"
+                ? 60
+                : payload.kind === "message"
+                  ? 86400
+                  : 259200,
+            urgency:
+              payload.kind === "message" || payload.kind === "call"
+                ? "high"
+                : "normal",
           },
         );
 
@@ -324,7 +333,8 @@ Deno.serve(async (req: Request) => {
       action === "chat_report" ||
       action === "chat_message_report" ||
       action === "chat_message_delete" ||
-      action === "chat_message"
+      action === "chat_message" ||
+      action === "chat_call"
     ) {
       const conversationId = cleanText(body?.conversationId, 80);
       const actorId = cleanText(body?.actorId, 80);
@@ -531,6 +541,31 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      if (action === "chat_call") {
+        const callId = cleanText(body?.callId, 80);
+        if (!callId) {
+          throw new Error("Chamada inválida.");
+        }
+
+        const { data: call, error: callError } = await db
+          .from("direct_calls")
+          .select("id,conversation_id,caller_id,callee_id,status")
+          .eq("id", callId)
+          .eq("conversation_id", conversationId)
+          .eq("campaign_id", campaign)
+          .maybeSingle();
+
+        if (
+          callError ||
+          !call ||
+          String(call.caller_id) !== actorId ||
+          String(call.callee_id) !== context.recipientIdentityId ||
+          String(call.status) !== "ringing"
+        ) {
+          throw new Error("Chamada indisponível.");
+        }
+      }
+
       if (!context.recipient.user_id) {
         return Response.json(
           {
@@ -563,17 +598,28 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const isCall = action === "chat_call";
+      const callId = isCall ? cleanText(body?.callId, 80) : "";
+
       const delivery = await pushToUsers(
         db,
         campaign,
         [String(context.recipient.user_id)],
-        {
-          title: "Olha quem te mandou mensagem 👀",
-          body: "Entre no Alvorecer para ver quem foi.",
-          tag: `alvorecer-chat-${context.conversation.id}`,
-          url: "/",
-          kind: "message",
-        },
+        isCall
+          ? {
+              title: `${String(context.actor.name || "Alguém")} está ligando`,
+              body: "Toque para abrir a chamada de voz.",
+              tag: `alvorecer-call-${callId}`,
+              url: "/",
+              kind: "call",
+            }
+          : {
+              title: "Olha quem te mandou mensagem 👀",
+              body: "Entre no Alvorecer para ver quem foi.",
+              tag: `alvorecer-chat-${context.conversation.id}`,
+              url: "/",
+              kind: "message",
+            },
       );
 
       return Response.json(
