@@ -12,7 +12,7 @@ import {
 } from "react";
 import { browserDb } from "@/lib/client";
 import { CallNegotiator, CallRecovery } from "@/lib/call-connection";
-import type { CallIceConfig } from "@/lib/call-ice";
+import { buildCallRtcConfiguration, type CallIceConfig } from "@/lib/call-ice";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import { playAlvorecerSound } from "@/lib/site-sounds";
 import type { Row } from "@/lib/types";
@@ -355,10 +355,9 @@ const VoiceCall = forwardRef<
         throw new Error("A chamada não está mais ativa.");
       }
 
-      const peer = new RTCPeerConnection({
-        iceServers: iceConfig.iceServers,
-        iceCandidatePoolSize: 2,
-      });
+      const peer = new RTCPeerConnection(
+        buildCallRtcConfiguration(iceConfig),
+      );
 
       relayConfiguredRef.current = iceConfig.relayAvailable;
       const negotiator = new CallNegotiator(
@@ -401,7 +400,10 @@ const VoiceCall = forwardRef<
       peer.onicecandidate = (event) => {
         const current = callRef.current;
         if (!event.candidate || !current || current.status !== "active") return;
-        if (event.candidate.type === "relay") {
+        if (
+          event.candidate.type === "relay" ||
+          /\styp\srelay(?:\s|$)/.test(event.candidate.candidate)
+        ) {
           relayCandidateSeenRef.current = true;
         }
         void sendSignal(
@@ -437,7 +439,9 @@ const VoiceCall = forwardRef<
               callRef.current?.status !== "active"
             )
               return;
-            peer.setConfiguration({ iceServers: config.iceServers });
+            peer.setConfiguration(
+              buildCallRtcConfiguration(config, config.relayAvailable),
+            );
             relayConfiguredRef.current = config.relayAvailable;
             await negotiator.offer(true);
           });
@@ -448,6 +452,13 @@ const VoiceCall = forwardRef<
       recoveryRef.current = recovery;
       peer.onconnectionstatechange = () =>
         recovery.update(peer.connectionState);
+      peer.oniceconnectionstatechange = () => {
+        if (peer.iceConnectionState === "failed") {
+          recovery.update("failed");
+        } else if (peer.iceConnectionState === "disconnected") {
+          recovery.update("disconnected");
+        }
+      };
       // Also handles stalled initial negotiation, which may never emit "failed".
       recovery.update("connecting");
 
