@@ -23,6 +23,7 @@ import ChatAudio from "./ChatAudio";
 import ChatEmojiPicker from "./ChatEmojiPicker";
 import IdentityAvatar from "./IdentityAvatar";
 import VoiceRecorder from "./VoiceRecorder";
+import VoiceCall, { type VoiceCallHandle } from "./VoiceCall";
 import { optimizedWebp } from "@/lib/media";
 import type { ChatAudioPayload } from "@/lib/chat-audio";
 
@@ -132,6 +133,7 @@ export default function DirectChat({
   const [position, setPosition] = useState({ right: true, y: 75 });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const voiceCallRef = useRef<VoiceCallHandle>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
   const suppressContactUntil = useRef(0);
@@ -1016,8 +1018,15 @@ export default function DirectChat({
                   type="button"
                   className="chat-thread-call"
                   aria-label="Iniciar chamada"
-                  onClick={() =>
-                    showFeedback("Chamadas estarão disponíveis em breve.")
+                  onClick={() => {
+                    if (!selectedConversation) return;
+                    if (!selectedPeer?.user_id) {
+                      showFeedback("Este perfil não pode receber chamadas.");
+                      return;
+                    }
+                    void voiceCallRef.current?.start(
+                      String(selectedConversation.id),
+                    );
                   }
                 >
                   <Phone />
@@ -1776,6 +1785,15 @@ export default function DirectChat({
           )}
         </aside>
       )}
+      <VoiceCall
+        ref={voiceCallRef}
+        campaign={campaign}
+        actor={actor}
+        identities={identities}
+        cosmetics={cosmetics}
+        equipment={equipment}
+        urls={urls}
+      />
     </>
   );
 }
