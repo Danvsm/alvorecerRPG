@@ -917,6 +917,43 @@
   height: 16px;
 }
 
+.archiveDeleteButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid #7c2b35;
+  border-radius: 10px;
+  color: #f2b6bd;
+  background: #230b0f;
+  box-shadow: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.archiveDeleteButton:hover:not(:disabled) {
+  border-color: #b84453;
+  color: #ffd9de;
+  background: #351017;
+}
+
+.archiveDeleteButton:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.archiveDeleteButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.archiveDeleteButton:disabled svg {
+  animation: community-spin 0.9s linear infinite;
+}
+
 dialog.composer,
 dialog.commentsSheet {
   width: min(640px, calc(100vw - 28px));
