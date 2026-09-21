@@ -130,11 +130,52 @@ const VoiceCall = forwardRef<
   const disconnectTimerRef = useRef<number | null>(null);
   const ringTimerRef = useRef<number | null>(null);
   const speakerMutedRef = useRef(false);
+  const tabIdRef = useRef("");
 
   const updateCall = useCallback((next: DirectCall | null) => {
     callRef.current = next;
     setCall(next);
   }, []);
+
+  const currentTabId = useCallback(() => {
+    if (tabIdRef.current) return tabIdRef.current;
+    const storageKey = "alvorecer-call-tab-id";
+    let value = window.sessionStorage.getItem(storageKey);
+    if (!value) {
+      value = window.crypto.randomUUID();
+      window.sessionStorage.setItem(storageKey, value);
+    }
+    tabIdRef.current = value;
+    return value;
+  }, []);
+
+  const ownershipKey = useCallback(
+    (callId: string) => `alvorecer-call-owner:${callId}`,
+    [],
+  );
+
+  const claimCallOwnership = useCallback(
+    (callId: string) => {
+      const tabId = currentTabId();
+      window.localStorage.setItem(ownershipKey(callId), tabId);
+      return tabId;
+    },
+    [currentTabId, ownershipKey],
+  );
+
+  const ownsCall = useCallback(
+    (callId: string) =>
+      window.localStorage.getItem(ownershipKey(callId)) === currentTabId(),
+    [currentTabId, ownershipKey],
+  );
+
+  const releaseCallOwnership = useCallback(
+    (callId: string) => {
+      if (!ownsCall(callId)) return;
+      window.localStorage.removeItem(ownershipKey(callId));
+    },
+    [ownershipKey, ownsCall],
+  );
 
   const stopLocalStream = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -362,18 +403,25 @@ const VoiceCall = forwardRef<
 
   const processSignalNow = useCallback(
     async (signal: CallSignal) => {
+      const target = callRef.current;
+      if (
+        !target ||
+        target.id !== signal.call_id ||
+        target.status !== "active" ||
+        !ownsCall(target.id)
+      )
+        return;
       if (processedSignalsRef.current.has(signal.id)) return;
       processedSignalsRef.current.add(signal.id);
       if (signal.sender_id === actor) return;
-
-      const target = callRef.current;
-      if (!target || target.id !== signal.call_id || target.status !== "active")
-        return;
 
       try {
         const peer = await ensurePeer();
 
         if (signal.kind === "offer" && actor === target.callee_id) {
+          if (peer.signalingState !== "stable" || peer.remoteDescription) {
+            return;
+          }
           await peer.setRemoteDescription(
             signal.payload as unknown as RTCSessionDescriptionInit,
           );
@@ -392,6 +440,9 @@ const VoiceCall = forwardRef<
         }
 
         if (signal.kind === "answer" && actor === target.caller_id) {
+          if (peer.signalingState !== "have-local-offer") {
+            return;
+          }
           await peer.setRemoteDescription(
             signal.payload as unknown as RTCSessionDescriptionInit,
           );
@@ -410,7 +461,7 @@ const VoiceCall = forwardRef<
         void failCall(`Falha na negociação: ${detail}`);
       }
     },
-    [actor, drainCandidates, ensurePeer, failCall, sendSignal],
+    [actor, drainCandidates, ensurePeer, failCall, ownsCall, sendSignal],
   );
 
   const processSignal = useCallback(
@@ -471,6 +522,7 @@ const VoiceCall = forwardRef<
         });
         if (response.error) throw response.error;
         const next = normalizedCall(response.data as Row);
+        claimCallOwnership(next.id);
         updateCall(next);
         void notifyIncomingCall(next);
       } catch (reason) {
@@ -486,6 +538,7 @@ const VoiceCall = forwardRef<
       actor,
       busy,
       campaign,
+      claimCallOwnership,
       clearPeer,
       notifyIncomingCall,
       prepareLocalMedia,
@@ -514,7 +567,11 @@ const VoiceCall = forwardRef<
         .maybeSingle(),
     ).then((response) => {
       if (!valid || response.error || !response.data) return;
-      updateCall(normalizedCall(response.data as Row));
+      const restored = normalizedCall(response.data as Row);
+      const outgoing = restored.caller_id === actor;
+      const active = restored.status === "active";
+      if ((outgoing || active) && !ownsCall(restored.id)) return;
+      updateCall(restored);
     });
 
     const channel = db
@@ -539,6 +596,16 @@ const VoiceCall = forwardRef<
           ) {
             return;
           }
+
+          if (row.status === "ringing" && row.caller_id === actor) {
+            if (!ownsCall(row.id)) return;
+          }
+
+          if (row.status === "active" && !ownsCall(row.id)) {
+            if (current?.id === row.id) updateCall(null);
+            return;
+          }
+
           updateCall(row);
         },
       )
@@ -550,10 +617,10 @@ const VoiceCall = forwardRef<
       updateCall(null);
       void db.removeChannel(channel);
     };
-  }, [actor, campaign, clearPeer, updateCall]);
+  }, [actor, campaign, clearPeer, ownsCall, updateCall]);
 
   useEffect(() => {
-    if (!call || call.status !== "active") return;
+    if (!call || call.status !== "active" || !ownsCall(call.id)) return;
 
     let valid = true;
     const db = browserDb();
@@ -605,10 +672,10 @@ const VoiceCall = forwardRef<
       valid = false;
       void db.removeChannel(channel);
     };
-  }, [actor, call?.id, call?.status, processSignal]);
+  }, [actor, call?.id, call?.status, ownsCall, processSignal]);
 
   useEffect(() => {
-    if (!call || call.status !== "active") return;
+    if (!call || call.status !== "active" || !ownsCall(call.id)) return;
 
     let active = true;
     const begin = async () => {
@@ -641,7 +708,15 @@ const VoiceCall = forwardRef<
     return () => {
       active = false;
     };
-  }, [actor, call?.id, call?.status, ensurePeer, failCall, sendSignal]);
+  }, [
+    actor,
+    call?.id,
+    call?.status,
+    ensurePeer,
+    failCall,
+    ownsCall,
+    sendSignal,
+  ]);
 
   useEffect(() => {
     if (!call || call.status !== "ringing") return;
@@ -701,11 +776,18 @@ const VoiceCall = forwardRef<
   useEffect(() => {
     if (!call || !TERMINAL.has(call.status)) return;
     clearPeer();
+    releaseCallOwnership(call.id);
     const timer = window.setTimeout(() => {
       if (callRef.current?.id === call.id) updateCall(null);
     }, 2200);
     return () => window.clearTimeout(timer);
-  }, [call?.id, call?.status, clearPeer, updateCall]);
+  }, [
+    call?.id,
+    call?.status,
+    clearPeer,
+    releaseCallOwnership,
+    updateCall,
+  ]);
 
   const peerIdentity = useMemo(() => {
     if (!call) return undefined;
@@ -745,10 +827,12 @@ const VoiceCall = forwardRef<
     if (!call || call.status !== "ringing" || !incoming || busy) return;
     setBusy(true);
     setError("");
+    claimCallOwnership(call.id);
     try {
       await prepareLocalMedia();
       await callAction(call, "accept");
     } catch (reason) {
+      releaseCallOwnership(call.id);
       setError(readableErrorMessage(reason));
       stopLocalStream();
     } finally {
