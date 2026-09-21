@@ -40,6 +40,8 @@ function messageDayKey(value?: string) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
+const CAMPAIGN_GROUP_SELECTION = "__bar-do-pink__";
+
 function messageDayLabel(value?: string) {
   if (!value) return "";
   const date = new Date(value);
@@ -624,7 +626,7 @@ export default function DirectChat({
   useEffect(() => {
     if (!selected || !open) return;
     let valid = true;
-    const isGroup = Boolean(group?.id && String(group.id) === selected);
+    const isGroup = selected === CAMPAIGN_GROUP_SELECTION;
 
     if (isGroup) {
       retryNetworkRead(() =>
@@ -728,7 +730,7 @@ export default function DirectChat({
         },
         (payload) => {
           const message = payload.new as Row;
-          if (String(group.id) === selected) {
+          if (selected === CAMPAIGN_GROUP_SELECTION) {
             setMessages((current) => {
               if (current.some((item) => item.id === message.id)) return current;
               return [...current, message].slice(-200);
@@ -913,10 +915,10 @@ export default function DirectChat({
   };
 
   const openGroup = () => {
-    if (!group?.id || busy || !contactsInteractive) return;
+    if (busy || !contactsInteractive) return;
     setVoiceOpen(false);
     setEmojiOpen(false);
-    setSelected(String(group.id));
+    setSelected(CAMPAIGN_GROUP_SELECTION);
     setLimit(50);
   };
 
@@ -951,7 +953,7 @@ export default function DirectChat({
     });
   };
 
-  const selectedGroup = Boolean(group?.id && String(group.id) === selected);
+  const selectedGroup = selected === CAMPAIGN_GROUP_SELECTION;
   const selectedConversation = selectedGroup
     ? undefined
     : conversations.find((c) => c.id === selected);
@@ -1227,8 +1229,7 @@ export default function DirectChat({
               aria-label="Lista de conversas"
               data-interactive={contactsInteractive ? "true" : "false"}
             >
-              {group?.id && (
-                <button
+              <button
                   type="button"
                   className="chat-contact-row chat-group-row"
                   disabled={busy || !contactsInteractive}
@@ -1242,18 +1243,18 @@ export default function DirectChat({
                   </span>
 
                   <span className="chat-contact-copy">
-                    <strong>{String(group.name || "Bar do Pink")}</strong>
+                    <strong>{String(group?.name || "Bar do Pink")}</strong>
                     <small>
-                      {group.latest_body ? (
+                      {group?.latest_body ? (
                         <>
-                          {String(group.latest_sender_id) === actor
+                          {String(group?.latest_sender_id) === actor
                             ? "Você"
                             : identities.find(
                                 (identity) =>
                                   String(identity.id) ===
-                                  String(group.latest_sender_id),
+                                  String(group?.latest_sender_id),
                               )?.name || "Jogador"}
-                          : {String(group.latest_body)}
+                          : {String(group?.latest_body)}
                         </>
                       ) : (
                         "Todos os jogadores da campanha"
@@ -1262,21 +1263,20 @@ export default function DirectChat({
                   </span>
 
                   <span className="chat-contact-meta">
-                    {Number(group.unread || 0) > 0 && (
+                    {Number(group?.unread || 0) > 0 && (
                       <i className="chat-group-unread">
-                        {Number(group.unread) > 99
+                        {Number(group?.unread) > 99
                           ? "99+"
-                          : Number(group.unread)}
+                          : Number(group?.unread)}
                       </i>
                     )}
-                    {group.latest_created_at && (
-                      <time dateTime={String(group.latest_created_at)}>
-                        {contactTime(String(group.latest_created_at))}
+                    {group?.latest_created_at && (
+                      <time dateTime={String(group?.latest_created_at)}>
+                        {contactTime(String(group?.latest_created_at))}
                       </time>
                     )}
                   </span>
                 </button>
-              )}
 
               {contactRows.map(
                 ({ identity, conversation, latest, activityAt, online }) => {
