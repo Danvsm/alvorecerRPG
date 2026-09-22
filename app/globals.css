@@ -387,6 +387,12 @@ code {
   padding-top: 18px;
 }
 
+.jokenpo-page-stats {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
 .jokenpo-page-balance {
   color: #e8bd72;
   font-size: 1rem;
@@ -395,6 +401,13 @@ code {
   line-height: 1;
   white-space: nowrap;
   text-align: right;
+}
+
+.jokenpo-page-total {
+  color: #79e59a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .jokenpo-heading-title {
