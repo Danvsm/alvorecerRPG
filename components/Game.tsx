@@ -290,6 +290,7 @@ function formatHistoryValue(value: unknown): string {
 
 export default function Game({ invite }: { invite?: string }) {
   const [speakingAs, setSpeakingAs] = useState("");
+  const [jokenpoOutcome, setJokenpoOutcome] = useState<"vitoria" | "derrota" | "empate">();
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [playerSearch, setPlayerSearch] = useState("");
   const [expandedPlayer, setExpandedPlayer] = useState("");
@@ -1604,7 +1605,13 @@ export default function Game({ invite }: { invite?: string }) {
                   <p className="eyebrow">
                     {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
                   </p>
-                  <h1>
+                  <h1
+                    className={
+                      page === "Jokenpô" && jokenpoOutcome
+                        ? `jokenpo-heading-title ${jokenpoOutcome}`
+                        : undefined
+                    }
+                  >
                     {!isMaster && page === "Visão Geral" ? "Início" : page}
                   </h1>
                 </div>
@@ -1654,6 +1661,7 @@ export default function Game({ invite }: { invite?: string }) {
                   ? "Crie ou vincule um personagem ativo antes de apostar."
                   : undefined
               }
+              onOutcomeChange={setJokenpoOutcome}
               playRound={(choice, betCents, requestId) =>
                 perform(async () => {
                   const { data: result, error: roundError } = await browserDb().rpc(
