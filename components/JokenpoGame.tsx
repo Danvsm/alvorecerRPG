@@ -170,10 +170,10 @@ export default function JokenpoGame({
 
   async function bounce(run: number, cycles = 1) {
     const steps: Array<[string, number]> = [
-      ["subida-meio", 90],
-      ["subida-topo", 125],
-      ["descida-meio", 90],
-      ["contato", 110],
+      ["subida-meio", 60],
+      ["subida-topo", 80],
+      ["descida-meio", 60],
+      ["contato", 70],
     ];
     for (let cycle = 0; cycle < cycles; cycle += 1) {
       for (const [name, duration] of steps) {
@@ -227,23 +227,24 @@ export default function JokenpoGame({
     setRoundDelta(Number(settledRound.net_delta_cents));
     setDisplayBalance(Number(settledRound.balance_after));
 
-    if (!(await show(run, "/jokenpo/jo.webp", "JÓ...", 650))) return;
+    if (!(await show(run, "/jokenpo/jo.webp", "JÓ...", 350))) return;
     if (!(await bounce(run))) return;
-    if (!(await show(run, "/jokenpo/ken.webp", "KEN...", 650))) return;
-    if (!(await bounce(run, 4))) return;
-    if (!(await show(run, "/jokenpo/po.webp", "PÔ!", 120))) return;
+    if (!(await show(run, "/jokenpo/ken.webp", "KEN...", 350))) return;
+    if (!(await bounce(run, 2))) return;
+    if (!(await show(run, "/jokenpo/po.webp", "PÔ!", 80))) return;
     setBurstWord("PÔ!");
-    if (!(await show(run, "/jokenpo/po.webp", "PÔ!", 610))) return;
+    if (!(await show(run, "/jokenpo/po.webp", "PÔ!", 260))) return;
     setBurstWord("");
 
     setPhase("result");
+    onOutcomeChange?.(roundOutcome);
     setBurstWord(labels[opponent].toUpperCase());
     if (
       !(await show(
         run,
         `/jokenpo/${opponent}.webp`,
         `Você escolheu ${labels[choice]}. O taverneiro revelou ${labels[opponent]}.`,
-        1950,
+        650,
       ))
     )
       return;
@@ -253,7 +254,7 @@ export default function JokenpoGame({
         run,
         `/jokenpo/${opponent}.webp`,
         `Você escolheu ${labels[choice]}. O taverneiro revelou ${labels[opponent]}.`,
-        900,
+        250,
       ))
     )
       return;
@@ -265,7 +266,7 @@ export default function JokenpoGame({
         run,
         silentReaction,
         "O taverneiro reage ao resultado...",
-        480,
+        220,
       ))
     )
       return;
@@ -275,8 +276,7 @@ export default function JokenpoGame({
         : roundOutcome === "derrota"
           ? "O taverneiro venceu a rodada."
           : "A rodada terminou empatada.";
-    if (!(await show(run, spokenReaction, resultText, 1900))) return;
-    onOutcomeChange?.(roundOutcome);
+    if (!(await show(run, spokenReaction, resultText, 700))) return;
     setPhase("replay");
     setFrame("/jokenpo/revanche.webp");
     setStatus(resultText);
@@ -347,7 +347,7 @@ export default function JokenpoGame({
         <p className={styles.eyebrow}>Taverna do Alvorecer</p>
         <h2
           className={
-            phase === "replay" && outcome
+            ["result", "reaction", "replay"].includes(phase) && outcome
               ? outcome === "vitoria"
                 ? styles.titleWin
                 : outcome === "derrota"
@@ -467,7 +467,10 @@ export default function JokenpoGame({
           </div>
         )}
 
-        {player && character && outcome && phase === "replay" && (
+        {player &&
+          character &&
+          outcome &&
+          ["result", "reaction", "replay"].includes(phase) && (
           <div className={styles.result}>
             <strong
               className={
