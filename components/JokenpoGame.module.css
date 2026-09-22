@@ -125,26 +125,20 @@
   line-height: 1.55;
 }
 
-.wallet {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 3px 12px;
+.topMeta {
+  display: flex;
   align-items: center;
-  padding: 12px 14px;
-  border: 1px solid rgba(216, 168, 79, 0.24);
-  border-radius: 13px;
-  background: rgba(0, 0, 0, 0.2);
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
-.wallet span {
-  color: rgba(255, 247, 223, 0.62);
-  font-size: 0.78rem;
-}
-
-.wallet strong {
-  grid-row: span 2;
+.topBalance {
   color: #f3cf83;
-  font-size: 1.02rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -400,6 +394,10 @@
   .panel {
     text-align: center;
   }
+  .topMeta {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
   .soundButton {
     justify-self: center;
   }
@@ -418,9 +416,6 @@
   }
   .choices {
     grid-template-columns: 1fr;
-  }
-  .wallet {
-    text-align: left;
   }
   .quickBets {
     grid-template-columns: repeat(3, 1fr);
