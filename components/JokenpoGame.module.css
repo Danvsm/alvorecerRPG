@@ -42,13 +42,13 @@
   animation: frame-in 90ms ease-out;
 }
 
-.poBurst {
+.wordBurst {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.poBurst span {
+.wordBurst span {
   position: absolute;
   z-index: 2;
   color: #fff2c7;
@@ -62,25 +62,36 @@
   animation: po-shake 520ms both;
 }
 
-.poBurst span:nth-child(1) {
+.wordBurst span:nth-child(1) {
   left: 8%;
   top: 10%;
   animation-delay: 30ms;
 }
-.poBurst span:nth-child(2) {
+.wordBurst span:nth-child(2) {
   right: 7%;
   top: 23%;
   animation-delay: 110ms;
 }
-.poBurst span:nth-child(3) {
+.wordBurst span:nth-child(3) {
   left: 13%;
   bottom: 23%;
   animation-delay: 190ms;
 }
-.poBurst span:nth-child(4) {
+.wordBurst span:nth-child(4) {
   right: 10%;
   bottom: 12%;
   animation-delay: 270ms;
+}
+
+.wordBurst span:nth-child(5) {
+  left: 38%;
+  top: 42%;
+  animation-delay: 350ms;
+}
+
+.wordBurst.longWord span {
+  font-size: clamp(1.15rem, 4.2vw, 3rem);
+  animation-iteration-count: 3;
 }
 
 .panel {
@@ -240,7 +251,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stage img,
-  .poBurst span,
+  .wordBurst span,
   .choices button,
   .actions button {
     animation-duration: 1ms;
