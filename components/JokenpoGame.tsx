@@ -81,7 +81,6 @@ export default function JokenpoGame({
   const [roundDelta, setRoundDelta] = useState<number>();
   const [roundBet, setRoundBet] = useState<number>();
   const [roundError, setRoundError] = useState("");
-  const [musicMuted, setMusicMuted] = useState(false);
   const runRef = useRef(0);
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const musicRef = useRef<HTMLAudioElement>(null);
@@ -118,10 +117,6 @@ export default function JokenpoGame({
     setDisplayBalance(balanceCents);
   }, [balanceCents]);
 
-  useEffect(() => {
-    if (musicRef.current) musicRef.current.muted = musicMuted;
-  }, [musicMuted]);
-
   async function startMusic() {
     const music = musicRef.current;
     if (!music || !music.paused) return;
@@ -138,9 +133,7 @@ export default function JokenpoGame({
           fadeRef.current = undefined;
         }
       }, 90);
-    } catch {
-      setMusicMuted(true);
-    }
+    } catch {}
   }
 
   function wait(ms: number) {
@@ -348,14 +341,6 @@ export default function JokenpoGame({
       <div className={styles.panel}>
         <p className={styles.eyebrow}>Taverna do Alvorecer</p>
         <h2>Jokenpô</h2>
-        <button
-          type="button"
-          className={styles.soundButton}
-          onClick={() => setMusicMuted((muted) => !muted)}
-          aria-label={musicMuted ? "Ativar música" : "Silenciar música"}
-        >
-          {musicMuted ? "Música desligada" : "Música ligada"}
-        </button>
         <p className={styles.status} aria-live="polite">
           {status}
         </p>
