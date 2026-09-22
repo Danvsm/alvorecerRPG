@@ -125,23 +125,6 @@
   line-height: 1.55;
 }
 
-.soundButton {
-  justify-self: start;
-  padding: 0;
-  border: 0;
-  color: rgba(255, 247, 223, 0.68);
-  background: transparent;
-  font: inherit;
-  font-size: 0.72rem;
-  cursor: pointer;
-}
-
-.soundButton:hover,
-.soundButton:focus-visible {
-  color: #fff7df;
-  text-decoration: underline;
-}
-
 .betPanel {
   display: grid;
   gap: 10px;
@@ -376,9 +359,6 @@
   }
   .panel {
     text-align: center;
-  }
-  .soundButton {
-    justify-self: center;
   }
   .status {
     min-height: auto;
