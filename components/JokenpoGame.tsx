@@ -399,7 +399,7 @@ export default function JokenpoGame({
             </p>
             <small>
               Máximo nesta rodada: {formatDracmas(Math.min(maximumBetCents, displayBalance))}.
-              Limites de 100 Dracmas ganhos e 200 perdidos a cada 24 horas.
+              Limite de 100 Dracmas ganhos a cada 24 horas. Perdas sem limite diário.
             </small>
             {unavailableReason ? <p className={styles.betError}>{unavailableReason}</p> : null}
             {!unavailableReason && displayBalance < 100 ? (
