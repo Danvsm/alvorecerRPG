@@ -1,22 +1,37 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatDracmas } from "@/lib/currency";
 import styles from "./JokenpoGame.module.css";
 
 type Choice = "pedra" | "papel" | "tesoura";
 type Outcome = "vitoria" | "derrota" | "empate";
 type Phase = "intro" | "choice" | "counting" | "result" | "reaction" | "replay";
 
+export type JokenpoRound = {
+  tavern_choice: Choice;
+  outcome: Outcome;
+  bet_cents: number;
+  net_delta_cents: number;
+  balance_after: number;
+};
+
+type JokenpoGameProps = {
+  balanceCents: number;
+  walletLabel: string;
+  unavailableReason?: string;
+  playRound: (
+    choice: Choice,
+    betCents: number,
+    requestId: string,
+  ) => Promise<JokenpoRound>;
+};
+
 const choices: Choice[] = ["pedra", "papel", "tesoura"];
 const labels: Record<Choice, string> = {
   pedra: "Pedra",
   papel: "Papel",
   tesoura: "Tesoura",
-};
-const beats: Record<Choice, Choice> = {
-  pedra: "tesoura",
-  papel: "pedra",
-  tesoura: "papel",
 };
 const assets = [
   "intro",
@@ -40,11 +55,6 @@ const assets = [
   "revanche",
 ].map((name) => `/jokenpo/${name}.webp`);
 
-function outcomeFor(player: Choice, character: Choice): Outcome {
-  if (player === character) return "empate";
-  return beats[player] === character ? "vitoria" : "derrota";
-}
-
 function reactionFrames(outcome: Outcome) {
   if (outcome === "vitoria") {
     return ["/jokenpo/reacao-vitoria.webp", "/jokenpo/personagem-perde.webp"];
@@ -55,7 +65,12 @@ function reactionFrames(outcome: Outcome) {
   return ["/jokenpo/reacao-empate.webp", "/jokenpo/empate.webp"];
 }
 
-export default function JokenpoGame() {
+export default function JokenpoGame({
+  balanceCents,
+  walletLabel,
+  unavailableReason,
+  playRound,
+}: JokenpoGameProps) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [frame, setFrame] = useState("/jokenpo/intro.webp");
   const [status, setStatus] = useState("O taverneiro espera pelo seu desafio.");
@@ -63,8 +78,27 @@ export default function JokenpoGame() {
   const [character, setCharacter] = useState<Choice>();
   const [outcome, setOutcome] = useState<Outcome>();
   const [burstWord, setBurstWord] = useState("");
+  const [betDracmas, setBetDracmas] = useState(1);
+  const [displayBalance, setDisplayBalance] = useState(balanceCents);
+  const [roundDelta, setRoundDelta] = useState<number>();
+  const [roundBet, setRoundBet] = useState<number>();
+  const [roundError, setRoundError] = useState("");
+  const [musicMuted, setMusicMuted] = useState(false);
   const runRef = useRef(0);
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const musicRef = useRef<HTMLAudioElement>(null);
+  const fadeRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  const maximumBetCents = Math.min(
+    5000,
+    Math.max(100, Math.floor(displayBalance / 1000) * 100),
+  );
+  const selectedBetCents = betDracmas * 100;
+  const canBet =
+    !unavailableReason &&
+    displayBalance >= 100 &&
+    selectedBetCents <= maximumBetCents &&
+    selectedBetCents <= displayBalance;
 
   useEffect(() => {
     assets.forEach((src) => {
@@ -76,8 +110,39 @@ export default function JokenpoGame() {
       runRef.current += 1;
       timers.forEach(clearTimeout);
       timers.clear();
+      if (fadeRef.current) clearInterval(fadeRef.current);
+      musicRef.current?.pause();
     };
   }, []);
+
+  useEffect(() => {
+    setDisplayBalance(balanceCents);
+  }, [balanceCents]);
+
+  useEffect(() => {
+    if (musicRef.current) musicRef.current.muted = musicMuted;
+  }, [musicMuted]);
+
+  async function startMusic() {
+    const music = musicRef.current;
+    if (!music || !music.paused) return;
+    if (fadeRef.current) clearInterval(fadeRef.current);
+    music.volume = 0;
+    music.loop = true;
+    try {
+      await music.play();
+      fadeRef.current = setInterval(() => {
+        if (!musicRef.current) return;
+        musicRef.current.volume = Math.min(0.12, musicRef.current.volume + 0.015);
+        if (musicRef.current.volume >= 0.12 && fadeRef.current) {
+          clearInterval(fadeRef.current);
+          fadeRef.current = undefined;
+        }
+      }, 90);
+    } catch {
+      setMusicMuted(true);
+    }
+  }
 
   function wait(ms: number) {
     return new Promise<void>((resolve) => {
@@ -133,12 +198,40 @@ export default function JokenpoGame() {
   async function play(choice: Choice) {
     cancelTimeline();
     const run = runRef.current;
-    const opponent = choices[Math.floor(Math.random() * choices.length)];
-    const roundOutcome = outcomeFor(choice, opponent);
+    setRoundError("");
+    setPhase("counting");
+    setStatus("O taverneiro registra a aposta...");
+
+    let settledRound: JokenpoRound;
+    try {
+      settledRound = await playRound(
+        choice,
+        selectedBetCents,
+        crypto.randomUUID(),
+      );
+    } catch (caught) {
+      if (runRef.current !== run) return;
+      setPhase("choice");
+      setRoundError(
+        caught instanceof Error ? caught.message : "Não foi possível registrar a aposta.",
+      );
+      setStatus("A rodada não começou. Revise a aposta e tente novamente.");
+      return;
+    }
+
+    const opponent = settledRound.tavern_choice;
+    const roundOutcome = settledRound.outcome;
+    if (!choices.includes(opponent) || !["vitoria", "derrota", "empate"].includes(roundOutcome)) {
+      setPhase("choice");
+      setRoundError("O resultado recebido é inválido. Nenhuma nova aposta foi iniciada.");
+      return;
+    }
     setPlayer(choice);
     setCharacter(opponent);
     setOutcome(roundOutcome);
-    setPhase("counting");
+    setRoundBet(Number(settledRound.bet_cents));
+    setRoundDelta(Number(settledRound.net_delta_cents));
+    setDisplayBalance(Number(settledRound.balance_after));
 
     if (!(await show(run, "/jokenpo/jo.webp", "JÓ...", 650))) return;
     if (!(await bounce(run))) return;
@@ -196,6 +289,7 @@ export default function JokenpoGame() {
 
   function openChoices() {
     cancelTimeline();
+    setRoundError("");
     setPhase("choice");
     setFrame("/jokenpo/escolha.webp");
     setStatus(
@@ -214,10 +308,23 @@ export default function JokenpoGame() {
     setPlayer(undefined);
     setCharacter(undefined);
     setOutcome(undefined);
+    setRoundDelta(undefined);
+    setRoundBet(undefined);
+    setRoundError("");
+  }
+
+  function stop() {
+    const music = musicRef.current;
+    if (music) {
+      music.pause();
+      music.currentTime = 0;
+    }
+    reset();
   }
 
   return (
     <section className={styles.game} aria-label="Minijogo Jokenpô">
+      <audio ref={musicRef} src="/audio/jokenpo.mp3" preload="metadata" />
       <div className={styles.stage}>
         <img
           src={frame}
@@ -242,29 +349,97 @@ export default function JokenpoGame() {
       <div className={styles.panel}>
         <p className={styles.eyebrow}>Taverna do Alvorecer</p>
         <h2>Jokenpô</h2>
+        <div className={styles.wallet}>
+          <span>{walletLabel}</span>
+          <strong>{formatDracmas(displayBalance)}</strong>
+          <button
+            type="button"
+            className={styles.soundButton}
+            onClick={() => setMusicMuted((muted) => !muted)}
+            aria-label={musicMuted ? "Ativar música" : "Silenciar música"}
+          >
+            {musicMuted ? "Música desligada" : "Música ligada"}
+          </button>
+        </div>
         <p className={styles.status} aria-live="polite">
           {status}
         </p>
 
         {phase === "intro" && (
-          <div className={styles.actions}>
-            <button type="button" onClick={openChoices}>
-              Desafiar o taverneiro
-            </button>
+          <div className={styles.betPanel}>
+            <label htmlFor="jokenpo-bet">Aposta em Dracmas</label>
+            <div className={styles.betInput}>
+              <input
+                id="jokenpo-bet"
+                type="number"
+                min={1}
+                max={Math.max(1, Math.floor(maximumBetCents / 100))}
+                step={1}
+                value={betDracmas}
+                onChange={(event) =>
+                  setBetDracmas(Math.max(1, Number(event.target.value) || 1))
+                }
+              />
+              <span>Dracmas</span>
+            </div>
+            <div className={styles.quickBets} aria-label="Apostas rápidas">
+              {[1, 5, 10, 25, 50].map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  disabled={amount * 100 > maximumBetCents || amount * 100 > displayBalance}
+                  onClick={() => setBetDracmas(amount)}
+                >
+                  {amount}
+                </button>
+              ))}
+            </div>
+            <p className={styles.odds}>
+              Vitória: +80% · Derrota: −100% · Empate: aposta devolvida
+            </p>
+            <small>
+              Máximo nesta rodada: {formatDracmas(Math.min(maximumBetCents, displayBalance))}.
+              Limites de 100 Dracmas ganhos e 200 perdidos a cada 24 horas.
+            </small>
+            {unavailableReason ? <p className={styles.betError}>{unavailableReason}</p> : null}
+            {!unavailableReason && displayBalance < 100 ? (
+              <p className={styles.betError}>Você precisa de pelo menos 1 Dracma para entrar.</p>
+            ) : null}
+            {!unavailableReason && selectedBetCents > maximumBetCents ? (
+              <p className={styles.betError}>Reduza a aposta para respeitar o limite da carteira.</p>
+            ) : null}
+            <div className={styles.actions}>
+              <button
+                type="button"
+                disabled={!canBet}
+                onClick={() => {
+                  void startMusic();
+                  openChoices();
+                }}
+              >
+                Entrar na rodada
+              </button>
+            </div>
           </div>
         )}
 
         {phase === "choice" && (
-          <div className={styles.choices} aria-label="Escolha sua jogada">
-            {choices.map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                onClick={() => void play(choice)}
-              >
-                {labels[choice]}
-              </button>
-            ))}
+          <div>
+            <p className={styles.activeBet}>
+              Aposta ativa: <strong>{formatDracmas(selectedBetCents)}</strong>
+            </p>
+            <div className={styles.choices} aria-label="Escolha sua jogada">
+              {choices.map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  onClick={() => void play(choice)}
+                >
+                  {labels[choice]}
+                </button>
+              ))}
+            </div>
+            {roundError ? <p className={styles.betError} role="alert">{roundError}</p> : null}
           </div>
         )}
 
@@ -290,15 +465,24 @@ export default function JokenpoGame() {
             <small>
               Você: {labels[player]} · Taverneiro: {labels[character]}
             </small>
+            {roundBet !== undefined && roundDelta !== undefined ? (
+              <small>
+                Aposta: {formatDracmas(roundBet)} · Resultado: {roundDelta > 0 ? "+" : ""}
+                {formatDracmas(roundDelta)}
+              </small>
+            ) : null}
           </div>
         )}
 
         {phase === "replay" && (
           <div className={styles.actions}>
             <button type="button" onClick={openChoices}>
-              Jogar novamente
+              Repetir aposta
             </button>
             <button type="button" onClick={reset}>
+              Alterar aposta
+            </button>
+            <button type="button" onClick={stop}>
               Encerrar partida
             </button>
           </div>

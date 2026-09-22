@@ -33,6 +33,8 @@ const transactionLabels: Row = {
   charge_payment: "Cobrança paga",
   reward: "Recompensa",
   reversal: "Estorno",
+  jokenpo_bet: "Aposta no Jokenpô",
+  jokenpo_prize: "Prêmio do Jokenpô",
 };
 const chargeLabels: Row = {
   pending: "Pendente",

@@ -74,7 +74,7 @@ import {
 import CleanupPanel from "./CleanupPanel";
 import SessionCountManager from "./SessionCountManager";
 import CombatPanel from "./CombatPanel";
-import JokenpoGame from "./JokenpoGame";
+import JokenpoGame, { type JokenpoRound } from "./JokenpoGame";
 import {
   uploadAvatarImage,
   uploadFrameImage,
@@ -187,6 +187,7 @@ const historyActions: Row = {
   dracma_charge_refused: "Cobrança recusada",
   dracma_reward_distributed: "Recompensa distribuída",
   dracma_reversal: "Movimentação estornada",
+  jokenpo_round: "Rodada de Jokenpô",
   purchase: "Compra realizada",
   consume: "Consumível utilizado",
   resource_maximum: "Máximo do recurso recalculado",
@@ -1630,7 +1631,41 @@ export default function Game({ invite }: { invite?: string }) {
           {!campaign && (
             <Empty text="Sua conta ainda não está associada a uma campanha." />
           )}
-          {campaign && page === "Jokenpô" && <JokenpoGame />}
+          {campaign && page === "Jokenpô" && (
+            <JokenpoGame
+              balanceCents={Number(
+                (isMaster ? ownMember?.dracmas_cents : ownCharacter?.dracmas_cents) || 0,
+              )}
+              walletLabel={
+                isMaster
+                  ? "Carteira do mestre"
+                  : ownCharacter?.name || "Carteira do personagem"
+              }
+              unavailableReason={
+                !isMaster && !ownCharacter
+                  ? "Crie ou vincule um personagem ativo antes de apostar."
+                  : undefined
+              }
+              playRound={(choice, betCents, requestId) =>
+                perform(async () => {
+                  const { data: result, error: roundError } = await browserDb().rpc(
+                    "play_jokenpo",
+                    {
+                      p_campaign_id: campaign,
+                      p_character_id: isMaster ? null : ownCharacter?.id,
+                      p_bet_cents: betCents,
+                      p_player_choice: choice,
+                      p_request_id: requestId,
+                    },
+                  );
+                  if (roundError) throw new Error(roundError.message);
+                  await load(campaign, true);
+                  setMessage("Rodada registrada na carteira");
+                  return result as JokenpoRound;
+                })
+              }
+            />
+          )}
           {campaign && ["Visão Geral", "Início"].includes(page) && (
             <>
               <div className="overview-title">

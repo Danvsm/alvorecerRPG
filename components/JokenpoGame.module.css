@@ -125,6 +125,153 @@
   line-height: 1.55;
 }
 
+.wallet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 168, 79, 0.24);
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.wallet span {
+  color: rgba(255, 247, 223, 0.62);
+  font-size: 0.78rem;
+}
+
+.wallet strong {
+  grid-row: span 2;
+  color: #f3cf83;
+  font-size: 1.02rem;
+  white-space: nowrap;
+}
+
+.soundButton {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  color: rgba(255, 247, 223, 0.68);
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.soundButton:hover,
+.soundButton:focus-visible {
+  color: #fff7df;
+  text-decoration: underline;
+}
+
+.betPanel {
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid rgba(216, 168, 79, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.betPanel > label {
+  color: #fff7df;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.betInput {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(216, 168, 79, 0.42);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.betInput input {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 0;
+  outline: 0;
+  color: #fff7df;
+  background: transparent;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.betInput:focus-within {
+  border-color: var(--jokenpo-gold);
+  box-shadow: 0 0 0 3px rgba(216, 168, 79, 0.12);
+}
+
+.betInput span {
+  padding-right: 12px;
+  color: rgba(255, 247, 223, 0.62);
+  font-size: 0.8rem;
+}
+
+.quickBets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.quickBets button {
+  min-height: 34px;
+  border: 1px solid rgba(216, 168, 79, 0.3);
+  border-radius: 9px;
+  color: #fff7df;
+  background: rgba(104, 47, 23, 0.35);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.quickBets button:disabled,
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.odds,
+.betPanel small,
+.activeBet,
+.betError {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.odds {
+  color: #f3cf83;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.betPanel small {
+  color: rgba(255, 247, 223, 0.58);
+  font-size: 0.74rem;
+}
+
+.activeBet {
+  margin-bottom: 10px;
+  color: rgba(255, 247, 223, 0.72);
+  font-size: 0.86rem;
+}
+
+.activeBet strong {
+  color: #f3cf83;
+}
+
+.betError {
+  color: #ffb6a4;
+  font-size: 0.8rem;
+}
+
 .choices,
 .actions {
   display: grid;
@@ -168,6 +315,12 @@
 
 .actions button:first-child {
   color: var(--jokenpo-ink);
+  border-color: #f0c978;
+  background: linear-gradient(180deg, #f3cf83, #c68c32);
+}
+
+.actions button:disabled:hover {
+  transform: none;
   border-color: #f0c978;
   background: linear-gradient(180deg, #f3cf83, #c68c32);
 }
@@ -231,6 +384,9 @@
   .panel {
     text-align: center;
   }
+  .soundButton {
+    justify-self: center;
+  }
   .status {
     min-height: auto;
   }
@@ -247,13 +403,20 @@
   .choices {
     grid-template-columns: 1fr;
   }
+  .wallet {
+    text-align: left;
+  }
+  .quickBets {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stage img,
   .wordBurst span,
   .choices button,
-  .actions button {
+  .actions button,
+  .quickBets button {
     animation-duration: 1ms;
     transition: none;
   }
