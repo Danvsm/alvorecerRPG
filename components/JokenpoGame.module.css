@@ -335,8 +335,24 @@
 }
 
 .result strong {
-  color: #fff7df;
+  font-size: 1.08rem;
 }
+
+.resultWin {
+  color: #79e59a;
+  text-shadow: 0 0 14px rgba(121, 229, 154, 0.24);
+}
+
+.resultLoss {
+  color: #ff7d73;
+  text-shadow: 0 0 14px rgba(255, 125, 115, 0.22);
+}
+
+.resultDraw {
+  color: #f3cf83;
+  text-shadow: 0 0 14px rgba(243, 207, 131, 0.2);
+}
+
 .result small {
   color: rgba(255, 247, 223, 0.68);
 }
