@@ -1,5 +1,6 @@
 package com.alvorecer.rpg
 
+import android.os.Build
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.work.WorkManager
@@ -28,7 +29,11 @@ class NativeBridge(private val activity: MainActivity) {
                             campaignId = campaignId,
                             accessToken = accessToken,
                             installationId = DeviceStore.installationId(activity),
-                            deviceName = deviceName.take(80),
+                            deviceName = listOf(Build.MANUFACTURER, Build.MODEL)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" ")
+                            .ifBlank { deviceName }
+                            .take(80),
                             fcmToken = fcmToken,
                         )
                         DeviceStore.saveRegistration(activity, registration, campaignId)
