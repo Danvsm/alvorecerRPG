@@ -1656,6 +1656,9 @@ export default function Game({ invite }: { invite?: string }) {
               balanceCents={Number(
                 (isMaster ? ownMember?.dracmas_cents : ownCharacter?.dracmas_cents) || 0,
               )}
+              totalWinningsCents={Number(
+                ownMember?.jokenpo_total_winnings_cents || 0,
+              )}
               unavailableReason={
                 !isMaster && !ownCharacter
                   ? "Crie ou vincule um personagem ativo antes de apostar."
