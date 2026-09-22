@@ -358,3 +358,32 @@ test("notification bell shows unread count in a red badge", async () => {
   assert.match(css, /background: #e32640/);
   assert.match(css, /position: absolute/);
 });
+
+
+test("player profile opens the full frame collection from Ver todas", async () => {
+  const [profile, styles] = await Promise.all([
+    readFile(new URL("../components/PlayerProfilePanel.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../components/PlayerProfilePanel.module.css", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(profile, /AVENTUREIRO DO ALVORECER/);
+  assert.match(profile, /character\?\.name \|\| username/);
+  assert.match(profile, /Ver todas/);
+  assert.match(profile, /COLEÇÃO/);
+  assert.match(profile, /Buscar molduras/);
+  assert.match(profile, /frameRarities/);
+  assert.match(profile, /Comum/);
+  assert.match(profile, /Incomum/);
+  assert.match(profile, /Lendária/);
+  assert.match(profile, /equipFrameFromLibrary/);
+  assert.match(profile, /Sem moldura/);
+  assert.match(profile, /Em uso/);
+  assert.match(styles, /\.libraryBackdrop/);
+  assert.match(styles, /height: 100dvh/);
+  assert.match(styles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /overflow: visible/);
+  assert.match(styles, /feed-composer-divider\.webp/);
+});
