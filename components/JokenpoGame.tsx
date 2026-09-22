@@ -370,7 +370,7 @@ export default function JokenpoGame({
         <p className={styles.status} aria-live="polite">
           {status}
         </p>
-        <p className={styles.totalWinnings}>
+        <p className={styles.totalWinnings} aria-live="polite">
           Ganho total: <strong>D$: {formatDracmas(displayTotalWinnings).replace(" Dracmas", "")}</strong>
         </p>
 
