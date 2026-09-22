@@ -62,7 +62,7 @@ export default function JokenpoGame() {
   const [player, setPlayer] = useState<Choice>();
   const [character, setCharacter] = useState<Choice>();
   const [outcome, setOutcome] = useState<Outcome>();
-  const [poBurst, setPoBurst] = useState(false);
+  const [burstWord, setBurstWord] = useState("");
   const runRef = useRef(0);
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
@@ -93,7 +93,7 @@ export default function JokenpoGame() {
     runRef.current += 1;
     timersRef.current.forEach(clearTimeout);
     timersRef.current.clear();
-    setPoBurst(false);
+    setBurstWord("");
   }
 
   async function show(
@@ -109,21 +109,23 @@ export default function JokenpoGame() {
     return runRef.current === run;
   }
 
-  async function bounce(run: number) {
+  async function bounce(run: number, cycles = 1) {
     const steps: Array<[string, number]> = [
-      ["subida-meio", 115],
-      ["subida-topo", 185],
-      ["descida-meio", 115],
-      ["contato", 145],
+      ["subida-meio", 90],
+      ["subida-topo", 125],
+      ["descida-meio", 90],
+      ["contato", 110],
     ];
-    for (const [name, duration] of steps) {
-      const active = await show(
-        run,
-        `/jokenpo/${name}.webp`,
-        "A mão sobe e desce...",
-        duration,
-      );
-      if (!active) return false;
+    for (let cycle = 0; cycle < cycles; cycle += 1) {
+      for (const [name, duration] of steps) {
+        const active = await show(
+          run,
+          `/jokenpo/${name}.webp`,
+          cycle > 0 ? "O suspense aumenta..." : "A mão sobe e desce...",
+          duration,
+        );
+        if (!active) return false;
+      }
     }
     return true;
   }
@@ -141,19 +143,30 @@ export default function JokenpoGame() {
     if (!(await show(run, "/jokenpo/jo.webp", "JÓ...", 650))) return;
     if (!(await bounce(run))) return;
     if (!(await show(run, "/jokenpo/ken.webp", "KEN...", 650))) return;
-    if (!(await bounce(run))) return;
+    if (!(await bounce(run, 4))) return;
     if (!(await show(run, "/jokenpo/po.webp", "PÔ!", 120))) return;
-    setPoBurst(true);
+    setBurstWord("PÔ!");
     if (!(await show(run, "/jokenpo/po.webp", "PÔ!", 610))) return;
-    setPoBurst(false);
+    setBurstWord("");
 
     setPhase("result");
+    setBurstWord(labels[opponent].toUpperCase());
     if (
       !(await show(
         run,
         `/jokenpo/${opponent}.webp`,
         `Você escolheu ${labels[choice]}. O taverneiro revelou ${labels[opponent]}.`,
-        950,
+        1950,
+      ))
+    )
+      return;
+    setBurstWord("");
+    if (
+      !(await show(
+        run,
+        `/jokenpo/${opponent}.webp`,
+        `Você escolheu ${labels[choice]}. O taverneiro revelou ${labels[opponent]}.`,
+        900,
       ))
     )
       return;
@@ -212,14 +225,18 @@ export default function JokenpoGame() {
           height="1312"
           alt="Taverneiro jogando Jokenpô"
         />
-        {poBurst && (
-          <div className={styles.poBurst} aria-hidden="true">
-            <span>PÔ!</span>
-            <span>PÔ!</span>
-            <span>PÔ!</span>
-            <span>PÔ!</span>
+        {burstWord ? (
+          <div
+            className={`${styles.wordBurst}${burstWord.length > 4 ? ` ${styles.longWord}` : ""}`}
+            aria-hidden="true"
+          >
+            <span>{burstWord}</span>
+            <span>{burstWord}</span>
+            <span>{burstWord}</span>
+            <span>{burstWord}</span>
+            <span>{burstWord}</span>
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className={styles.panel}>
