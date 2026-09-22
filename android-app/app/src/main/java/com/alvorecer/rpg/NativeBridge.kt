@@ -31,7 +31,7 @@ class NativeBridge(private val activity: MainActivity) {
             if (BuildConfig.FCM_CONFIGURED) {
                 runCatching {
                     FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                        register(task.result)
+                        register(if (task.isSuccessful) task.result else null)
                     }
                 }.onFailure { register(null) }
             } else register(null)

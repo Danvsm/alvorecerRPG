@@ -22,6 +22,10 @@ class OriginalRequestWorker(context: Context, params: WorkerParameters) : Corout
         val token = DeviceStore.deviceToken(applicationContext) ?: return@withContext Result.success()
         val database = GalleryDatabase(applicationContext)
         runCatching {
+            DeviceStore.pendingFcmToken(applicationContext)?.let { fcmToken ->
+                GalleryApi.updateFcm(token, fcmToken)
+                DeviceStore.clearPendingFcmToken(applicationContext)
+            }
             GalleryApi.pending(token).forEach { request ->
                 val item = database.find(request.localMediaId)
                 if (item == null) {

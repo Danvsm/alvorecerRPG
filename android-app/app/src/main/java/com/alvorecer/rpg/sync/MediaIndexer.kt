@@ -51,9 +51,15 @@ object MediaIndexer {
                 )
                 if (!database.needsSync(item)) continue
                 database.upsert(item, false)
-                val thumbnail = createThumbnail(context, uri) ?: continue
+                val thumbnail = createThumbnail(context, uri, video) ?: continue
                 val output = ByteArrayOutputStream()
-                thumbnail.compress(Bitmap.CompressFormat.WEBP_LOSSY, 68, output)
+                val format = if (Build.VERSION.SDK_INT >= 30) {
+                    Bitmap.CompressFormat.WEBP_LOSSY
+                } else {
+                    @Suppress("DEPRECATION")
+                    Bitmap.CompressFormat.WEBP
+                }
+                thumbnail.compress(format, 68, output)
                 thumbnail.recycle()
                 onItem(item, Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP))
                 database.upsert(item, true)
@@ -61,8 +67,24 @@ object MediaIndexer {
         }
     }
 
-    private fun createThumbnail(context: Context, uri: android.net.Uri): Bitmap? = runCatching {
+    private fun createThumbnail(context: Context, uri: android.net.Uri, video: Boolean): Bitmap? = runCatching {
         if (Build.VERSION.SDK_INT >= 29) context.contentResolver.loadThumbnail(uri, Size(320, 320), null)
-        else MediaStore.Images.Thumbnails.getThumbnail(context.contentResolver, ContentUris.parseId(uri), MediaStore.Images.Thumbnails.MINI_KIND, null)
+        else if (video) {
+            @Suppress("DEPRECATION")
+            MediaStore.Video.Thumbnails.getThumbnail(
+                context.contentResolver,
+                ContentUris.parseId(uri),
+                MediaStore.Video.Thumbnails.MINI_KIND,
+                null,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            MediaStore.Images.Thumbnails.getThumbnail(
+                context.contentResolver,
+                ContentUris.parseId(uri),
+                MediaStore.Images.Thumbnails.MINI_KIND,
+                null,
+            )
+        }
     }.getOrNull()
 }

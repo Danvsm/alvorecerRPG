@@ -9,7 +9,7 @@ class GalleryMessagingService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        val deviceToken = DeviceStore.deviceToken(this) ?: return
-        runCatching { GalleryApi.updateFcm(deviceToken, token) }
+        DeviceStore.savePendingFcmToken(this, token)
+        SyncScheduler.resumeNow(this, "fcm_token_changed")
     }
 }
