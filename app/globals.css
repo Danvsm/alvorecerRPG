@@ -396,6 +396,25 @@ code {
   white-space: nowrap;
   text-align: right;
 }
+
+.jokenpo-heading-title {
+  transition: color 180ms ease, text-shadow 180ms ease;
+}
+
+.jokenpo-heading-title.vitoria {
+  color: #79e59a;
+  text-shadow: 0 0 16px rgba(121, 229, 154, 0.24);
+}
+
+.jokenpo-heading-title.derrota {
+  color: #ff6f67;
+  text-shadow: 0 0 16px rgba(255, 111, 103, 0.24);
+}
+
+.jokenpo-heading-title.empate {
+  color: #f3cf83;
+  text-shadow: 0 0 16px rgba(243, 207, 131, 0.22);
+}
 .overview-title {
   display: flex;
   align-items: center;
