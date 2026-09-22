@@ -330,7 +330,7 @@ export default function JokenpoGame({
 
   return (
     <section className={styles.game} aria-label="Minijogo Jokenpô">
-      <audio ref={musicRef} src="/audio/jokenpo.mp3" preload="metadata" />
+      <audio ref={musicRef} src="/audio/jokenpo.mp3" preload="auto" loop />
       <div className={styles.stage}>
         <img
           src={frame}
