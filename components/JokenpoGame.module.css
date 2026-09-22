@@ -59,7 +59,7 @@
   text-shadow:
     0 3px 0 #6f260f,
     0 8px 18px rgba(0, 0, 0, 0.75);
-  animation: po-shake 520ms both;
+  animation: po-shake 340ms both;
 }
 
 .wordBurst span:nth-child(1) {
@@ -91,7 +91,7 @@
 
 .wordBurst.longWord span {
   font-size: clamp(1.15rem, 4.2vw, 3rem);
-  animation-iteration-count: 3;
+  animation-iteration-count: 2;
 }
 
 .panel {
