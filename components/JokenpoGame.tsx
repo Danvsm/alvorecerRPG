@@ -90,7 +90,7 @@ export default function JokenpoGame({
   const fadeRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const maximumBetCents = Math.min(
-    5000,
+    200000,
     Math.max(100, Math.floor(displayBalance / 1000) * 100),
   );
   const selectedBetCents = betDracmas * 100;
