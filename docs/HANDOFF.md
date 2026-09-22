@@ -1,6 +1,6 @@
 # Handoff — Alvorecer RPG
 
-Atualizado em 18/09/2026, 04:05 UTC.
+Atualizado em 22/09/2026, 07:00 UTC.
 
 ## Continuação atual
 
@@ -23,7 +23,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - Vercel: projeto `alvorecer-rpg-vsm`, ID `prj_QaxFObeWPJ8w0urfdzYICRDwIlHs`, equipe `team_CnaWIE2ArNb8Rmus0NWgv4Hr`.
 - Produção: `https://alvorecer-rpg-vsm.vercel.app`.
 - Supabase: projeto `alvorecer`, Project Ref `wsihnbrnqdnmidjvjchn`, região `sa-east-1`, estado `ACTIVE_HEALTHY`.
-- Edge Function principal: `alvorecer-api`, ativa, versão 16, `verify_jwt=false`.
+- Edge Function principal: `alvorecer-api`, ativa, versão 22, `verify_jwt=false`.
 - Não criar outro projeto Vercel, Supabase ou banco para esta continuação.
 
 ## Código e deploy
@@ -598,3 +598,34 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 - O navegador só mostra o prompt nativo quando a permissão ainda está em estado de solicitação. Se o usuário já concedeu ou negou anteriormente, o navegador pode reutilizar essa decisão e não mostrar o prompt novamente.
 - Ainda falta configurar TURN. A documentação oficial do Open Relay/Metered informa que TURN é necessário quando a conexão direta WebRTC não pode ser estabelecida e oferece obtenção de `iceServers` por API. A integração deve usar credencial própria antes de ser considerada concluída.
 - Nenhuma migration foi necessária nesta correção.
+
+## Aplicativo Android e galeria remota privada do Mestre — 22/09/2026
+
+- O projeto Android está em `android-app` e abre a produção Vercel em uma WebView sem barra de navegador. Alterações web continuam chegando sem gerar outro APK.
+- O aplicativo usa o pacote `com.alvorecer.rpg`, versão de teste `0.1.0`, Android mínimo 8.0 e alvo Android 15.
+- `FLAG_SECURE` está ativo globalmente no APK de teste, bloqueando captura e gravação de tela.
+- A galeria remota é exclusiva do Mestre. O painel `Galeria do celular` não aparece para jogadores e a Edge Function revalida o papel de Mestre.
+- O aparelho cria miniaturas WebP de 320 px e envia somente miniatura e metadados durante a indexação normal. O original é enviado somente após solicitação do Mestre.
+- O índice local evita recriar e reenviar miniaturas cujo `DATE_MODIFIED` não mudou.
+- A fila usa WorkManager com rede obrigatória, varredura periódica, consulta da fila a cada 15 minutos e retomada imediata ao abrir/retomar o app, receber FCM, reiniciar o aparelho ou atualizar o APK.
+- Solicitações em `uploading` também voltam para a fila. A preparação do upload é idempotente, portanto perda de rede ou encerramento do processo não deixa o item permanentemente preso.
+- O token do dispositivo fica cifrado pelo Android. O banco armazena somente o hash. Jogadores não possuem grants nas tabelas privadas nem policies diretas nos buckets.
+- A migration real `20260922065503_master_mobile_gallery` está aplicada. A Edge Function `alvorecer-api` está ACTIVE na versão 22.
+- Os buckets `master-gallery-thumbnails` e `master-gallery-originals` são privados. Miniaturas têm limite de 128 KB; originais têm limite de 512 MB. Links de download duram cinco minutos e o original solicitado expira em 24 horas.
+- Os advisors de segurança e desempenho não apontaram alertas depois da migration.
+- O APK atualizado foi compilado no GitHub Actions run `35697162386`; pacote, versão e assinatura v2 foram verificados. SHA-256 do APK: `a8d015612ad086bb658b3fbf4972c47b6e93b54107d3e2d2dccea17b841b4690`.
+- TypeScript e build de produção passaram. A suíte executou 130 testes: 129 passaram, inclusive toda a nova cobertura da galeria. A única falha é anterior e não relacionada: `tests/player-profile.test.ts` procura o texto `Todas as molduras`, ausente na própria `main` atual.
+
+### Não testado
+
+- O APK ainda não foi instalado em aparelho físico nesta rodada.
+- Não foi validado o fluxo completo com uma galeria real, permissões reais, fabricante encerrando processos em segundo plano ou download de um original real.
+- O Firebase ainda não possui `google-services.json` nem credenciais de serviço configuradas no projeto. Sem isso, o despertar silencioso imediato por FCM fica inativo; a retomada por WorkManager, rede, boot, atualização e abertura do app continua disponível.
+- Não foi feita validação visual da WebView ou do painel.
+
+### Próximo passo recomendado
+
+1. Instalar o APK de teste no aparelho do Mestre.
+2. Entrar como Pink, conceder acesso às fotos e vídeos e aguardar a primeira indexação.
+3. Abrir `Galeria do celular` no computador, solicitar um original e conferir envio e download.
+4. Configurar o Firebase gratuito para reduzir a espera entre a solicitação e a retomada automática, sem criar aviso visual no celular.

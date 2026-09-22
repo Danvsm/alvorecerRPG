@@ -11,3 +11,10 @@ node_modules/
 
 supabase/.temp/
 tsconfig.tsbuildinfo
+
+android-app/.gradle/
+android-app/local.properties
+android-app/**/build/
+android-app/app/google-services.json
+android-app/*.jks
+android-app/*.keystore

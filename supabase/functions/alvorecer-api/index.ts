@@ -4,6 +4,7 @@ import { admin, hash } from "./server.ts";
 import { encrypt, setKey } from "./crypto.ts";
 import { cleanup } from "./media-cleanup.ts";
 import { finalizeAudio } from "./audio-finalize.ts";
+import { mobileGallery } from "./mobile-gallery.ts";
 let keyReady: Promise<void> | null = null;
 async function initialize() {
   if (!keyReady)
@@ -21,12 +22,13 @@ Deno.serve(async (req: Request) => {
   try {
     if (req.method !== "POST")
       return Response.json({ error: "Método não permitido" }, { status: 405 });
-    if (Number(req.headers.get("content-length") || 0) > 100000)
+    if (Number(req.headers.get("content-length") || 0) > 300000)
       return Response.json({ error: "Pedido muito grande" }, { status: 413 });
     await initialize();
     const path = new URL(req.url).pathname.split("/").pop();
     if (path === "media-cleanup") return cleanup(req);
     if (path === "chat-audio-finalize") return await finalizeAudio(req);
+    if (path === "mobile-gallery") return mobileGallery(req);
     if (path === "auth") return auth(req);
     if (path === "admin") return adminRoute(req);
     if (path === "bootstrap") {

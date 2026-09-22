@@ -1,7 +1,12 @@
 import "server-only";
 export async function edgeProxy(
   req: Request,
-  route: "auth" | "admin" | "push" | "chat-audio-finalize",
+  route:
+    | "auth"
+    | "admin"
+    | "push"
+    | "chat-audio-finalize"
+    | "mobile-gallery",
 ) {
   try {
     const origin = req.headers.get("origin");
@@ -18,7 +23,7 @@ export async function edgeProxy(
     if (!expected)
       return Response.json({ error: "Origem não permitida" }, { status: 403 });
     const body = await req.text();
-    if (body.length > 100000)
+    if (body.length > (route === "mobile-gallery" ? 300000 : 100000))
       return Response.json({ error: "Pedido muito grande" }, { status: 413 });
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
       key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

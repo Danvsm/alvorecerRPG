@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes concluídas neste projeto são registradas aqui. Itens que ainda dependem de validação permanecem fora da lista de entregas concluídas.
 
+## Em desenvolvimento — 2026-09-22
+
+### Entregue
+
+- Projeto Android híbrido criado em `android-app`, preservando o Next.js/Vercel como núcleo e o Supabase como backend.
+- WebView sem aparência de navegador, sessão web preservada, bloqueio nativo de captura e gravação de tela e permissões Android para câmera, microfone, fotos, vídeos e localização.
+- Galeria remota privada do Mestre com índice incremental local, miniaturas WebP, metadados, solicitação do original no painel e envio automático pelo aparelho autorizado.
+- Fila persistente com WorkManager, restrição de rede e retomada após retorno de conectividade, abertura do aplicativo, reinício do aparelho e atualização do APK.
+- Tabelas e buckets privados sem acesso direto de jogador; painel e solicitações de original restritos ao Mestre, com token de dispositivo armazenado cifrado no Android.
+- Migration `master_mobile_gallery` aplicada no Supabase e `alvorecer-api` versão 22 publicada.
+- APK de teste `0.1.0` compilado e assinado pelo GitHub Actions.
+- TypeScript e build de produção aprovados. A nova cobertura Android passou; permanece uma falha anterior e não relacionada no teste textual do Perfil.
+
 ## Em desenvolvimento — 2026-09-21
 
 ### Entregue
