@@ -67,7 +67,6 @@ function reactionFrames(outcome: Outcome) {
 
 export default function JokenpoGame({
   balanceCents,
-  walletLabel,
   unavailableReason,
   playRound,
 }: JokenpoGameProps) {
@@ -348,11 +347,10 @@ export default function JokenpoGame({
       </div>
 
       <div className={styles.panel}>
-        <p className={styles.eyebrow}>Taverna do Alvorecer</p>
-        <h2>Jokenpô</h2>
-        <div className={styles.wallet}>
-          <span>{walletLabel}</span>
-          <strong>{formatDracmas(displayBalance)}</strong>
+        <div className={styles.topMeta}>
+          <strong className={styles.topBalance}>
+            D$: {formatDracmas(displayBalance).replace(" Dracmas", "")}
+          </strong>
           <button
             type="button"
             className={styles.soundButton}
@@ -362,6 +360,8 @@ export default function JokenpoGame({
             {musicMuted ? "Música desligada" : "Música ligada"}
           </button>
         </div>
+        <p className={styles.eyebrow}>Taverna do Alvorecer</p>
+        <h2>Jokenpô</h2>
         <p className={styles.status} aria-live="polite">
           {status}
         </p>
