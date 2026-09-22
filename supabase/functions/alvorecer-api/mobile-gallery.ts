@@ -30,17 +30,7 @@ async function register(req: Request, body: Record<string, unknown>) {
   const name = String(body.device_name || "Android").trim().slice(0, 80);
   if (!/^[0-9a-f-]{36}$/i.test(campaign) || !/^[0-9a-f-]{36}$/i.test(installation) || !name)
     throw new Error("Configuração do dispositivo inválida");
-  const context = await member(req, campaign);
-  const { user } = context;
-  if (context.membership.role !== "master") {
-    const { data: allowed } = await privateDb()
-      .from("mobile_gallery_allowed_accounts")
-      .select("user_id")
-      .eq("campaign_id", campaign)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!allowed) throw new Error("Este aparelho não está autorizado para a galeria privada");
-  }
+  const { user } = await member(req, campaign);
   const token = bytes(32);
   const now = new Date().toISOString();
   const { data, error } = await privateDb()
@@ -232,14 +222,38 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
         .from("mobile_gallery_requests")
         .update({ status: "expired", updated_at: now })
         .in("id", expired.map((entry) => entry.id));
-    const { data: devices } = await privateDb().from("mobile_gallery_devices").select("id,device_name,last_seen_at,active").eq("campaign_id", campaign).eq("active", true);
+    const { data: devices } = await privateDb()
+      .from("mobile_gallery_devices")
+      .select("id,device_name,last_seen_at,active,master_user_id")
+      .eq("campaign_id", campaign)
+      .eq("active", true);
+    const accountIds = [...new Set((devices || []).map((entry) => entry.master_user_id))];
+    const { data: profiles } = accountIds.length
+      ? await admin().from("profiles").select("id,username,display_name").in("id", accountIds)
+      : { data: [] };
+    const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
     const { data: items, error } = await privateDb().from("mobile_gallery_items").select("*").eq("campaign_id", campaign).eq("available", true).order("modified_at", { ascending: false }).limit(500);
     if (error) throw new Error("Não foi possível carregar a galeria");
     const paths = (items || []).map((item) => item.thumbnail_path);
     const signed = paths.length ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600) : { data: [] };
     const urls = new Map((signed.data || []).map((entry) => [entry.path, entry.signedUrl]));
     const { data: requests } = await privateDb().from("mobile_gallery_requests").select("id,item_id,status,requested_at,completed_at,expires_at,error_message").eq("campaign_id", campaign).order("requested_at", { ascending: false });
-    return json({ devices: devices || [], items: (items || []).map((item) => ({ ...item, thumbnail_url: urls.get(item.thumbnail_path) })), requests: requests || [] });
+    return json({
+      devices: (devices || []).map((device) => {
+        const profile = profileById.get(device.master_user_id);
+        return {
+          ...device,
+          account_user_id: device.master_user_id,
+          account_username: profile?.username || "conta",
+          account_name: profile?.display_name || profile?.username || "Conta",
+        };
+      }),
+      items: (items || []).map((item) => ({
+        ...item,
+        thumbnail_url: urls.get(item.thumbnail_path),
+      })),
+      requests: requests || [],
+    });
   }
   if (action === "request_original") {
     const itemId = String(body.item_id || "");
