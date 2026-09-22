@@ -377,6 +377,25 @@ code {
   align-items: center;
   margin-bottom: 20px;
 }
+
+.page-heading-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+  padding-top: 18px;
+}
+
+.jokenpo-page-balance {
+  color: #e8bd72;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: right;
+}
 .overview-title {
   display: flex;
   align-items: center;
@@ -2064,6 +2083,13 @@ dialog::backdrop {
   .page-heading h1 {
     font-size: 1.45rem;
     margin-top: 0;
+  }
+  .page-heading-meta {
+    align-self: flex-start;
+    padding-top: 26px;
+  }
+  .jokenpo-page-balance {
+    font-size: 0.94rem;
   }
   .panel {
     padding: 14px;
