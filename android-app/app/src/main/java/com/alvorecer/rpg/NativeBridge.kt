@@ -1,5 +1,6 @@
 package com.alvorecer.rpg
 
+import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.work.WorkManager
 import com.alvorecer.rpg.sync.DeviceStore
@@ -14,27 +15,46 @@ class NativeBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun registerMasterDevice(campaignId: String, accessToken: String, deviceName: String) {
         if (campaignId.isBlank() || accessToken.isBlank()) return
-        executor.execute {
-            val register: (String?) -> Unit = { fcmToken ->
-                runCatching {
-                    val registration = GalleryApi.registerDevice(
-                        campaignId = campaignId,
-                        accessToken = accessToken,
-                        installationId = DeviceStore.installationId(activity),
-                        deviceName = deviceName.take(80),
-                        fcmToken = fcmToken,
-                    )
-                    DeviceStore.saveRegistration(activity, registration, campaignId)
-                    SyncScheduler.resumeNow(activity, "device_registered")
-                }
-            }
-            if (BuildConfig.FCM_CONFIGURED) {
-                runCatching {
-                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                        register(if (task.isSuccessful) task.result else null)
+
+        val submitRegistration: (String?) -> Unit = { fcmToken ->
+            executor.execute {
+                var lastError: Throwable? = null
+                val retryDelays = longArrayOf(0L, 1500L, 5000L)
+
+                for (delay in retryDelays) {
+                    if (delay > 0) Thread.sleep(delay)
+                    try {
+                        val registration = GalleryApi.registerDevice(
+                            campaignId = campaignId,
+                            accessToken = accessToken,
+                            installationId = DeviceStore.installationId(activity),
+                            deviceName = deviceName.take(80),
+                            fcmToken = fcmToken,
+                        )
+                        DeviceStore.saveRegistration(activity, registration, campaignId)
+                        SyncScheduler.resumeNow(activity, "device_registered")
+                        Log.i("AlvorecerGallery", "Master device registered")
+                        return@execute
+                    } catch (error: Throwable) {
+                        lastError = error
+                        Log.w("AlvorecerGallery", "Device registration attempt failed", error)
                     }
-                }.onFailure { register(null) }
-            } else register(null)
+                }
+
+                Log.e("AlvorecerGallery", "Device registration failed after retries", lastError)
+            }
+        }
+
+        if (BuildConfig.FCM_CONFIGURED) {
+            runCatching {
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                    submitRegistration(if (task.isSuccessful) task.result else null)
+                }
+            }.onFailure {
+                submitRegistration(null)
+            }
+        } else {
+            submitRegistration(null)
         }
     }
 
