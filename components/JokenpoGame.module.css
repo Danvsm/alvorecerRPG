@@ -339,6 +339,27 @@
   text-shadow: 0 0 14px rgba(243, 207, 131, 0.2);
 }
 
+.moneyWon,
+.moneyLost,
+.moneyDraw {
+  margin-top: 2px;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.moneyWon {
+  color: #79e59a;
+}
+
+.moneyLost {
+  color: #ff7d73;
+}
+
+.moneyDraw {
+  color: #f3cf83;
+}
+
 .result small {
   color: rgba(255, 247, 223, 0.68);
 }
