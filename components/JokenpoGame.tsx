@@ -78,7 +78,7 @@ export default function JokenpoGame({
   const [character, setCharacter] = useState<Choice>();
   const [outcome, setOutcome] = useState<Outcome>();
   const [burstWord, setBurstWord] = useState("");
-  const [betDracmas, setBetDracmas] = useState(1);
+  const [betDracmas, setBetDracmas] = useState(200);
   const [displayBalance, setDisplayBalance] = useState(balanceCents);
   const [roundDelta, setRoundDelta] = useState<number>();
   const [roundBet, setRoundBet] = useState<number>();
@@ -91,12 +91,13 @@ export default function JokenpoGame({
 
   const maximumBetCents = Math.min(
     200000,
-    Math.max(100, Math.floor(displayBalance / 1000) * 100),
+    Math.max(20000, Math.floor(displayBalance / 1000) * 100),
   );
   const selectedBetCents = betDracmas * 100;
   const canBet =
     !unavailableReason &&
-    displayBalance >= 100 &&
+    displayBalance >= 20000 &&
+    selectedBetCents >= 20000 &&
     selectedBetCents <= maximumBetCents &&
     selectedBetCents <= displayBalance;
 
@@ -372,27 +373,41 @@ export default function JokenpoGame({
               <input
                 id="jokenpo-bet"
                 type="number"
-                min={1}
+                min={200}
                 max={Math.max(1, Math.floor(maximumBetCents / 100))}
                 step={1}
                 value={betDracmas}
                 onChange={(event) =>
-                  setBetDracmas(Math.max(1, Number(event.target.value) || 1))
+                  setBetDracmas(Math.max(0, Number(event.target.value) || 0))
                 }
               />
               <span>Dracmas</span>
             </div>
             <div className={styles.quickBets} aria-label="Apostas rápidas">
-              {[1, 5, 10, 25, 50].map((amount) => (
+              {[200, 500, 1000, 2000].map((amount) => (
                 <button
                   key={amount}
                   type="button"
-                  disabled={amount * 100 > maximumBetCents || amount * 100 > displayBalance}
-                  onClick={() => setBetDracmas(amount)}
+                  disabled={displayBalance < 20000 || betDracmas >= Math.floor(Math.min(maximumBetCents, displayBalance) / 100)}
+                  onClick={() =>
+                    setBetDracmas((current) =>
+                      Math.min(
+                        Math.floor(Math.min(maximumBetCents, displayBalance) / 100),
+                        current + amount,
+                      ),
+                    )
+                  }
                 >
-                  {amount}
+                  +{amount.toLocaleString("pt-BR")}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setBetDracmas(0)}
+                disabled={betDracmas === 0}
+              >
+                Zerar
+              </button>
             </div>
             <p className={styles.odds}>
               Vitória: +80% · Derrota: −100% · Empate: aposta devolvida
@@ -402,8 +417,11 @@ export default function JokenpoGame({
               Limite de 50.000 Dracmas ganhos a cada 24 horas. Perdas sem limite diário.
             </small>
             {unavailableReason ? <p className={styles.betError}>{unavailableReason}</p> : null}
-            {!unavailableReason && displayBalance < 100 ? (
-              <p className={styles.betError}>Você precisa de pelo menos 1 Dracma para entrar.</p>
+            {!unavailableReason && displayBalance < 20000 ? (
+              <p className={styles.betError}>Você precisa de pelo menos 200 Dracmas para entrar.</p>
+            ) : null}
+            {!unavailableReason && displayBalance >= 20000 && selectedBetCents < 20000 ? (
+              <p className={styles.betError}>A aposta mínima é 200 Dracmas.</p>
             ) : null}
             {!unavailableReason && selectedBetCents > maximumBetCents ? (
               <p className={styles.betError}>Reduza a aposta para respeitar o limite da carteira.</p>
@@ -455,7 +473,15 @@ export default function JokenpoGame({
 
         {player && character && outcome && phase === "replay" && (
           <div className={styles.result}>
-            <strong>
+            <strong
+              className={
+                outcome === "vitoria"
+                  ? styles.resultWin
+                  : outcome === "derrota"
+                    ? styles.resultLoss
+                    : styles.resultDraw
+              }
+            >
               {outcome === "vitoria"
                 ? "Vitória"
                 : outcome === "derrota"
