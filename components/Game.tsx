@@ -1612,7 +1612,15 @@ export default function Game({ invite }: { invite?: string }) {
                         : undefined
                     }
                   >
-                    {!isMaster && page === "Visão Geral" ? "Início" : page}
+                    {page === "Jokenpô" && jokenpoOutcome
+                      ? jokenpoOutcome === "vitoria"
+                        ? "Vitória"
+                        : jokenpoOutcome === "derrota"
+                          ? "Derrota"
+                          : "Empate"
+                      : !isMaster && page === "Visão Geral"
+                        ? "Início"
+                        : page}
                   </h1>
                 </div>
                 <div className="page-heading-meta">
