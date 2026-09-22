@@ -125,23 +125,6 @@
   line-height: 1.55;
 }
 
-.topMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-.topBalance {
-  color: #f3cf83;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1rem, 2.4vw, 1.3rem);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
 .soundButton {
   justify-self: start;
   padding: 0;
@@ -393,10 +376,6 @@
   }
   .panel {
     text-align: center;
-  }
-  .topMeta {
-    justify-content: center;
-    flex-wrap: wrap;
   }
   .soundButton {
     justify-self: center;
