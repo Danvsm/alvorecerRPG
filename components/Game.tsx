@@ -1608,11 +1608,24 @@ export default function Game({ invite }: { invite?: string }) {
                     {!isMaster && page === "Visão Geral" ? "Início" : page}
                   </h1>
                 </div>
-                {loading && (
-                  <span className="muted" role="status">
-                    Atualizando...
-                  </span>
-                )}
+                <div className="page-heading-meta">
+                  {page === "Jokenpô" && campaign && (
+                    <strong className="jokenpo-page-balance">
+                      D$: {formatDracmas(
+                        Number(
+                          (isMaster
+                            ? ownMember?.dracmas_cents
+                            : ownCharacter?.dracmas_cents) || 0,
+                        ),
+                      ).replace(" Dracmas", "")}
+                    </strong>
+                  )}
+                  {loading && (
+                    <span className="muted" role="status">
+                      Atualizando...
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           {error && (
@@ -1636,11 +1649,6 @@ export default function Game({ invite }: { invite?: string }) {
               balanceCents={Number(
                 (isMaster ? ownMember?.dracmas_cents : ownCharacter?.dracmas_cents) || 0,
               )}
-              walletLabel={
-                isMaster
-                  ? "Carteira do mestre"
-                  : ownCharacter?.name || "Carteira do personagem"
-              }
               unavailableReason={
                 !isMaster && !ownCharacter
                   ? "Crie ou vincule um personagem ativo antes de apostar."
