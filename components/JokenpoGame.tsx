@@ -5,7 +5,7 @@ import { formatDracmas } from "@/lib/currency";
 import styles from "./JokenpoGame.module.css";
 
 type Choice = "pedra" | "papel" | "tesoura";
-type Outcome = "vitoria" | "derrota" | "empate";
+export type Outcome = "vitoria" | "derrota" | "empate";
 type Phase = "intro" | "choice" | "counting" | "result" | "reaction" | "replay";
 
 export type JokenpoRound = {
@@ -19,6 +19,7 @@ export type JokenpoRound = {
 type JokenpoGameProps = {
   balanceCents: number;
   unavailableReason?: string;
+  onOutcomeChange?: (outcome?: Outcome) => void;
   playRound: (
     choice: Choice,
     betCents: number,
@@ -67,6 +68,7 @@ function reactionFrames(outcome: Outcome) {
 export default function JokenpoGame({
   balanceCents,
   unavailableReason,
+  onOutcomeChange,
   playRound,
 }: JokenpoGameProps) {
   const [phase, setPhase] = useState<Phase>("intro");
@@ -274,6 +276,7 @@ export default function JokenpoGame({
           ? "O taverneiro venceu a rodada."
           : "A rodada terminou empatada.";
     if (!(await show(run, spokenReaction, resultText, 1900))) return;
+    onOutcomeChange?.(roundOutcome);
     setPhase("replay");
     setFrame("/jokenpo/revanche.webp");
     setStatus(resultText);
@@ -281,6 +284,7 @@ export default function JokenpoGame({
 
   function openChoices() {
     cancelTimeline();
+    onOutcomeChange?.(undefined);
     setRoundError("");
     setPhase("choice");
     setFrame("/jokenpo/escolha.webp");
@@ -294,6 +298,7 @@ export default function JokenpoGame({
 
   function reset() {
     cancelTimeline();
+    onOutcomeChange?.(undefined);
     setPhase("intro");
     setFrame("/jokenpo/intro.webp");
     setStatus("O taverneiro espera pelo seu desafio.");
@@ -340,7 +345,19 @@ export default function JokenpoGame({
 
       <div className={styles.panel}>
         <p className={styles.eyebrow}>Taverna do Alvorecer</p>
-        <h2>Jokenpô</h2>
+        <h2
+          className={
+            phase === "replay" && outcome
+              ? outcome === "vitoria"
+                ? styles.titleWin
+                : outcome === "derrota"
+                  ? styles.titleLoss
+                  : styles.titleDraw
+              : undefined
+          }
+        >
+          Jokenpô
+        </h2>
         <p className={styles.status} aria-live="polite">
           {status}
         </p>
