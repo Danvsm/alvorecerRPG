@@ -1617,15 +1617,22 @@ export default function Game({ invite }: { invite?: string }) {
                 </div>
                 <div className="page-heading-meta">
                   {page === "Jokenpô" && campaign && (
-                    <strong className="jokenpo-page-balance">
-                      D$: {formatDracmas(
-                        Number(
-                          (isMaster
-                            ? ownMember?.dracmas_cents
-                            : ownCharacter?.dracmas_cents) || 0,
-                        ),
-                      ).replace(" Dracmas", "")}
-                    </strong>
+                    <div className="jokenpo-page-stats">
+                      <strong className="jokenpo-page-balance">
+                        D$: {formatDracmas(
+                          Number(
+                            (isMaster
+                              ? ownMember?.dracmas_cents
+                              : ownCharacter?.dracmas_cents) || 0,
+                          ),
+                        ).replace(" Dracmas", "")}
+                      </strong>
+                      <small className="jokenpo-page-total">
+                        Ganho total: D$: {formatDracmas(
+                          Number(ownMember?.jokenpo_total_winnings_cents || 0),
+                        ).replace(" Dracmas", "")}
+                      </small>
+                    </div>
                   )}
                   {loading && (
                     <span className="muted" role="status">
