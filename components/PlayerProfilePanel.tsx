@@ -179,7 +179,6 @@ export default function PlayerProfilePanel({
       "unequip",
       { identity_id: identity.id },
       "Moldura removida",
-      frameModalOpen,
     );
 
   const ownedCosmetics = (kind: CosmeticKind): Row[] =>
@@ -547,7 +546,7 @@ export default function PlayerProfilePanel({
             </nav>
 
             <div className={styles.libraryContent}>
-              {framesByRarity.map((group, groupIndex) => {
+              {framesByRarity.map((group) => {
                 const showNoFrame = group.id === "common";
                 if (!group.frames.length && !showNoFrame) return null;
                 return (
