@@ -365,7 +365,13 @@ export default function JokenpoGame({
               : undefined
           }
         >
-          Jokenpô
+          {["result", "reaction", "replay"].includes(phase) && outcome
+            ? outcome === "vitoria"
+              ? "Vitória"
+              : outcome === "derrota"
+                ? "Derrota"
+                : "Empate"
+            : "Jokenpô"}
         </h2>
         <p className={styles.status} aria-live="polite">
           {status}
