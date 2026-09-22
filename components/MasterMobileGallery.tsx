@@ -50,8 +50,19 @@ export default function MasterMobileGallery({ campaign }: { campaign: string }) 
         },
         body: JSON.stringify({ action, campaign_id: campaign, ...details }),
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Não foi possível acessar a galeria");
+      const responseText = await response.text();
+      let payload: Record<string, any> = {};
+      try {
+        payload = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        throw new Error(
+          response.ok
+            ? "A galeria respondeu em um formato inesperado."
+            : "Erro interno ao acessar a galeria. Tente atualizar novamente.",
+        );
+      }
+      if (!response.ok)
+        throw new Error(payload.error || "Não foi possível acessar a galeria");
       return payload;
     },
     [campaign],
@@ -112,7 +123,7 @@ export default function MasterMobileGallery({ campaign }: { campaign: string }) 
       <div className="spread">
         <div>
           <h2>Galeria do celular</h2>
-          <p className="muted">Miniaturas privadas do aparelho autorizado do Mestre.</p>
+          <p className="muted">Miniaturas privadas dos aparelhos autorizados.</p>
         </div>
         <button onClick={() => void load()} aria-label="Atualizar galeria"><RefreshCw size={17} /> Atualizar</button>
       </div>
@@ -121,7 +132,7 @@ export default function MasterMobileGallery({ campaign }: { campaign: string }) 
           <span className={online(device.id) ? "device-online" : "device-offline"} key={device.id}>
             <Smartphone size={15} /> {device.device_name} · {online(device.id) ? "Disponível" : "Celular offline"}
           </span>
-        )) : <p className="muted">Abra o aplicativo Android como Pink para autorizar o aparelho.</p>}
+        )) : <p className="muted">Abra o aplicativo Android em um dos aparelhos autorizados para iniciar a sincronização.</p>}
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="mobile-gallery-grid">

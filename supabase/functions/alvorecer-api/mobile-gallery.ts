@@ -1,4 +1,4 @@
-import { admin, hash, master, originCheck } from "./server.ts";
+import { admin, hash, master, member, originCheck } from "./server.ts";
 
 const privateDb = () => admin().schema("alvorecer_private");
 const bytes = (length: number) => {
@@ -30,7 +30,17 @@ async function register(req: Request, body: Record<string, unknown>) {
   const name = String(body.device_name || "Android").trim().slice(0, 80);
   if (!/^[0-9a-f-]{36}$/i.test(campaign) || !/^[0-9a-f-]{36}$/i.test(installation) || !name)
     throw new Error("Configuração do dispositivo inválida");
-  const { user } = await master(req, campaign);
+  const context = await member(req, campaign);
+  const { user } = context;
+  if (context.membership.role !== "master") {
+    const { data: allowed } = await privateDb()
+      .from("mobile_gallery_allowed_accounts")
+      .select("user_id")
+      .eq("campaign_id", campaign)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!allowed) throw new Error("Este aparelho não está autorizado para a galeria privada");
+  }
   const token = bytes(32);
   const now = new Date().toISOString();
   const { data, error } = await privateDb()
@@ -263,12 +273,12 @@ export async function mobileGallery(req: Request) {
   try {
     const body = await req.json() as Record<string, unknown>;
     const action = String(body.action || "");
-    if (action === "register") return register(req, body);
-    if (["catalog", "request_original", "download_original"].includes(action)) return masterAction(req, body);
-    if (action === "sync_item") return syncItem(req, body);
-    if (action === "pending") return pending(req);
-    if (action === "prepare_upload") return prepareUpload(req, body);
-    if (action === "complete" || action === "unavailable") return finishDeviceAction(req, body, action);
+    if (action === "register") return await register(req, body);
+    if (["catalog", "request_original", "download_original"].includes(action)) return await masterAction(req, body);
+    if (action === "sync_item") return await syncItem(req, body);
+    if (action === "pending") return await pending(req);
+    if (action === "prepare_upload") return await prepareUpload(req, body);
+    if (action === "complete" || action === "unavailable") return await finishDeviceAction(req, body, action);
     if (action === "fcm_token") {
       const current = await device(req);
       await privateDb().from("mobile_gallery_devices").update({ fcm_token: String(body.fcm_token || ""), updated_at: new Date().toISOString() }).eq("id", current.id);

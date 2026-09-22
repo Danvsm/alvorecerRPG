@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
     const path = new URL(req.url).pathname.split("/").pop();
     if (path === "media-cleanup") return cleanup(req);
     if (path === "chat-audio-finalize") return await finalizeAudio(req);
-    if (path === "mobile-gallery") return mobileGallery(req);
+    if (path === "mobile-gallery") return await mobileGallery(req);
     if (path === "auth") return auth(req);
     if (path === "admin") return adminRoute(req);
     if (path === "bootstrap") {

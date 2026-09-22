@@ -105,14 +105,29 @@ export default function VoiceRecorder({
       if (!format)
         throw new Error("Nenhum formato de áudio compatível foi encontrado.");
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      const nativeAndroid = Boolean(window.AlvorecerNative);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: nativeAndroid
+            ? true
+            : {
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
+        });
+      } catch (firstError) {
+        if (
+          firstError instanceof DOMException &&
+          firstError.name === "NotAllowedError"
+        ) {
+          throw firstError;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       streamRef.current = stream;
       chunksRef.current = [];
       samplesRef.current = [];

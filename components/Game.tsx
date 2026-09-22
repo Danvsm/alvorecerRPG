@@ -371,12 +371,17 @@ export default function Game({ invite }: { invite?: string }) {
     }
   }, [campaign, members, page, pageRestored]);
   useEffect(() => {
-    if (!isMaster || !campaign || !session?.access_token) return;
+    if (!campaign || !session?.access_token) return;
+    const membership = members.find(
+      (member) =>
+        member.campaign_id === campaign && member.user_id === session.user.id,
+    );
+    if (!membership?.access_active || membership.archived_at) return;
     const key = `${campaign}:${session.user.id}`;
     if (registeredAndroidDevice.current === key) return;
     if (registerMasterAndroidDevice(campaign, session.access_token))
       registeredAndroidDevice.current = key;
-  }, [campaign, isMaster, session]);
+  }, [campaign, members, session]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
   const avatarShape = avatarShapeFromTheme(currentCampaign?.theme);
   const rows = (t: string) => data[t] || [];
