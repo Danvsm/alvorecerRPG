@@ -62,7 +62,7 @@ class MainActivity : Activity() {
             override fun onShowFileChooser(
                 webView: WebView,
                 callback: ValueCallback<Array<Uri>>,
-                params: FileChooserParams,
+                params: WebChromeClient.FileChooserParams,
             ): Boolean {
                 fileChooserCallback?.onReceiveValue(null)
                 fileChooserCallback = callback
@@ -70,7 +70,7 @@ class MainActivity : Activity() {
                 return try {
                     val intent = params.createIntent().apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
-                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.mode == FileChooserParams.MODE_OPEN_MULTIPLE)
+                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE)
                     }
                     startActivityForResult(intent, FILE_CHOOSER_REQUEST)
                     true
