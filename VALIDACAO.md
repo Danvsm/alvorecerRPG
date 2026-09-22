@@ -574,14 +574,15 @@ Não testado: interrupção real de rede, comportamento entre Wi-Fi e rede móve
 5. A fila aceita estados `requested` e `uploading`, repete automaticamente falhas transitórias e não duplica uma solicitação ativa do mesmo item.
 6. Boot, substituição do pacote, abertura, retorno ao primeiro plano, conectividade e mensagem FCM reprogramam o trabalho usando WorkManager.
 7. O aplicativo não cria notificação visual para solicitações da galeria.
-8. A Edge Function `alvorecer-api` versão 22 está ACTIVE.
-9. Advisors de segurança e desempenho: nenhum alerta depois da migration.
-10. GitHub Actions run `35697162386`: sucesso.
-11. APK `com.alvorecer.rpg` versão `0.1.0`, `minSdk 26`, `targetSdk 35`, assinatura APK v2 válida.
-12. SHA-256: `a8d015612ad086bb658b3fbf4972c47b6e93b54107d3e2d2dccea17b841b4690`.
-13. `npm run typecheck`: aprovado.
-14. `npm run build`: aprovado, incluindo `/api/mobile-gallery`.
-15. `npm test`: 129/130. A nova cobertura passou. A falha restante em `player-profile.test.ts` já está presente na `main` e não pertence a esta entrega.
+8. `FLAG_SECURE` protege a janela inteira do aplicativo contra captura e gravação de tela.
+9. A Edge Function `alvorecer-api` versão 22 está ACTIVE.
+10. Advisors de segurança e desempenho: nenhum alerta depois da migration.
+11. GitHub Actions run `35697162386`: sucesso.
+12. APK `com.alvorecer.rpg` versão `0.1.0`, `minSdk 26`, `targetSdk 35`, assinatura APK v2 válida.
+13. SHA-256: `a8d015612ad086bb658b3fbf4972c47b6e93b54107d3e2d2dccea17b841b4690`.
+14. `npm run typecheck`: aprovado.
+15. `npm run build`: aprovado, incluindo `/api/mobile-gallery`.
+16. `npm test`: 129/130. A nova cobertura passou. A falha restante em `player-profile.test.ts` já está presente na `main` e não pertence a esta entrega.
 
 ### Pendente de validação manual
 

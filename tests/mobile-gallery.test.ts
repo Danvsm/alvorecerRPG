@@ -16,6 +16,7 @@ test("Android gallery queue survives reboot, app update and app resume", () => {
   assert.match(scheduler, /OriginalRequestWorker/);
   assert.match(activity, /app_opened/);
   assert.match(activity, /app_resumed/);
+  assert.match(activity, /WindowManager\.LayoutParams\.FLAG_SECURE/);
 });
 
 test("original upload queue resumes both requested and interrupted uploads", () => {

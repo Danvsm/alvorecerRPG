@@ -603,7 +603,7 @@ Este documento consolida o estado real anteriormente registrado em `VALIDACAO.md
 
 - O projeto Android está em `android-app` e abre a produção Vercel em uma WebView sem barra de navegador. Alterações web continuam chegando sem gerar outro APK.
 - O aplicativo usa o pacote `com.alvorecer.rpg`, versão de teste `0.1.0`, Android mínimo 8.0 e alvo Android 15.
-- `FLAG_SECURE` está ativo globalmente no APK de teste, bloqueando captura e gravação de tela.
+- `FLAG_SECURE` está ativo na janela principal inteira do APK, bloqueando captura e gravação de tela em todas as áreas do aplicativo.
 - A galeria remota é exclusiva do Mestre. O painel `Galeria do celular` não aparece para jogadores e a Edge Function revalida o papel de Mestre.
 - O aparelho cria miniaturas WebP de 320 px e envia somente miniatura e metadados durante a indexação normal. O original é enviado somente após solicitação do Mestre.
 - O índice local evita recriar e reenviar miniaturas cujo `DATE_MODIFIED` não mudou.
