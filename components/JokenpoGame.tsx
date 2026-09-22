@@ -499,13 +499,29 @@ export default function JokenpoGame({
                   ? "Derrota"
                   : "Empate"}
             </strong>
+            {roundDelta !== undefined ? (
+              <span
+                className={
+                  roundDelta > 0
+                    ? styles.moneyWon
+                    : roundDelta < 0
+                      ? styles.moneyLost
+                      : styles.moneyDraw
+                }
+              >
+                {roundDelta > 0
+                  ? `Você ganhou D$: ${formatDracmas(roundDelta).replace(" Dracmas", "")}`
+                  : roundDelta < 0
+                    ? `Você perdeu D$: ${formatDracmas(Math.abs(roundDelta)).replace(" Dracmas", "")}`
+                    : "Nenhum Dracma ganho ou perdido"}
+              </span>
+            ) : null}
             <small>
               Você: {labels[player]} · Taverneiro: {labels[character]}
             </small>
-            {roundBet !== undefined && roundDelta !== undefined ? (
+            {roundBet !== undefined ? (
               <small>
-                Aposta: {formatDracmas(roundBet)} · Resultado: {roundDelta > 0 ? "+" : ""}
-                {formatDracmas(roundDelta)}
+                Aposta: {formatDracmas(roundBet)}
               </small>
             ) : null}
           </div>
