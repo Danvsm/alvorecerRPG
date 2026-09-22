@@ -14,10 +14,12 @@ export type JokenpoRound = {
   bet_cents: number;
   net_delta_cents: number;
   balance_after: number;
+  total_winnings_cents: number;
 };
 
 type JokenpoGameProps = {
   balanceCents: number;
+  totalWinningsCents: number;
   unavailableReason?: string;
   onOutcomeChange?: (outcome?: Outcome) => void;
   playRound: (
@@ -67,6 +69,7 @@ function reactionFrames(outcome: Outcome) {
 
 export default function JokenpoGame({
   balanceCents,
+  totalWinningsCents,
   unavailableReason,
   onOutcomeChange,
   playRound,
@@ -80,6 +83,7 @@ export default function JokenpoGame({
   const [burstWord, setBurstWord] = useState("");
   const [betDracmas, setBetDracmas] = useState(200);
   const [displayBalance, setDisplayBalance] = useState(balanceCents);
+  const [displayTotalWinnings, setDisplayTotalWinnings] = useState(totalWinningsCents);
   const [roundDelta, setRoundDelta] = useState<number>();
   const [roundBet, setRoundBet] = useState<number>();
   const [roundError, setRoundError] = useState("");
@@ -118,6 +122,10 @@ export default function JokenpoGame({
   useEffect(() => {
     setDisplayBalance(balanceCents);
   }, [balanceCents]);
+
+  useEffect(() => {
+    setDisplayTotalWinnings(totalWinningsCents);
+  }, [totalWinningsCents]);
 
   async function startMusic() {
     const music = musicRef.current;
@@ -226,6 +234,7 @@ export default function JokenpoGame({
     setRoundBet(Number(settledRound.bet_cents));
     setRoundDelta(Number(settledRound.net_delta_cents));
     setDisplayBalance(Number(settledRound.balance_after));
+    setDisplayTotalWinnings(Number(settledRound.total_winnings_cents || 0));
 
     if (!(await show(run, "/jokenpo/jo.webp", "JÓ...", 350))) return;
     if (!(await bounce(run))) return;
@@ -360,6 +369,9 @@ export default function JokenpoGame({
         </h2>
         <p className={styles.status} aria-live="polite">
           {status}
+        </p>
+        <p className={styles.totalWinnings}>
+          Ganho total: <strong>D$: {formatDracmas(displayTotalWinnings).replace(" Dracmas", "")}</strong>
         </p>
 
         {phase === "intro" && (
