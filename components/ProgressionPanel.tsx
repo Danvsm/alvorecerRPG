@@ -1,22 +1,46 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
+import { BarChart3, CircleHelp } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import type { Row } from "@/lib/types";
+
+function compactNumber(value: number) {
+  if (!Number.isFinite(value)) return "0";
+  const units = [
+    { value: 1_000_000_000_000, suffix: "tri" },
+    { value: 1_000_000_000, suffix: "bi" },
+    { value: 1_000_000, suffix: "mi" },
+    { value: 1_000, suffix: "mil" },
+  ];
+  const absolute = Math.abs(value);
+  for (const unit of units) {
+    if (absolute >= unit.value) {
+      return `${new Intl.NumberFormat("pt-BR", {
+        maximumFractionDigits: 1,
+      }).format(value / unit.value)} ${unit.suffix}`;
+    }
+  }
+  return new Intl.NumberFormat("pt-BR").format(value);
+}
 
 export default function ProgressionPanel({
   character,
   attributes,
   values,
   refresh,
+  mode = "summary",
 }: {
   character: Row;
   attributes: Row[];
   values: Row[];
   refresh: () => Promise<void>;
+  mode?: "summary" | "attributes";
 }) {
   const [rule, setRule] = useState<Row>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
   useEffect(() => {
     let valid = true;
     browserDb()
@@ -32,96 +56,212 @@ export default function ProgressionPanel({
     return () => {
       valid = false;
     };
-  }, [character, values]);
-  const active = attributes
-    .filter((a) => a.active && !a.character_id)
-    .toSorted((a, b) => a.position - b.position);
-  return (
-    <section className="panel sheet-attributes">
-      <div className="spread">
-        <h2>Progressão • Nível {rule?.level ?? character.level}</h2>
-        <span>{character.xp} XP disponíveis</span>
-      </div>
-      <p>XP total conquistado: {character.xp_total}</p>
-      {rule && (
-        <>
-          <div className="progress-line">
-            <span
-              style={{
-                width: `${rule.total ? (rule.completed / rule.total) * 100 : 0}%`,
-              }}
-            />
-          </div>
-          <p>
-            {rule.completed}/{rule.total} atributos concluíram a meta{" "}
-            {rule.target}.
-          </p>
-          <small>
-            {rule.next_unlocked
-              ? `Próxima faixa desbloqueada até ${rule.cap}.`
-              : rule.can_unlock
-                ? "Todos concluídos. O primeiro avanço abre a próxima faixa; o segundo atributo sobe o nível."
-                : rule.level === 10
-                  ? "Faixa final: até 50."
-                  : `Conclua todos os atributos em ${rule.target} para abrir a próxima faixa.`}
-          </small>
-        </>
-      )}
-      <div className="attribute-grid compact-attributes">
-        {active.map((attribute) => {
-          const value =
+  }, [character.id, values]);
+
+  const active = useMemo(
+    () =>
+      attributes
+        .filter((attribute) => attribute.active && !attribute.character_id)
+        .toSorted((left, right) => left.position - right.position),
+    [attributes],
+  );
+
+  const attributeValue = (attributeId: string) =>
+    Number(
+      values.find(
+        (value) =>
+          value.attribute_id === attributeId &&
+          value.character_id === character.id,
+      )?.value || 0,
+    );
+
+  const highlighted = useMemo(
+    () =>
+      active
+        .map((attribute) => ({
+          attribute,
+          value: Number(
             values.find(
-              (v) =>
-                v.attribute_id === attribute.id &&
-                v.character_id === character.id,
-            )?.value || 0;
-          return (
-            <div className="attribute" key={attribute.id}>
+              (entry) =>
+                entry.attribute_id === attribute.id &&
+                entry.character_id === character.id,
+            )?.value || 0,
+          ),
+        }))
+        .toSorted(
+          (left, right) =>
+            right.value - left.value ||
+            Number(left.attribute.position || 0) -
+              Number(right.attribute.position || 0),
+        )
+        .slice(0, 3),
+    [active, character.id, values],
+  );
+
+  const buy = async (attribute: Row) => {
+    const value = attributeValue(attribute.id);
+    if (!rule || busy) return;
+    if (
+      !confirm(
+        `Evoluir ${attribute.name} para ${value + 1} por ${rule.cost} XP?`,
+      )
+    )
+      return;
+
+    setBusy(true);
+    setError("");
+    try {
+      const result = await browserDb().rpc("buy_attribute", {
+        c: character.campaign_id,
+        target: character.id,
+        attribute: attribute.id,
+        request_id: crypto.randomUUID(),
+      });
+      if (result.error) throw new Error(result.error.message);
+      setRule(result.data);
+      await refresh();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (mode === "attributes") {
+    return (
+      <section className="panel sheet-attributes sheet-tab-panel">
+        <div className="sheet-tab-heading">
+          <BarChart3 size={19} />
+          <div>
+            <h2>Atributos</h2>
+            <p>Use XP disponível para evoluir seu personagem.</p>
+          </div>
+        </div>
+
+        <div className="attribute-grid sheet-full-attributes">
+          {active.map((attribute) => {
+            const value = attributeValue(attribute.id);
+            return (
+              <div className="attribute sheet-attribute-card" key={attribute.id}>
+                <span>{attribute.name}</span>
+                <strong>{value}</strong>
+                <button
+                  disabled={
+                    busy ||
+                    !rule ||
+                    Number(character.xp || 0) < Number(rule.cost || 0) ||
+                    value >= Number(rule.cap || 0)
+                  }
+                  onClick={() => void buy(attribute)}
+                >
+                  +1 · {compactNumber(Number(rule?.cost ?? 100))} XP
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {attributes.filter(
+          (attribute) =>
+            attribute.active && attribute.character_id === character.id,
+        ).length > 0 && (
+          <details className="sheet-individual-attributes">
+            <summary>Atributos individuais</summary>
+            {attributes
+              .filter(
+                (attribute) =>
+                  attribute.active &&
+                  attribute.character_id === character.id,
+              )
+              .map((attribute) => (
+                <p key={attribute.id}>
+                  {attribute.name}: {attributeValue(attribute.id)}
+                </p>
+              ))}
+          </details>
+        )}
+
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  const progress = Number(rule?.total)
+    ? (Number(rule?.completed || 0) / Number(rule?.total || 1)) * 100
+    : 0;
+
+  return (
+    <>
+      <section className="panel sheet-progression-summary">
+        <div className="sheet-progression-heading">
+          <div>
+            <h2>Progressão · Nível {rule?.level ?? character.level}</h2>
+            {rule && (
+              <p>
+                {rule.completed} / {rule.total} atributos concluídos
+              </p>
+            )}
+          </div>
+          <strong>{compactNumber(Number(character.xp || 0))} XP disponíveis</strong>
+        </div>
+
+        {rule && (
+          <>
+            <div className="progress-line sheet-progress-line">
+              <span style={{ width: `${progress}%` }} />
+            </div>
+            <div className="sheet-progress-copy">
+              <CircleHelp size={17} aria-hidden="true" />
+              <small>
+                {rule.next_unlocked
+                  ? `Próxima faixa desbloqueada até ${rule.cap}.`
+                  : rule.can_unlock
+                    ? "Todos concluídos. O primeiro avanço abre a próxima faixa; o segundo atributo sobe o nível."
+                    : rule.level === 10
+                      ? "Faixa final: até 50."
+                      : `Conclua todos os atributos em ${rule.target} para abrir a próxima faixa.`}
+              </small>
+              <b>{Math.round(progress)}%</b>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="sheet-highlighted-attributes" aria-label="Atributos em destaque">
+        <div className="sheet-section-title">
+          <BarChart3 size={18} />
+          <h2>Atributos em destaque</h2>
+        </div>
+        <div className="attribute-grid sheet-highlight-grid">
+          {highlighted.map(({ attribute, value }) => (
+            <div className="attribute sheet-attribute-card" key={attribute.id}>
               <span>{attribute.name}</span>
               <strong>{value}</strong>
               <button
                 disabled={
-                  busy || !rule || character.xp < rule.cost || value >= rule.cap
+                  busy ||
+                  !rule ||
+                  Number(character.xp || 0) < Number(rule.cost || 0) ||
+                  value >= Number(rule.cap || 0)
                 }
-                onClick={async () => {
-                  if (!rule || busy) return;
-                  if (
-                    !confirm(
-                      `Evoluir ${attribute.name} para ${value + 1} por ${rule.cost} XP?`,
-                    )
-                  )
-                    return;
-                  setBusy(true);
-                  setError("");
-                  try {
-                    const result = await browserDb().rpc("buy_attribute", {
-                      c: character.campaign_id,
-                      target: character.id,
-                      attribute: attribute.id,
-                      request_id: crypto.randomUUID(),
-                    });
-                    if (result.error) throw new Error(result.error.message);
-                    setRule(result.data);
-                    await refresh();
-                  } catch (caught) {
-                    setError((caught as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
+                onClick={() => void buy(attribute)}
               >
-                +1 • {rule?.cost ?? 100} XP
+                +1 · {compactNumber(Number(rule?.cost ?? 100))} XP
               </button>
             </div>
-          );
-        })}
-      </div>
-      {attributes.filter(a=>a.active&&a.character_id===character.id).length>0&&<details><summary>Atributos individuais</summary>{attributes.filter(a=>a.active&&a.character_id===character.id).map(a=><p key={a.id}>{a.name}: {values.find(v=>v.attribute_id===a.id&&v.character_id===character.id)?.value??0}</p>)}</details>}
+          ))}
+        </div>
+      </section>
+
       {error && (
         <p role="alert" className="error">
           {error}
         </p>
       )}
-    </section>
+    </>
   );
 }
