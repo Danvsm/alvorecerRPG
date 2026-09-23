@@ -182,7 +182,7 @@ export default function ProgressionPanel({
                   }
                   onClick={() => openPurchase(attribute)}
                 >
-                  +1 · {compactNumber(Number(rule?.cost ?? 100))} XP
+                  Adicionar XP
                 </button>
               </div>
             );
@@ -280,7 +280,7 @@ export default function ProgressionPanel({
                 }
                 onClick={() => openPurchase(attribute)}
               >
-                +1 · {compactNumber(Number(rule?.cost ?? 100))} XP
+                Adicionar XP
               </button>
             </div>
           ))}
