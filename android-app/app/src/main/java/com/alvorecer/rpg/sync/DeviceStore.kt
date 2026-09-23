@@ -33,6 +33,7 @@ object DeviceStore {
             .putString("campaign_id", pending.campaignId)
             .putString("user_id", pending.userId)
             .remove("registration_pending")
+            .remove("last_notification_id")
             .commit()
         return true
     }
@@ -85,5 +86,12 @@ object DeviceStore {
     fun pendingFcmToken(context: Context) = prefs(context).getString("pending_fcm_token", null)
     fun clearPendingFcmToken(context: Context) {
         prefs(context).edit().remove("pending_fcm_token").apply()
+    }
+
+    fun lastNotificationId(context: Context): Long =
+        prefs(context).getLong("last_notification_id", 0L)
+
+    fun saveLastNotificationId(context: Context, id: Long) {
+        prefs(context).edit().putLong("last_notification_id", id).apply()
     }
 }
