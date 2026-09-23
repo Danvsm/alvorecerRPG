@@ -5,6 +5,8 @@ declare global {
       resumeGalleryQueue(): void;
       registerGalleryDevice?(campaignId: string, userId: string, accessToken: string, deviceName: string): void;
       isGalleryDeviceRegistered?(campaignId: string, userId: string): boolean;
+      setWebSessionUser?(userId: string): void;
+      clearWebSession?(): void;
     };
   }
 }
@@ -12,6 +14,7 @@ declare global {
 export function startAndroidGalleryRegistration(campaignId: string, userId: string, accessToken: string) {
   if (typeof window === "undefined" || !window.AlvorecerNative) return;
   const bridge = window.AlvorecerNative;
+  bridge.setWebSessionUser?.(userId);
   let legacyAttempted = false;
   const attempt = () => {
     try {
@@ -41,4 +44,14 @@ export function startAndroidGalleryRegistration(campaignId: string, userId: stri
     window.removeEventListener("online", resume);
     document.removeEventListener("visibilitychange", resume);
   };
+}
+
+
+export function clearAndroidWebSession() {
+  if (typeof window === "undefined" || !window.AlvorecerNative) return;
+  try {
+    window.AlvorecerNative.clearWebSession?.();
+  } catch {
+    // The Android shell stays protected when the web session is unknown.
+  }
 }
