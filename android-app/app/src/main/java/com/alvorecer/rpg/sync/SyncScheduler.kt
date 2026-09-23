@@ -69,6 +69,20 @@ object SyncScheduler {
         )
     }
 
+    fun pollOriginalsNow(context: Context, reason: String = "foreground_original_poll") {
+        val request =
+            OneTimeWorkRequestBuilder<OriginalRequestWorker>()
+                .setConstraints(connected)
+                .addTag(reason)
+                .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "gallery-original-poll-now",
+            ExistingWorkPolicy.KEEP,
+            request,
+        )
+    }
+
     fun register(context: Context, replace: Boolean = true) {
         val request =
             OneTimeWorkRequestBuilder<DeviceRegistrationWorker>()
