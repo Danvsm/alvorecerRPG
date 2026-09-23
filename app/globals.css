@@ -8816,3 +8816,80 @@ dialog.combat-sheet {
     font-size: 0.64rem;
   }
 }
+
+
+/* Minha Ficha: avatar e moldura como destaque visual do personagem. */
+.player-character-sheet .sheet-identity {
+  min-height: 138px;
+  gap: 22px;
+  padding: 16px 22px;
+  background:
+    radial-gradient(circle at 9% 50%, #a3273c22 0, #6f182418 7rem, transparent 14rem),
+    linear-gradient(100deg, #151218 0%, #111116 48%, #0f0f13 100%);
+}
+
+.player-character-sheet .sheet-identity-avatar {
+  --avatar-shape-radius: 50%;
+  --avatar-frame-photo-inset: 4%;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 8px 18px #0008);
+}
+
+.player-character-sheet .sheet-identity-avatar::before {
+  position: absolute;
+  z-index: 0;
+  inset: -8px;
+  border: 1px solid #b76d7740;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #a92d4129 0%, #741d2c12 52%, transparent 72%);
+  box-shadow:
+    0 0 0 5px #7d233114,
+    0 0 26px #9e1b3230;
+  content: "";
+  pointer-events: none;
+}
+
+.player-character-sheet .sheet-identity-avatar .avatar-frame-photo {
+  border-radius: 50%;
+}
+
+.player-character-sheet .sheet-identity-avatar .avatar-frame-art {
+  filter:
+    drop-shadow(0 2px 3px #000b)
+    drop-shadow(0 0 8px #d79a5524);
+}
+
+.player-character-sheet .sheet-identity-copy {
+  align-self: center;
+}
+
+@media (max-width: 760px) {
+  .player-character-sheet .sheet-identity {
+    min-height: 116px;
+    gap: 15px;
+    padding: 11px 14px;
+  }
+
+  .player-character-sheet .sheet-identity-avatar {
+    --avatar-frame-size: 94px !important;
+    flex-basis: 94px;
+  }
+
+  .player-character-sheet .sheet-identity-avatar::before {
+    inset: -6px;
+  }
+}
+
+@media (max-width: 380px) {
+  .player-character-sheet .sheet-identity {
+    gap: 11px;
+    padding-inline: 11px;
+  }
+
+  .player-character-sheet .sheet-identity-avatar {
+    --avatar-frame-size: 86px !important;
+    flex-basis: 86px;
+  }
+}
