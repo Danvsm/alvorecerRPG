@@ -277,6 +277,9 @@ class MainActivity : Activity() {
     private fun requestInitialPermissions() {
         val permissions = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= 33) {
+            permissions += Manifest.permission.POST_NOTIFICATIONS
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
             permissions += Manifest.permission.READ_MEDIA_IMAGES
             permissions += Manifest.permission.READ_MEDIA_VIDEO
             if (Build.VERSION.SDK_INT >= 34) {
