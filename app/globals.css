@@ -8893,3 +8893,183 @@ dialog.combat-sheet {
     flex-basis: 86px;
   }
 }
+
+
+/* Minha Ficha: recursos essenciais dentro do card principal do personagem. */
+.player-character-sheet .sheet-identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(132px, 176px);
+  align-items: center;
+}
+
+.player-character-sheet .sheet-identity-resources {
+  display: grid;
+  gap: 8px;
+  align-self: stretch;
+  align-content: center;
+  padding-left: 16px;
+  border-left: 1px solid #ffffff0d;
+}
+
+.player-character-sheet .sheet-identity-resources .resource {
+  min-width: 0;
+  padding: 0;
+}
+
+.player-character-sheet .sheet-identity-resources .resource .spread {
+  gap: 8px;
+}
+
+.player-character-sheet .sheet-identity-resources .resource .spread > span {
+  gap: 5px;
+  min-width: 0;
+  color: #a9a4a7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.player-character-sheet .sheet-identity-resources .resource .spread > span svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+}
+
+.player-character-sheet .sheet-identity-resources .resource strong {
+  color: #f5f1ed;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.player-character-sheet .sheet-identity-resources .resource strong small {
+  color: #8f8a90;
+  font-size: 0.64rem;
+}
+
+.player-character-sheet .sheet-identity-resources .track {
+  height: 3px;
+  margin: 4px 0 0;
+  background: #28282f;
+}
+
+.player-character-sheet .sheet-identity-resources .resource[data-resource="life"] .spread > span {
+  color: #ed6878;
+}
+
+.player-character-sheet .sheet-identity-resources .resource[data-resource="mana"] .spread > span {
+  color: #62b8ee;
+}
+
+.player-character-sheet .sheet-identity-resources .resource[data-resource="stamina"] .spread > span {
+  color: #e7b95d;
+}
+
+@media (max-width: 760px) {
+  .player-character-sheet .sheet-identity {
+    grid-template-columns: 94px minmax(0, 1fr) minmax(92px, 108px);
+    gap: 11px;
+    padding: 11px 12px;
+  }
+
+  .player-character-sheet .sheet-identity-avatar {
+    --avatar-frame-size: 90px !important;
+    flex-basis: 90px;
+  }
+
+  .player-character-sheet .sheet-identity-copy {
+    gap: 3px;
+  }
+
+  .player-character-sheet .sheet-identity-copy h2 {
+    font-size: 1.08rem;
+    line-height: 1.08;
+  }
+
+  .player-character-sheet .sheet-identity-copy > p:last-child {
+    font-size: 0.72rem;
+    line-height: 1.25;
+  }
+
+  .player-character-sheet .sheet-level {
+    padding: 3px 7px;
+    font-size: 0.54rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources {
+    gap: 6px;
+    padding-left: 9px;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource .spread {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource .spread > span {
+    gap: 3px;
+    font-size: 0.61rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource .spread > span svg {
+    width: 11px;
+    height: 11px;
+    flex-basis: 11px;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource strong {
+    font-size: 0.66rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource strong small {
+    font-size: 0.56rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources .track {
+    height: 3px;
+    margin-top: 3px;
+  }
+}
+
+@media (max-width: 390px) {
+  .player-character-sheet .sheet-identity {
+    grid-template-columns: 86px minmax(0, 1fr) 88px;
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .player-character-sheet .sheet-identity-avatar {
+    --avatar-frame-size: 84px !important;
+    flex-basis: 84px;
+  }
+
+  .player-character-sheet .sheet-identity-copy h2 {
+    font-size: 1rem;
+  }
+
+  .player-character-sheet .sheet-identity-copy > p:last-child {
+    font-size: 0.66rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources {
+    gap: 5px;
+    padding-left: 7px;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource .spread > span {
+    font-size: 0.56rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource .spread > span svg {
+    display: none;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource strong {
+    font-size: 0.61rem;
+  }
+
+  .player-character-sheet .sheet-identity-resources .resource strong small {
+    font-size: 0.52rem;
+  }
+}
