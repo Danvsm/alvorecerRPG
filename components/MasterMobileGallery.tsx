@@ -240,7 +240,7 @@ export default function MasterMobileGallery({
 
       if (!selectedId) return;
       const page = pages[selectedId];
-      if (!page && !page?.loading) {
+      if (!page) {
         void loadDevicePage(selectedId, 0, true);
       }
     });
