@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, RefreshCw, Smartphone } from "lucide-react";
+import { Download, RefreshCw, Smartphone, XCircle } from "lucide-react";
 import { browserDb } from "@/lib/client";
 
 type Device = {
@@ -34,19 +34,23 @@ type Request = {
     | "ready"
     | "unavailable"
     | "expired"
-    | "failed";
+    | "failed"
+    | "cancelled";
   requested_at: string;
   expires_at?: string;
+  device_polled_at?: string;
+  attempt_count?: number;
   error_message?: string;
 };
 
 const labels: Record<Request["status"], string> = {
-  requested: "Solicitado",
+  requested: "Aguardando o celular",
   uploading: "Enviando",
   ready: "Pronto para baixar",
   unavailable: "Original indisponível",
   expired: "Expirado",
   failed: "Falha no envio",
+  cancelled: "Solicitação cancelada",
 };
 
 export default function MasterMobileGallery({
@@ -182,6 +186,19 @@ export default function MasterMobileGallery({
     }
   }
 
+  async function cancelRequest(request: Request) {
+    setBusy(request.id);
+    setError("");
+    try {
+      await call("cancel_request", { request_id: request.id });
+      await load();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function downloadOriginal(request: Request) {
     setBusy(request.id);
     setError("");
@@ -223,6 +240,17 @@ export default function MasterMobileGallery({
           >
             {status}
           </span>
+          {request?.status === "requested" && request.device_polled_at && (
+            <small className="gallery-request-detail">
+              O celular já recebeu este pedido.
+            </small>
+          )}
+          {request?.error_message && (
+            <small className="gallery-request-error">
+              {request.error_message}
+            </small>
+          )}
+
           {request?.status === "ready" ? (
             <button
               disabled={busy === request.id}
@@ -230,16 +258,20 @@ export default function MasterMobileGallery({
             >
               <Download size={16} /> Baixar original
             </button>
+          ) : request?.status === "requested" || request?.status === "uploading" ? (
+            <button
+              className="secondary"
+              disabled={busy === request.id}
+              onClick={() => void cancelRequest(request)}
+            >
+              <XCircle size={16} /> Cancelar solicitação
+            </button>
           ) : (
             <button
-              disabled={
-                busy === item.id ||
-                request?.status === "requested" ||
-                request?.status === "uploading"
-              }
+              disabled={busy === item.id}
               onClick={() => void requestOriginal(item)}
             >
-              Solicitar original
+              {request ? "Solicitar novamente" : "Solicitar original"}
             </button>
           )}
         </div>
