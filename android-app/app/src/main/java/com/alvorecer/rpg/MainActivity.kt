@@ -23,9 +23,12 @@ import android.widget.FrameLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.alvorecer.rpg.sync.DeviceStore
+import com.alvorecer.rpg.sync.GalleryApi
 import com.alvorecer.rpg.sync.OriginalRequestProcessor
 import com.alvorecer.rpg.sync.SyncScheduler
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : Activity() {
     private lateinit var rootView: FrameLayout
@@ -34,11 +37,25 @@ class MainActivity : Activity() {
     private val pendingCaptureUris = mutableListOf<Uri>()
     private val originalPollHandler = Handler(Looper.getMainLooper())
     private val originalPollExecutor = Executors.newSingleThreadExecutor()
+    private val foregroundPollRunning = AtomicBoolean(false)
+    @Volatile private var currentWebSessionUserId: String? = null
     private val originalPollTask = object : Runnable {
         override fun run() {
-            if (!originalPollExecutor.isShutdown) {
-                originalPollExecutor.execute {
-                    OriginalRequestProcessor.process(applicationContext)
+            if (
+                !originalPollExecutor.isShutdown &&
+                foregroundPollRunning.compareAndSet(false, true)
+            ) {
+                try {
+                    originalPollExecutor.execute {
+                        try {
+                            OriginalRequestProcessor.process(applicationContext)
+                            refreshCaptureProtection()
+                        } finally {
+                            foregroundPollRunning.set(false)
+                        }
+                    }
+                } catch (_: java.util.concurrent.RejectedExecutionException) {
+                    foregroundPollRunning.set(false)
                 }
             }
             originalPollHandler.postDelayed(this, ORIGINAL_POLL_INTERVAL_MS)
@@ -65,6 +82,47 @@ class MainActivity : Activity() {
         configureWebView()
         SyncScheduler.resumeNow(this, "app_opened")
         webView.loadUrl(BuildConfig.APP_URL)
+    }
+
+    fun setWebSessionUser(userId: String?) {
+        currentWebSessionUserId = userId?.takeIf { it.isNotBlank() }
+        if (currentWebSessionUserId == null) {
+            applyCaptureProtection(true)
+        } else {
+            originalPollHandler.removeCallbacks(originalPollTask)
+            originalPollHandler.post(originalPollTask)
+        }
+    }
+
+    private fun refreshCaptureProtection() {
+        val currentUser = currentWebSessionUserId
+        val registration = DeviceStore.registration(applicationContext)
+        val registeredUser = DeviceStore.userId(applicationContext)
+        if (
+            currentUser == null ||
+            registration == null ||
+            registeredUser == null ||
+            registeredUser != currentUser
+        ) {
+            applyCaptureProtection(true)
+            return
+        }
+
+        val enabled =
+            runCatching { GalleryApi.capturePolicy(registration.deviceToken) }
+                .getOrDefault(true)
+        applyCaptureProtection(enabled)
+    }
+
+    private fun applyCaptureProtection(enabled: Boolean) {
+        runOnUiThread {
+            if (isFinishing || isDestroyed) return@runOnUiThread
+            if (enabled) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
     }
 
     private fun configureSafeArea() {
