@@ -9252,3 +9252,169 @@ dialog.combat-sheet {
     font-size: 0.64rem;
   }
 }
+
+
+/* Pop-up de XP para evolução de atributo. */
+.attribute-xp-dialog {
+  width: min(520px, calc(100vw - 28px));
+  padding: 20px;
+}
+
+.attribute-xp-dialog-heading {
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.attribute-xp-dialog-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.attribute-xp-dialog-heading small {
+  color: #a99ba0;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.attribute-xp-dialog-heading h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+}
+
+.attribute-xp-dialog-heading > button {
+  min-width: 38px;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.attribute-xp-summary {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr 1.15fr;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ffffff12;
+  border-radius: 11px;
+  background: #0f0f13;
+}
+
+.attribute-xp-summary > div {
+  display: grid;
+  gap: 2px;
+}
+
+.attribute-xp-summary small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.attribute-xp-summary strong {
+  color: #f2eeeb;
+  font-size: 1.08rem;
+}
+
+.attribute-xp-summary > span {
+  color: #7e7880;
+  font-size: 1rem;
+}
+
+.attribute-xp-info,
+.attribute-xp-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.attribute-xp-info {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.attribute-xp-info strong,
+.attribute-xp-confirmation strong {
+  color: #e7b75e;
+}
+
+.attribute-xp-choice {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.attribute-xp-choice > span {
+  color: #c9c3c5;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.attribute-xp-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.attribute-xp-options button {
+  display: grid;
+  gap: 3px;
+  min-height: 62px;
+  justify-items: center;
+  padding: 9px 7px;
+  border-color: #383840;
+  background: #121217;
+  box-shadow: none;
+}
+
+.attribute-xp-options button strong {
+  font-size: 0.84rem;
+}
+
+.attribute-xp-options button small {
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.attribute-xp-options button.selected {
+  border-color: #a93448;
+  color: #fff;
+  background: #72182a35;
+  box-shadow: inset 0 0 0 1px #d62c4930;
+}
+
+.attribute-xp-options button.selected small {
+  color: #e8bfc7;
+}
+
+.attribute-xp-confirmation {
+  padding: 11px 12px;
+  border-radius: 9px;
+  background: #d99b3a0d;
+  color: #b9b1b2;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 520px) {
+  .attribute-xp-dialog {
+    padding: 16px;
+  }
+
+  .attribute-xp-summary {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .attribute-xp-summary > div:last-child {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding-top: 7px;
+    border-top: 1px solid #ffffff0d;
+  }
+
+  .attribute-xp-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
