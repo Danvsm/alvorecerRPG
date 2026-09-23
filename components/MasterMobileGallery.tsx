@@ -279,30 +279,40 @@ export default function MasterMobileGallery({
                 </div>
               </div>
 
-              <div className="mobile-device-list">
-                {account.devices.map((device) => (
-                  <span
-                    className={
-                      online(device.id) ? "device-online" : "device-offline"
-                    }
-                    key={device.id}
-                  >
-                    <Smartphone size={15} /> {device.device_name} ·{" "}
-                    {online(device.id) ? "Disponível" : "Celular offline"}
-                  </span>
-                ))}
-              </div>
+              {account.devices.map((device) => {
+                const deviceItems = accountItems.filter(
+                  (item) => item.device_id === device.id,
+                );
+                const shortId = device.id.slice(0, 6).toUpperCase();
 
-              <div className="mobile-gallery-grid">
-                {accountItems.map(renderItem)}
-              </div>
+                return (
+                  <section className="mobile-gallery-device" key={device.id}>
+                    <div className="spread">
+                      <div>
+                        <h4>
+                          <Smartphone size={16} /> {device.device_name}
+                        </h4>
+                        <p className="muted">
+                          Dispositivo {shortId} ·{" "}
+                          {online(device.id) ? "Disponível" : "Celular offline"} ·{" "}
+                          {deviceItems.length}{" "}
+                          {deviceItems.length === 1 ? "arquivo" : "arquivos"}
+                        </p>
+                      </div>
+                    </div>
 
-              {!accountItems.length && (
-                <p className="muted">
-                  Aguardando a primeira sincronização de miniaturas desta
-                  conta.
-                </p>
-              )}
+                    <div className="mobile-gallery-grid">
+                      {deviceItems.map(renderItem)}
+                    </div>
+
+                    {!deviceItems.length && (
+                      <p className="muted">
+                        Aguardando a primeira sincronização deste aparelho.
+                      </p>
+                    )}
+                  </section>
+                );
+              })}
             </section>
           );
         })
