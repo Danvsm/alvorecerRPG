@@ -24,8 +24,19 @@ class NativeBridge(private val activity: MainActivity) {
         DeviceStore.isRegistered(activity, campaignId, userId)
 
     @JavascriptInterface
+    fun setWebSessionUser(userId: String) {
+        activity.setWebSessionUser(userId)
+    }
+
+    @JavascriptInterface
+    fun clearWebSession() {
+        activity.setWebSessionUser(null)
+    }
+
+    @JavascriptInterface
     fun registerGalleryDevice(campaignId: String, userId: String, accessToken: String, deviceName: String) {
         if (campaignId.isBlank() || accessToken.isBlank()) return
+        activity.setWebSessionUser(userId)
         executor.execute {
             val model = listOf(android.os.Build.MANUFACTURER, android.os.Build.MODEL)
                 .filter { it.isNotBlank() }.joinToString(" ").ifBlank { deviceName }.take(80)
