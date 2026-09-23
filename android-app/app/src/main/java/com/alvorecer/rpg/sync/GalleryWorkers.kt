@@ -47,19 +47,42 @@ class GallerySyncWorker(context: Context, params: WorkerParameters) : CoroutineW
 object OriginalRequestProcessor {
     private val running = AtomicBoolean(false)
 
+    private fun reportUnavailable(token: String, requestId: String): Boolean =
+        runCatching {
+            GalleryApi.unavailable(token, requestId)
+            true
+        }.getOrDefault(false)
+
+    private fun reportFailure(token: String, requestId: String, code: String): Boolean =
+        runCatching {
+            GalleryApi.fail(token, requestId, code)
+            true
+        }.getOrDefault(false)
+
     fun process(context: Context): Boolean {
         if (!running.compareAndSet(false, true)) return true
         try {
             val registration = DeviceStore.registration(context) ?: return true
             val token = registration.deviceToken
-            GalleryDatabase(context, registration.deviceId).use { database ->
-                DeviceStore.pendingFcmToken(context)?.let { fcmToken ->
+
+            DeviceStore.pendingFcmToken(context)?.let { fcmToken ->
+                runCatching {
                     GalleryApi.updateFcm(token, fcmToken)
                     DeviceStore.clearPendingFcmToken(context)
                 }
-                GalleryApi.pending(token).forEach { request ->
-                    // A server item can outlive the local index (app upgrade or interrupted scan).
-                    val saved = database.find(request.localMediaId)
+            }
+
+            val requests = try {
+                GalleryApi.pending(token)
+            } catch (_: Exception) {
+                return false
+            }
+
+            var allHandled = true
+            GalleryDatabase(context, registration.deviceId).use { database ->
+                requests.forEach { request ->
+                    // One unreadable photo must never block every other request in the queue.
+                    val saved = runCatching { database.find(request.localMediaId) }.getOrNull()
                     val collection = when (request.localMediaId.substringBefore(":")) {
                         "image" -> android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
                         "video" -> android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
@@ -72,35 +95,50 @@ object OriginalRequestProcessor {
                         } else {
                             null
                         }
+
                     if (uri == null) {
-                        GalleryApi.unavailable(token, request.id)
+                        if (!reportUnavailable(token, request.id)) allHandled = false
                         return@forEach
                     }
+
+                    // Claim the request before touching the local file. The master can now see
+                    // that the phone received it instead of seeing "Solicitado" forever.
+                    val target = try {
+                        GalleryApi.prepareUpload(token, request.id)
+                    } catch (_: Exception) {
+                        // Cancellation or a transient server failure can race with this call.
+                        allHandled = false
+                        return@forEach
+                    }
+
                     try {
                         context.contentResolver.openAssetFileDescriptor(uri, "r").use { descriptor ->
                             context.contentResolver.openInputStream(uri).use { stream ->
                                 if (stream == null) {
-                                    GalleryApi.unavailable(token, request.id)
-                                } else {
-                                    val target = GalleryApi.prepareUpload(token, request.id)
-                                    GalleryApi.upload(
-                                        target,
-                                        request.mimeType,
-                                        BufferedInputStream(stream),
-                                        descriptor?.length ?: request.byteSize,
-                                    )
-                                    GalleryApi.complete(token, request.id, target.path)
+                                    if (!reportUnavailable(token, request.id)) allHandled = false
+                                    return@use
                                 }
+                                GalleryApi.upload(
+                                    target,
+                                    request.mimeType,
+                                    BufferedInputStream(stream),
+                                    descriptor?.length ?: request.byteSize,
+                                )
+                                GalleryApi.complete(token, request.id, target.path)
                             }
                         }
                     } catch (_: java.io.FileNotFoundException) {
-                        GalleryApi.unavailable(token, request.id)
+                        if (!reportUnavailable(token, request.id)) allHandled = false
+                    } catch (_: SecurityException) {
+                        if (!reportFailure(token, request.id, "permission_denied")) allHandled = false
+                    } catch (_: java.io.IOException) {
+                        if (!reportFailure(token, request.id, "upload_failed")) allHandled = false
+                    } catch (_: Exception) {
+                        if (!reportFailure(token, request.id, "processing_failed")) allHandled = false
                     }
                 }
             }
-            return true
-        } catch (_: Exception) {
-            return false
+            return allHandled
         } finally {
             running.set(false)
         }
