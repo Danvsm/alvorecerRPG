@@ -8,6 +8,7 @@ test("compact Dracma balances stay readable in Portuguese", () => {
   assert.equal(formatCompactDracmas(12_200_00), "12,2 mil");
   assert.equal(formatCompactDracmas(100_000_000), "1 mi");
   assert.equal(formatCompactDracmas(150_000_000), "1,5 mi");
+  assert.equal(formatCompactDracmas(100_000_000_000), "1 bi");
   assert.equal(formatCompactDracmas(99_950), "999,50");
   assert.equal(formatCompactDracmas(-850_000), "-8,5 mil");
 });
