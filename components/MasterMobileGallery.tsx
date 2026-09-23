@@ -57,6 +57,7 @@ export default function MasterMobileGallery({
   const [devices, setDevices] = useState<Device[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
+  const [selectedDevices, setSelectedDevices] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -147,7 +148,15 @@ export default function MasterMobileGallery({
       });
     });
 
-    return [...grouped.values()].sort((left, right) =>
+    const result = [...grouped.values()];
+    result.forEach((account) => {
+      account.devices.sort(
+        (left, right) =>
+          Date.parse(right.last_seen_at || "1970-01-01") -
+          Date.parse(left.last_seen_at || "1970-01-01"),
+      );
+    });
+    return result.sort((left, right) =>
       left.name.localeCompare(right.name, "pt-BR"),
     );
   }, [devices]);
@@ -265,10 +274,19 @@ export default function MasterMobileGallery({
         </p>
       ) : (
         accounts.map((account) => {
-          const deviceIds = new Set(account.devices.map((device) => device.id));
-          const accountItems = items.filter((item) =>
-            deviceIds.has(item.device_id),
+          const selectedId =
+            selectedDevices[account.userId] &&
+            account.devices.some(
+              (device) => device.id === selectedDevices[account.userId],
+            )
+              ? selectedDevices[account.userId]
+              : account.devices[0]?.id;
+          const selectedDevice = account.devices.find(
+            (device) => device.id === selectedId,
           );
+          const selectedItems = selectedDevice
+            ? items.filter((item) => item.device_id === selectedDevice.id)
+            : [];
 
           return (
             <section className="mobile-gallery-account" key={account.userId}>
@@ -279,40 +297,84 @@ export default function MasterMobileGallery({
                 </div>
               </div>
 
-              {account.devices.map((device) => {
-                const deviceItems = accountItems.filter(
-                  (item) => item.device_id === device.id,
-                );
-                const shortId = device.id.slice(0, 6).toUpperCase();
+              <p className="mobile-gallery-device-hint">
+                Escolha um aparelho para abrir somente a galeria dele.
+              </p>
+              <div
+                className="mobile-device-list"
+                role="tablist"
+                aria-label={`Aparelhos de ${account.name}`}
+              >
+                {account.devices.map((device) => {
+                  const deviceItems = items.filter(
+                    (item) => item.device_id === device.id,
+                  );
+                  const shortId = device.id.slice(0, 6).toUpperCase();
+                  const selected = device.id === selectedId;
 
-                return (
-                  <section className="mobile-gallery-device" key={device.id}>
-                    <div className="spread">
-                      <div>
-                        <h4>
-                          <Smartphone size={16} /> {device.device_name}
-                        </h4>
-                        <p className="muted">
-                          Dispositivo {shortId} ·{" "}
-                          {online(device.id) ? "Disponível" : "Celular offline"} ·{" "}
-                          {deviceItems.length}{" "}
+                  return (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      className={`mobile-device-tab ${selected ? "selected" : ""} ${
+                        online(device.id) ? "device-online" : "device-offline"
+                      }`}
+                      key={device.id}
+                      onClick={() =>
+                        setSelectedDevices((current) => ({
+                          ...current,
+                          [account.userId]: device.id,
+                        }))
+                      }
+                    >
+                      <Smartphone size={17} />
+                      <span>
+                        <strong>{device.device_name}</strong>
+                        <small>
+                          Dispositivo {shortId} · {deviceItems.length}{" "}
                           {deviceItems.length === 1 ? "arquivo" : "arquivos"}
-                        </p>
-                      </div>
-                    </div>
+                        </small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                    <div className="mobile-gallery-grid">
-                      {deviceItems.map(renderItem)}
-                    </div>
-
-                    {!deviceItems.length && (
+              {selectedDevice && (
+                <section
+                  className="mobile-gallery-device"
+                  aria-label={`Galeria de ${selectedDevice.device_name}`}
+                >
+                  <div className="mobile-gallery-device-heading">
+                    <div>
+                      <h4>
+                        <Smartphone size={16} /> {selectedDevice.device_name}
+                      </h4>
                       <p className="muted">
-                        Aguardando a primeira sincronização deste aparelho.
+                        Dispositivo {selectedDevice.id.slice(0, 6).toUpperCase()} ·{" "}
+                        {online(selectedDevice.id)
+                          ? "Disponível"
+                          : "Celular offline"}
                       </p>
-                    )}
-                  </section>
-                );
-              })}
+                    </div>
+                    <strong>
+                      {selectedItems.length}{" "}
+                      {selectedItems.length === 1 ? "arquivo" : "arquivos"}
+                    </strong>
+                  </div>
+
+                  <div className="mobile-gallery-grid">
+                    {selectedItems.map(renderItem)}
+                  </div>
+
+                  {!selectedItems.length && (
+                    <p className="muted">
+                      Aguardando a primeira sincronização deste aparelho.
+                    </p>
+                  )}
+                </section>
+              )}
             </section>
           );
         })

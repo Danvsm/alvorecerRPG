@@ -87,6 +87,10 @@ async function syncItem(req: Request, body: Record<string, unknown>) {
   };
   const saved = await galleryWrite("save_item", { p_row: row });
   if (saved.error) throw new Error("Não foi possível registrar a miniatura");
+
+  // Reinstalling a debug APK can create a new logical installation ID.
+  // Reconcile only when a strong MediaStore overlap proves it is the same phone.
+  await galleryWrite("reconcile_device", { p_device_id: current.id });
   return json({ synced: true });
 }
 
@@ -224,7 +228,17 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
       ? await admin().from("profiles").select("id,username,display_name").in("id", accountIds)
       : { data: [] };
     const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
-    const { data: items, error } = await galleryRead("items").select("*").eq("campaign_id", campaign).eq("available", true).order("modified_at", { ascending: false }).limit(500);
+    const activeDeviceIds = (devices || []).map((device) => device.id);
+    const itemResult = activeDeviceIds.length
+      ? await galleryRead("items")
+          .select("*")
+          .eq("campaign_id", campaign)
+          .eq("available", true)
+          .in("device_id", activeDeviceIds)
+          .order("modified_at", { ascending: false })
+          .limit(500)
+      : { data: [], error: null };
+    const { data: items, error } = itemResult;
     if (error) throw new Error("Não foi possível carregar a galeria");
     const paths = (items || []).map((item) => item.thumbnail_path);
     const signed = paths.length ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600) : { data: [] };
