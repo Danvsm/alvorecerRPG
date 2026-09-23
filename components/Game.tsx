@@ -106,7 +106,11 @@ import {
   CharacterDeleteSuccessDialog,
 } from "./CharacterDeleteDialog";
 import MasterMobileGallery from "./MasterMobileGallery";
-import { startAndroidGalleryRegistration } from "@/lib/native-app";
+import MasterCaptureSettings from "./MasterCaptureSettings";
+import {
+  clearAndroidWebSession,
+  startAndroidGalleryRegistration,
+} from "@/lib/native-app";
 import type { Row, Field, Form } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
 import {
@@ -475,6 +479,7 @@ export default function Game({ invite }: { invite?: string }) {
     const { data: s } = db.auth.onAuthStateChange((_, s) => {
       setSession(s);
       if (!s) {
+        clearAndroidWebSession();
         setChatPeer(undefined);
         setSpeakingAs("");
         setData({});
@@ -3734,6 +3739,7 @@ export default function Game({ invite }: { invite?: string }) {
                 busy={busy}
               />
               <SessionCountManager campaign={campaign} />
+              <MasterCaptureSettings campaign={campaign} />
               <section className="panel">
                 <div className="spread">
                   <h2>Atributos</h2>
