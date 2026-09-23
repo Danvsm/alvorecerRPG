@@ -24,6 +24,7 @@ import {
 } from "react";
 import { browserDb } from "@/lib/client";
 import { uploadCommunityArticleImage } from "@/lib/media";
+import { versionedImageUrl } from "@/lib/image-cache";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import styles from "./CommunityLibrary.module.css";
@@ -75,7 +76,9 @@ export default function CommunityLibrary({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [playerArticleCount, setPlayerArticleCount] = useState(0);
-  const coverObjectUrls = useRef<Record<string, string>>({});
+  const coverSignedUrls = useRef<
+    Record<string, { url: string; version: string; signedAt: number }>
+  >({});
   const holdTimer = useRef<number | null>(null);
   const holdStart = useRef({ x: 0, y: 0 });
   const holdTriggered = useRef(false);
@@ -153,29 +156,63 @@ export default function CommunityLibrary({
         ? next.find((article) => article.id === current.id) || null
         : null,
     );
-    const paths = [
-      ...new Set(next.map((article) => article.cover_path).filter(Boolean)),
-    ];
-    const loadedCovers = await Promise.all(
-      paths.map(async (path) => {
-        const downloaded = await browserDb()
-          .storage.from("community-articles")
-          .download(path);
-        return downloaded.error || !downloaded.data
-          ? ([path, ""] as const)
-          : ([path, URL.createObjectURL(downloaded.data)] as const);
+    const coverVersions = new Map<string, string>();
+    next.forEach((article) => {
+      if (!article.cover_path) return;
+      coverVersions.set(
+        String(article.cover_path),
+        String(article.updated_at || article.published_at || article.id || "1"),
+      );
+    });
+    const paths = [...coverVersions.keys()];
+    const now = Date.now();
+    const pathsToSign = paths.filter((path) => {
+      const cached = coverSignedUrls.current[path];
+      return (
+        !cached ||
+        cached.version !== coverVersions.get(path) ||
+        now - cached.signedAt >= 50 * 60 * 1000
+      );
+    });
+
+    let signingFailed = false;
+    if (pathsToSign.length) {
+      const signed = await browserDb()
+        .storage.from("community-articles")
+        .createSignedUrls(pathsToSign, 60 * 60);
+      if (signed.error) {
+        signingFailed = true;
+      } else {
+        (signed.data || []).forEach((entry) => {
+          if (!entry.path || !entry.signedUrl) {
+            signingFailed = true;
+            return;
+          }
+          const version = coverVersions.get(entry.path) || "1";
+          coverSignedUrls.current[entry.path] = {
+            url: versionedImageUrl(entry.signedUrl, version),
+            version,
+            signedAt: now,
+          };
+        });
+      }
+    }
+
+    coverSignedUrls.current = Object.fromEntries(
+      paths.flatMap((path) => {
+        const cached = coverSignedUrls.current[path];
+        return cached ? [[path, cached] as const] : [];
       }),
     );
     const nextCoverUrls = Object.fromEntries(
-      loadedCovers.filter((entry) => entry[1]),
+      paths.flatMap((path) => {
+        const cached = coverSignedUrls.current[path];
+        return cached ? [[path, cached.url] as const] : [];
+      }),
     );
-    Object.values(coverObjectUrls.current).forEach((url) =>
-      URL.revokeObjectURL(url),
-    );
-    coverObjectUrls.current = nextCoverUrls;
     setCoverUrls(nextCoverUrls);
     setError(
-      paths.length > Object.keys(nextCoverUrls).length
+      signingFailed || paths.length > Object.keys(nextCoverUrls).length
         ? "Uma ou mais capas não puderam ser carregadas. Tente abrir novamente."
         : "",
     );
@@ -199,10 +236,7 @@ export default function CommunityLibrary({
       .subscribe();
     return () => {
       void browserDb().removeChannel(channel);
-      Object.values(coverObjectUrls.current).forEach((url) =>
-        URL.revokeObjectURL(url),
-      );
-      coverObjectUrls.current = {};
+      coverSignedUrls.current = {};
     };
   }, [campaign, category, load]);
 
