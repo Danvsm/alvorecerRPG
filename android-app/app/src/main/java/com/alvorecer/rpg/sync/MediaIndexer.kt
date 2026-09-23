@@ -12,8 +12,21 @@ import java.io.ByteArrayOutputStream
 object MediaIndexer {
     fun scan(context: Context, deviceId: String, onItem: (IndexedMedia, String) -> Unit) {
         GalleryDatabase(context, deviceId).use { database ->
-            scanCollection(context, database, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, false, onItem)
-            scanCollection(context, database, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, onItem)
+            val imageCollection =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                } else {
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                }
+            val videoCollection =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                } else {
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                }
+
+            scanCollection(context, database, imageCollection, false, onItem)
+            scanCollection(context, database, videoCollection, true, onItem)
         }
     }
 
