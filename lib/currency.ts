@@ -29,3 +29,37 @@ export function formatDracmas(
   const fraction = String(cents % 100n).padStart(2, "0");
   return `${negative ? "-" : ""}${whole.toLocaleString("pt-BR")},${fraction} Dracmas`;
 }
+
+
+export function formatCompactDracmas(
+  value: number | string | bigint | null | undefined,
+) {
+  let cents = BigInt(value || 0);
+  const negative = cents < 0n;
+  if (negative) cents = -cents;
+
+  const amount = Number(cents) / 100;
+  const units = [
+    { value: 1_000_000_000_000, suffix: "tri" },
+    { value: 1_000_000_000, suffix: "bi" },
+    { value: 1_000_000, suffix: "mi" },
+    { value: 1_000, suffix: "mil" },
+  ];
+
+  for (const unit of units) {
+    if (amount >= unit.value) {
+      const compact = amount / unit.value;
+      const formatted = new Intl.NumberFormat("pt-BR", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }).format(compact);
+      return `${negative ? "-" : ""}${formatted} ${unit.suffix}`;
+    }
+  }
+
+  const formatted = new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: cents % 100n === 0n ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+  return `${negative ? "-" : ""}${formatted}`;
+}
