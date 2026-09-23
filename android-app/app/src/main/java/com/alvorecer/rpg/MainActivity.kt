@@ -19,9 +19,14 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.alvorecer.rpg.sync.SyncScheduler
 
 class MainActivity : Activity() {
+    private lateinit var rootView: FrameLayout
     private lateinit var webView: WebView
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private val pendingCaptureUris = mutableListOf<Uri>()
@@ -36,12 +41,42 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         requestInitialPermissions()
+
+        rootView = FrameLayout(this)
         webView = WebView(this)
-        setContentView(webView)
+        rootView.addView(
+            webView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        setContentView(rootView)
+        configureSafeArea()
         configureWebView()
         SyncScheduler.resumeNow(this, "app_opened")
         webView.loadUrl(BuildConfig.APP_URL)
+    }
+
+    private fun configureSafeArea() {
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, insets ->
+            val safeInsets =
+                insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or
+                        WindowInsetsCompat.Type.displayCutout() or
+                        WindowInsetsCompat.Type.ime(),
+                )
+            view.setPadding(
+                safeInsets.left,
+                safeInsets.top,
+                safeInsets.right,
+                safeInsets.bottom,
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(rootView)
     }
 
     @Suppress("SetJavaScriptEnabled")

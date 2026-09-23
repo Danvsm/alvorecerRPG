@@ -14,8 +14,8 @@ android {
         applicationId = "com.alvorecer.rpg"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 6
+        versionName = "0.1.5"
         buildConfigField("String", "APP_URL", "\"https://alvorecer-rpg-vsm.vercel.app\"")
         buildConfigField("boolean", "FCM_CONFIGURED", hasGoogleServices.toString())
     }
@@ -35,6 +35,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-ktx:1.10.0")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
