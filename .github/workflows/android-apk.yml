@@ -26,6 +26,8 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android-app/app/google-services.json
+          else
+            echo '::warning::APK sem Firebase: pedidos de originais em segundo plano dependem da próxima execução do WorkManager ou da abertura do aplicativo.'
           fi
       - name: Build debug APK
         working-directory: android-app

@@ -169,7 +169,7 @@ export default function MasterMobileGallery({
     const device = deviceById.get(deviceId);
     return Boolean(
       device?.last_seen_at &&
-        Date.now() - Date.parse(device.last_seen_at) < 30 * 60 * 1000,
+        Date.now() - Date.parse(device.last_seen_at) < 60 * 1000,
     );
   };
 
@@ -243,6 +243,13 @@ export default function MasterMobileGallery({
           {request?.status === "requested" && request.device_polled_at && (
             <small className="gallery-request-detail">
               O celular já recebeu este pedido.
+            </small>
+          )}
+          {request?.status === "requested" && !request.device_polled_at && (
+            <small className="gallery-request-detail">
+              O celular ainda não consultou este pedido. Abra o Alvorecer no
+              aparelho para iniciar o envio; com o aplicativo fechado, a
+              consulta em segundo plano pode demorar.
             </small>
           )}
           {request?.error_message && (
@@ -386,8 +393,8 @@ export default function MasterMobileGallery({
                       <p className="muted">
                         Dispositivo {selectedDevice.id.slice(0, 6).toUpperCase()} ·{" "}
                         {online(selectedDevice.id)
-                          ? "Disponível"
-                          : "Celular offline"}
+                          ? "Ativo agora"
+                          : "Sem contato recente"}
                       </p>
                     </div>
                     <strong>
