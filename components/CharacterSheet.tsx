@@ -7,6 +7,7 @@ import {
   ScrollText,
   Sparkles,
 } from "lucide-react";
+import { formatCompactDracmas } from "@/lib/currency";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import ProgressionPanel from "./ProgressionPanel";
@@ -26,7 +27,6 @@ export default function CharacterSheet({
   ownedAdvantages,
   items,
   inventory,
-  resourceControl,
   refresh,
 }: {
   character: Row;
@@ -41,10 +41,42 @@ export default function CharacterSheet({
   ownedAdvantages: Row[];
   items: Row[];
   inventory: Row[];
-  resourceControl: (resource: Row) => React.ReactNode;
   refresh: () => Promise<void>;
 }) {
   const [tab, setTab] = useState<SheetTab>("summary");
+
+  const compactValue = (value: number) => {
+    if (!Number.isFinite(value)) return "0";
+    const units = [
+      { value: 1_000_000_000_000, suffix: "tri" },
+      { value: 1_000_000_000, suffix: "bi" },
+      { value: 1_000_000, suffix: "mi" },
+      { value: 1_000, suffix: "mil" },
+    ];
+    const absolute = Math.abs(value);
+    for (const unit of units) {
+      if (absolute >= unit.value) {
+        return `${new Intl.NumberFormat("pt-BR", {
+          maximumFractionDigits: 1,
+        }).format(value / unit.value)} ${unit.suffix}`;
+      }
+    }
+    return new Intl.NumberFormat("pt-BR").format(value);
+  };
+
+  const resourceLabels: Record<string, string> = {
+    life: "Vida",
+    mana: "Mana",
+    stamina: "Fôlego",
+  };
+
+  const vitalResources = resources
+    .filter((resource) => resourceLabels[String(resource.key)])
+    .toSorted(
+      (left, right) =>
+        ["life", "mana", "stamina"].indexOf(String(left.key)) -
+        ["life", "mana", "stamina"].indexOf(String(right.key)),
+    );
 
   const characterAdvantages = useMemo(
     () =>
@@ -89,7 +121,7 @@ export default function CharacterSheet({
 
   return (
     <div className="character-sheet player-character-sheet">
-      <section className="panel sheet-identity">
+      <section className="panel sheet-identity sheet-identity-sketch">
         <IdentityAvatar
           identity={identity}
           avatarId={character.avatar_id}
@@ -97,23 +129,48 @@ export default function CharacterSheet({
           cosmetics={cosmetics}
           equipment={equipment}
           urls={avatarUrls}
-          size={108}
+          size={118}
           className="sheet-identity-avatar"
         />
-        <div className="sheet-identity-copy">
-          <p className="sheet-level">NÍVEL {character.level || 1}</p>
+
+        <div className="sheet-identity-details">
           <h2>{character.name}</h2>
-          <p>
+
+          <p className="sheet-character-meta">
             {character.class || "Classe não definida"} ·{" "}
-            {character.race || "Raça não definida"}
+            {character.race || "Raça não definida"} · Nível{" "}
+            {character.level || 1} · XP atual{" "}
+            {compactValue(Number(character.xp || 0))}
           </p>
+
+          <div
+            className="sheet-inline-balance"
+            title={`Saldo exato: ${new Intl.NumberFormat("pt-BR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(Number(character.dracmas_cents || 0) / 100)} Dracmas`}
+          >
+            D$ {formatCompactDracmas(character.dracmas_cents)}
+          </div>
+
+          <div
+            className="sheet-vitals"
+            aria-label="Vida, Mana e Fôlego atuais"
+          >
+            {vitalResources.map((resource) => (
+              <div
+                className="sheet-vital-row"
+                data-resource={String(resource.key)}
+                key={String(resource.key)}
+              >
+                <span>{resourceLabels[String(resource.key)]}</span>
+                <strong>
+                  {Number(resource.current || 0)} / {Number(resource.maximum || 0)}
+                </strong>
+              </div>
+            ))}
+          </div>
         </div>
-        <aside
-          className="sheet-identity-resources"
-          aria-label="Vida, Mana e Fôlego atuais"
-        >
-          {resources.map((resource) => resourceControl(resource))}
-        </aside>
       </section>
 
       <nav className="sheet-tabs" aria-label="Seções da ficha">
