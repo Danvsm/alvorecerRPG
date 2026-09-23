@@ -1067,6 +1067,7 @@ export default function Game({ invite }: { invite?: string }) {
     return (
       <div
         className={`resource${combatId ? " combat-resource" : ""}`}
+        data-resource={r.key}
         key={r.key}
       >
         <div className="spread">
@@ -1480,9 +1481,11 @@ export default function Game({ invite }: { invite?: string }) {
           ? "app combat-mode"
           : page === "Comunidade" || page === "Arquivos"
             ? "app community-mode"
-            : !isMaster && page === "Perfil"
-              ? "app player-profile-mode"
-              : "app"
+            : !isMaster && page === "Minha Ficha"
+              ? "app player-sheet-mode"
+              : !isMaster && page === "Perfil"
+                ? "app player-profile-mode"
+                : "app"
       }
       style={
         {
@@ -1583,15 +1586,23 @@ export default function Game({ invite }: { invite?: string }) {
             >
               <Menu />
             </button>
-            <span>
-              ALVORECER <span className="divider">/</span>{" "}
-              {currentCampaign?.name || "Campanha"}
+            <span className={page === "Minha Ficha" && !isMaster ? "sheet-topbar-brand" : undefined}>
+              {page === "Minha Ficha" && !isMaster ? (
+                "ALVORECER"
+              ) : (
+                <>
+                  ALVORECER <span className="divider">/</span>{" "}
+                  {currentCampaign?.name || "Campanha"}
+                </>
+              )}
             </span>
-            <small
-              className={connection === "Tempo real ativo" ? "online" : "muted"}
-            >
-              {connection}
-            </small>
+            {!(page === "Minha Ficha" && !isMaster) && (
+              <small
+                className={connection === "Tempo real ativo" ? "online" : "muted"}
+              >
+                {connection}
+              </small>
+            )}
             <NotificationBell
               notifications={rows("notifications")}
               save={saveNotification}
@@ -1614,9 +1625,11 @@ export default function Game({ invite }: { invite?: string }) {
             !(!isMaster && page === "Perfil") && (
               <div className="page-heading">
                 <div>
-                  <p className="eyebrow">
-                    {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
-                  </p>
+                  {(isMaster || page !== "Minha Ficha") && (
+                    <p className="eyebrow">
+                      {isMaster ? "PAINEL DO MESTRE" : "ÁREA DO JOGADOR"}
+                    </p>
+                  )}
                   <h1
                     className={
                       page === "Jokenpô" && jokenpoOutcome
@@ -1644,8 +1657,7 @@ export default function Game({ invite }: { invite?: string }) {
                       title={`Saldo exato: ${formatDracmas(character.dracmas_cents)}`}
                       aria-label={`Saldo ${formatDracmas(character.dracmas_cents)}. Abrir carteira`}
                     >
-                      <Coins size={16} />
-                      <span>Saldo</span>
+                      <Coins size={17} />
                       <strong>
                         D$ {formatCompactDracmas(character.dracmas_cents)}
                       </strong>
@@ -2403,6 +2415,8 @@ export default function Game({ invite }: { invite?: string }) {
                   values={rows("character_attributes")}
                   advantages={rows("advantages")}
                   ownedAdvantages={rows("character_advantages")}
+                  items={rows("items")}
+                  inventory={rows("character_items")}
                   resourceControl={(resource) =>
                     resourcePanel(character.id, resource, undefined, false)
                   }
