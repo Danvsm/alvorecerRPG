@@ -1586,16 +1586,12 @@ export default function Game({ invite }: { invite?: string }) {
             >
               <Menu />
             </button>
-            <span className={page === "Minha Ficha" && !isMaster ? "sheet-topbar-brand" : undefined}>
-              {page === "Minha Ficha" && !isMaster ? (
-                "ALVORECER"
-              ) : (
-                <>
-                  ALVORECER <span className="divider">/</span>{" "}
-                  {currentCampaign?.name || "Campanha"}
-                </>
-              )}
-            </span>
+            {!(page === "Minha Ficha" && !isMaster) && (
+              <span>
+                ALVORECER <span className="divider">/</span>{" "}
+                {currentCampaign?.name || "Campanha"}
+              </span>
+            )}
             {!(page === "Minha Ficha" && !isMaster) && (
               <small
                 className={connection === "Tempo real ativo" ? "online" : "muted"}
@@ -1622,7 +1618,8 @@ export default function Game({ invite }: { invite?: string }) {
         >
           {page !== "Combate" &&
             page !== "Comunidade" &&
-            !(!isMaster && page === "Perfil") && (
+            !(!isMaster && page === "Perfil") &&
+            !(!isMaster && page === "Minha Ficha") && (
               <div className="page-heading">
                 <div>
                   {(isMaster || page !== "Minha Ficha") && (
@@ -2417,9 +2414,6 @@ export default function Game({ invite }: { invite?: string }) {
                   ownedAdvantages={rows("character_advantages")}
                   items={rows("items")}
                   inventory={rows("character_items")}
-                  resourceControl={(resource) =>
-                    resourcePanel(character.id, resource, undefined, false)
-                  }
                   refresh={() => load(campaign, true)}
                 />
               </>

@@ -9073,3 +9073,182 @@ dialog.combat-sheet {
     font-size: 0.52rem;
   }
 }
+
+
+/* Minha Ficha: card principal refinado a partir do rascunho do usuário. */
+.player-sheet-mode .topbar .mobile-toggle {
+  margin-right: auto;
+}
+
+.player-sheet-mode .content {
+  padding-top: 18px;
+}
+
+.player-character-sheet .sheet-identity-sketch {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  min-height: 156px;
+  align-items: center;
+  gap: 22px;
+  padding: 18px 22px;
+}
+
+.player-character-sheet .sheet-identity-sketch .sheet-identity-avatar {
+  --avatar-shape-radius: 50%;
+  --avatar-frame-photo-inset: 4%;
+  justify-self: center;
+}
+
+.player-character-sheet .sheet-identity-details {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 5px;
+}
+
+.player-character-sheet .sheet-identity-details h2 {
+  margin: 0;
+  color: #f6f1ed;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.08;
+}
+
+.player-character-sheet .sheet-character-meta {
+  margin: 0;
+  color: #aaa4a6;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.player-character-sheet .sheet-inline-balance {
+  width: fit-content;
+  margin-top: 1px;
+  color: #e3ad58;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.player-character-sheet .sheet-vitals {
+  display: grid;
+  width: min(100%, 210px);
+  gap: 2px;
+  margin-top: 1px;
+}
+
+.player-character-sheet .sheet-vital-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 19px;
+  color: #b8b3b5;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.player-character-sheet .sheet-vital-row span {
+  font-weight: 700;
+}
+
+.player-character-sheet .sheet-vital-row strong {
+  color: #f1eeeb;
+  font-size: 0.78rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.player-character-sheet .sheet-vital-row[data-resource="life"] span {
+  color: #ed6878;
+}
+
+.player-character-sheet .sheet-vital-row[data-resource="mana"] span {
+  color: #62b8ee;
+}
+
+.player-character-sheet .sheet-vital-row[data-resource="stamina"] span {
+  color: #e7b95d;
+}
+
+@media (max-width: 760px) {
+  .player-sheet-mode .content {
+    padding-top: 12px;
+  }
+
+  .player-character-sheet .sheet-identity-sketch {
+    grid-template-columns: 112px minmax(0, 1fr);
+    min-height: 136px;
+    gap: 15px;
+    padding: 13px 14px;
+  }
+
+  .player-character-sheet .sheet-identity-sketch .sheet-identity-avatar {
+    --avatar-frame-size: 108px !important;
+    flex-basis: 108px;
+  }
+
+  .player-character-sheet .sheet-identity-details {
+    gap: 4px;
+  }
+
+  .player-character-sheet .sheet-identity-details h2 {
+    font-size: 1.28rem;
+  }
+
+  .player-character-sheet .sheet-character-meta {
+    font-size: 0.66rem;
+    line-height: 1.28;
+  }
+
+  .player-character-sheet .sheet-inline-balance {
+    font-size: 0.84rem;
+  }
+
+  .player-character-sheet .sheet-vitals {
+    width: min(100%, 170px);
+    gap: 1px;
+  }
+
+  .player-character-sheet .sheet-vital-row {
+    min-height: 17px;
+    gap: 7px;
+    font-size: 0.69rem;
+  }
+
+  .player-character-sheet .sheet-vital-row strong {
+    font-size: 0.69rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .player-character-sheet .sheet-identity-sketch {
+    grid-template-columns: 102px minmax(0, 1fr);
+    gap: 11px;
+    padding-inline: 11px;
+  }
+
+  .player-character-sheet .sheet-identity-sketch .sheet-identity-avatar {
+    --avatar-frame-size: 98px !important;
+    flex-basis: 98px;
+  }
+
+  .player-character-sheet .sheet-identity-details h2 {
+    font-size: 1.14rem;
+  }
+
+  .player-character-sheet .sheet-character-meta {
+    font-size: 0.61rem;
+  }
+
+  .player-character-sheet .sheet-inline-balance {
+    font-size: 0.79rem;
+  }
+
+  .player-character-sheet .sheet-vital-row,
+  .player-character-sheet .sheet-vital-row strong {
+    font-size: 0.64rem;
+  }
+}
