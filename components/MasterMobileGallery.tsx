@@ -9,6 +9,7 @@ type Device = {
   device_name: string;
   last_seen_at?: string;
   active: boolean;
+  item_count?: number;
   account_user_id: string;
   account_username: string;
   account_name: string;
@@ -43,6 +44,14 @@ type Request = {
   error_message?: string;
 };
 
+type DevicePage = {
+  loaded: number;
+  hasMore: boolean;
+  loading: boolean;
+};
+
+const PAGE_SIZE = 40;
+
 const labels: Record<Request["status"], string> = {
   requested: "Aguardando o celular",
   uploading: "Enviando",
@@ -61,8 +70,10 @@ export default function MasterMobileGallery({
   const [devices, setDevices] = useState<Device[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
+  const [pages, setPages] = useState<Record<string, DevicePage>>({});
   const [selectedDevices, setSelectedDevices] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   const call = useCallback(
@@ -96,23 +107,73 @@ export default function MasterMobileGallery({
     [campaign],
   );
 
-  const load = useCallback(async () => {
+  const loadCatalog = useCallback(async () => {
     setError("");
     try {
-      const data = await call("catalog");
+      const data = await call("catalog", { metadata_only: true });
       setDevices(data.devices || []);
-      setItems(data.items || []);
       setRequests(data.requests || []);
     } catch (caught) {
       setError((caught as Error).message);
     }
   }, [call]);
 
+  const loadDevicePage = useCallback(
+    async (deviceId: string, offset = 0, replace = false) => {
+      setPages((current) => ({
+        ...current,
+        [deviceId]: {
+          loaded: replace ? 0 : current[deviceId]?.loaded || 0,
+          hasMore: current[deviceId]?.hasMore ?? true,
+          loading: true,
+        },
+      }));
+
+      try {
+        const data = await call("catalog_items", {
+          device_id: deviceId,
+          offset,
+          limit: PAGE_SIZE,
+        });
+        const nextItems = (data.items || []) as Item[];
+
+        setItems((current) => {
+          const otherDevices = replace
+            ? current.filter((item) => item.device_id !== deviceId)
+            : current;
+          const existingIds = new Set(otherDevices.map((item) => item.id));
+          return [
+            ...otherDevices,
+            ...nextItems.filter((item) => !existingIds.has(item.id)),
+          ];
+        });
+
+        setPages((current) => ({
+          ...current,
+          [deviceId]: {
+            loaded: Number(data.next_offset ?? offset + nextItems.length),
+            hasMore: Boolean(data.has_more),
+            loading: false,
+          },
+        }));
+      } catch (caught) {
+        setPages((current) => ({
+          ...current,
+          [deviceId]: {
+            loaded: current[deviceId]?.loaded || 0,
+            hasMore: current[deviceId]?.hasMore ?? true,
+            loading: false,
+          },
+        }));
+        setError((caught as Error).message);
+      }
+    },
+    [call],
+  );
+
   useEffect(() => {
-    void load();
-    const timer = window.setInterval(load, 15000);
-    return () => window.clearInterval(timer);
-  }, [load]);
+    void loadCatalog();
+  }, [loadCatalog]);
 
   const latest = useMemo(() => {
     const result = new Map<string, Request>();
@@ -165,6 +226,26 @@ export default function MasterMobileGallery({
     );
   }, [devices]);
 
+  useEffect(() => {
+    if (refreshing) return;
+
+    accounts.forEach((account) => {
+      const selectedId =
+        selectedDevices[account.userId] &&
+        account.devices.some(
+          (device) => device.id === selectedDevices[account.userId],
+        )
+          ? selectedDevices[account.userId]
+          : account.devices[0]?.id;
+
+      if (!selectedId) return;
+      const page = pages[selectedId];
+      if (!page && !page?.loading) {
+        void loadDevicePage(selectedId, 0, true);
+      }
+    });
+  }, [accounts, loadDevicePage, pages, refreshing, selectedDevices]);
+
   const online = (deviceId: string) => {
     const device = deviceById.get(deviceId);
     return Boolean(
@@ -173,12 +254,24 @@ export default function MasterMobileGallery({
     );
   };
 
+  async function refreshGallery() {
+    setRefreshing(true);
+    setError("");
+    setItems([]);
+    setPages({});
+    try {
+      await loadCatalog();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   async function requestOriginal(item: Item) {
     setBusy(item.id);
     setError("");
     try {
       await call("request_original", { item_id: item.id });
-      await load();
+      await loadCatalog();
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -191,7 +284,7 @@ export default function MasterMobileGallery({
     setError("");
     try {
       await call("cancel_request", { request_id: request.id });
-      await load();
+      await loadCatalog();
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -285,11 +378,16 @@ export default function MasterMobileGallery({
         <div>
           <h2>Galeria do celular</h2>
           <p className="muted">
-            Miniaturas privadas separadas por conta e aparelho.
+            Miniaturas privadas separadas por conta e aparelho. A atualização é
+            manual para reduzir o consumo do Storage.
           </p>
         </div>
-        <button onClick={() => void load()} aria-label="Atualizar galeria">
-          <RefreshCw size={17} /> Atualizar
+        <button
+          onClick={() => void refreshGallery()}
+          aria-label="Atualizar galeria"
+          disabled={refreshing}
+        >
+          <RefreshCw size={17} /> {refreshing ? "Atualizando..." : "Atualizar"}
         </button>
       </div>
 
@@ -319,6 +417,7 @@ export default function MasterMobileGallery({
           const selectedItems = selectedDevice
             ? items.filter((item) => item.device_id === selectedDevice.id)
             : [];
+          const page = selectedDevice ? pages[selectedDevice.id] : undefined;
 
           return (
             <section className="mobile-gallery-account" key={account.userId}>
@@ -338,9 +437,7 @@ export default function MasterMobileGallery({
                 aria-label={`Aparelhos de ${account.name}`}
               >
                 {account.devices.map((device) => {
-                  const deviceItems = items.filter(
-                    (item) => item.device_id === device.id,
-                  );
+                  const total = device.item_count || 0;
                   const shortId = device.id.slice(0, 6).toUpperCase();
                   const selected = device.id === selectedId;
 
@@ -364,8 +461,8 @@ export default function MasterMobileGallery({
                       <span>
                         <strong>{device.device_name}</strong>
                         <small>
-                          Dispositivo {shortId} · {deviceItems.length}{" "}
-                          {deviceItems.length === 1 ? "arquivo" : "arquivos"}
+                          Dispositivo {shortId} · {total}{" "}
+                          {total === 1 ? "arquivo" : "arquivos"}
                         </small>
                       </span>
                     </button>
@@ -391,8 +488,10 @@ export default function MasterMobileGallery({
                       </p>
                     </div>
                     <strong>
-                      {selectedItems.length}{" "}
-                      {selectedItems.length === 1 ? "arquivo" : "arquivos"}
+                      {selectedDevice.item_count || 0}{" "}
+                      {(selectedDevice.item_count || 0) === 1
+                        ? "arquivo"
+                        : "arquivos"}
                     </strong>
                   </div>
 
@@ -400,10 +499,33 @@ export default function MasterMobileGallery({
                     {selectedItems.map(renderItem)}
                   </div>
 
-                  {!selectedItems.length && (
-                    <p className="muted">
-                      Aguardando a primeira sincronização deste aparelho.
-                    </p>
+                  {page?.loading && !selectedItems.length && (
+                    <p className="muted">Carregando miniaturas...</p>
+                  )}
+
+                  {!page?.loading &&
+                    !selectedItems.length &&
+                    (selectedDevice.item_count || 0) === 0 && (
+                      <p className="muted">
+                        Aguardando a primeira sincronização deste aparelho.
+                      </p>
+                    )}
+
+                  {page?.hasMore && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={page.loading}
+                      onClick={() =>
+                        void loadDevicePage(
+                          selectedDevice.id,
+                          page.loaded,
+                          false,
+                        )
+                      }
+                    >
+                      {page.loading ? "Carregando..." : "Carregar mais 40"}
+                    </button>
                   )}
                 </section>
               )}
