@@ -8732,3 +8732,87 @@ dialog.combat-sheet {
     font-size: 0.7rem;
   }
 }
+
+
+/* Minha Ficha: progressão mais compacta para ocupar menos altura. */
+.player-character-sheet .sheet-progression-summary {
+  padding: 11px 13px;
+}
+
+.player-character-sheet .sheet-progression-heading {
+  align-items: center;
+  gap: 12px;
+}
+
+.player-character-sheet .sheet-progression-heading h2 {
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.player-character-sheet .sheet-progression-heading p {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.player-character-sheet .sheet-progression-heading > strong {
+  font-size: 0.86rem;
+  line-height: 1.1;
+}
+
+.player-character-sheet .sheet-progress-line {
+  height: 5px;
+  margin: 9px 0 6px;
+}
+
+.player-character-sheet .sheet-progress-copy {
+  gap: 6px;
+}
+
+.player-character-sheet .sheet-progress-copy svg {
+  width: 14px;
+  height: 14px;
+}
+
+.player-character-sheet .sheet-progress-copy small,
+.player-character-sheet .sheet-progress-copy b {
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 760px) {
+  .player-character-sheet .sheet-progression-summary {
+    padding: 10px 12px;
+  }
+
+  .player-character-sheet .sheet-progression-heading {
+    gap: 8px;
+  }
+
+  .player-character-sheet .sheet-progression-heading h2 {
+    font-size: 0.91rem;
+  }
+
+  .player-character-sheet .sheet-progression-heading p {
+    font-size: 0.65rem;
+  }
+
+  .player-character-sheet .sheet-progression-heading > strong {
+    font-size: 0.76rem;
+  }
+
+  .player-character-sheet .sheet-progress-line {
+    height: 4px;
+    margin: 7px 0 5px;
+  }
+
+  .player-character-sheet .sheet-progress-copy {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 5px;
+  }
+
+  .player-character-sheet .sheet-progress-copy small,
+  .player-character-sheet .sheet-progress-copy b {
+    font-size: 0.64rem;
+  }
+}
