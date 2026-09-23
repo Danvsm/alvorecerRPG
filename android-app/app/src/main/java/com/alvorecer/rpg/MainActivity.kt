@@ -8,6 +8,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.view.WindowManager
 import android.webkit.GeolocationPermissions
@@ -23,6 +25,13 @@ class MainActivity : Activity() {
     private lateinit var webView: WebView
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private val pendingCaptureUris = mutableListOf<Uri>()
+    private val originalPollHandler = Handler(Looper.getMainLooper())
+    private val originalPollTask = object : Runnable {
+        override fun run() {
+            SyncScheduler.pollOriginalsNow(this@MainActivity)
+            originalPollHandler.postDelayed(this, ORIGINAL_POLL_INTERVAL_MS)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -197,6 +206,18 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         SyncScheduler.resumeNow(this, "app_resumed")
+        originalPollHandler.removeCallbacks(originalPollTask)
+        originalPollHandler.postDelayed(originalPollTask, 3_000L)
+    }
+
+    override fun onPause() {
+        originalPollHandler.removeCallbacks(originalPollTask)
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        originalPollHandler.removeCallbacks(originalPollTask)
+        super.onDestroy()
     }
 
     override fun onBackPressed() {
@@ -205,5 +226,6 @@ class MainActivity : Activity() {
 
     companion object {
         private const val FILE_CHOOSER_REQUEST = 7002
+        private const val ORIGINAL_POLL_INTERVAL_MS = 15_000L
     }
 }
