@@ -91,7 +91,7 @@ import {
 } from "@/lib/avatar";
 import { combatDamagePayload, combatResourceCommand } from "@/lib/combat";
 import { cosmeticsActionRequest } from "@/lib/cosmetics";
-import { formatDracmas, parseDracmas } from "@/lib/currency";
+import { formatCompactDracmas, formatDracmas, parseDracmas } from "@/lib/currency";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import {
   collectVisualAssets,
@@ -1636,6 +1636,21 @@ export default function Game({ invite }: { invite?: string }) {
                   </h1>
                 </div>
                 <div className="page-heading-meta">
+                  {page === "Minha Ficha" && !isMaster && character && (
+                    <button
+                      type="button"
+                      className="sheet-heading-balance"
+                      onClick={() => navigate("Carteira")}
+                      title={`Saldo exato: ${formatDracmas(character.dracmas_cents)}`}
+                      aria-label={`Saldo ${formatDracmas(character.dracmas_cents)}. Abrir carteira`}
+                    >
+                      <Coins size={16} />
+                      <span>Saldo</span>
+                      <strong>
+                        D$ {formatCompactDracmas(character.dracmas_cents)}
+                      </strong>
+                    </button>
+                  )}
                   {page === "Jokenpô" && campaign && (
                     <div className="jokenpo-page-stats">
                       <strong className="jokenpo-page-balance">
@@ -2391,7 +2406,6 @@ export default function Game({ invite }: { invite?: string }) {
                   resourceControl={(resource) =>
                     resourcePanel(character.id, resource, undefined, false)
                   }
-                  openWallet={() => navigate("Carteira")}
                   refresh={() => load(campaign, true)}
                 />
               </>

@@ -1,7 +1,6 @@
 "use client";
 
-import { Coins, Sparkles } from "lucide-react";
-import { formatDracmas } from "@/lib/currency";
+import { Sparkles } from "lucide-react";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import ProgressionPanel from "./ProgressionPanel";
@@ -18,7 +17,6 @@ export default function CharacterSheet({
   advantages,
   ownedAdvantages,
   resourceControl,
-  openWallet,
   refresh,
 }: {
   character: Row;
@@ -32,7 +30,6 @@ export default function CharacterSheet({
   advantages: Row[];
   ownedAdvantages: Row[];
   resourceControl: (resource: Row) => React.ReactNode;
-  openWallet: () => void;
   refresh: () => Promise<void>;
 }) {
   const mainAdvantages = ownedAdvantages
@@ -71,17 +68,6 @@ export default function CharacterSheet({
       <section className="panel sheet-resources" aria-label="Recursos atuais">
         {resources.map((resource) => resourceControl(resource))}
       </section>
-
-      <div className="sheet-summary-grid">
-        <section className="panel wallet-summary">
-          <Coins size={22} />
-          <div>
-            <small>Saldo</small>
-            <strong>{formatDracmas(character.dracmas_cents)}</strong>
-          </div>
-          <button onClick={openWallet}>Abrir Carteira</button>
-        </section>
-      </div>
 
       <ProgressionPanel
         character={character}
