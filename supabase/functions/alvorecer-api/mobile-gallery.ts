@@ -121,6 +121,51 @@ async function pending(req: Request) {
   });
 }
 
+async function notificationPoll(req: Request, body: Record<string, unknown>) {
+  const current = await device(req);
+  const afterRaw = Number(body.after_id || 0);
+  const afterId =
+    Number.isFinite(afterRaw) && afterRaw > 0 ? Math.floor(afterRaw) : 0;
+
+  const latestResult = await admin()
+    .from("notifications")
+    .select("id")
+    .eq("campaign_id", current.campaign_id)
+    .eq("user_id", current.master_user_id)
+    .is("dismissed_at", null)
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestResult.error) {
+    throw new Error("Não foi possível consultar as notificações");
+  }
+
+  const latestId = Number(latestResult.data?.id || 0);
+
+  if (afterId <= 0) {
+    return json({ latest_id: latestId, new_count: 0 });
+  }
+
+  const { data: rows, error } = await admin()
+    .from("notifications")
+    .select("id")
+    .eq("campaign_id", current.campaign_id)
+    .eq("user_id", current.master_user_id)
+    .is("dismissed_at", null)
+    .is("read_at", null)
+    .gt("id", afterId)
+    .order("id", { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error("Não foi possível consultar as notificações");
+
+  return json({
+    latest_id: Math.max(latestId, afterId),
+    new_count: (rows || []).length,
+  });
+}
+
 async function prepareUpload(req: Request, body: Record<string, unknown>) {
   const current = await device(req);
   const requestId = String(body.request_id || "");
@@ -567,6 +612,7 @@ export async function mobileGallery(req: Request) {
     if (action === "capture_policy") return await capturePolicy(req);
     if (action === "sync_item") return await syncItem(req, body);
     if (action === "pending") return await pending(req);
+    if (action === "notification_poll") return await notificationPoll(req, body);
     if (action === "prepare_upload") return await prepareUpload(req, body);
     if (["complete", "unavailable", "fail"].includes(action))
       return await finishDeviceAction(req, body, action);
