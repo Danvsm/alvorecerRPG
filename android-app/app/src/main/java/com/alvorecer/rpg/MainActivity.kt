@@ -23,7 +23,9 @@ import android.widget.FrameLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.alvorecer.rpg.sync.OriginalRequestProcessor
 import com.alvorecer.rpg.sync.SyncScheduler
+import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
     private lateinit var rootView: FrameLayout
@@ -31,9 +33,14 @@ class MainActivity : Activity() {
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private val pendingCaptureUris = mutableListOf<Uri>()
     private val originalPollHandler = Handler(Looper.getMainLooper())
+    private val originalPollExecutor = Executors.newSingleThreadExecutor()
     private val originalPollTask = object : Runnable {
         override fun run() {
-            SyncScheduler.pollOriginalsNow(this@MainActivity)
+            if (!originalPollExecutor.isShutdown) {
+                originalPollExecutor.execute {
+                    OriginalRequestProcessor.process(applicationContext)
+                }
+            }
             originalPollHandler.postDelayed(this, ORIGINAL_POLL_INTERVAL_MS)
         }
     }
@@ -242,7 +249,7 @@ class MainActivity : Activity() {
         super.onResume()
         SyncScheduler.resumeNow(this, "app_resumed")
         originalPollHandler.removeCallbacks(originalPollTask)
-        originalPollHandler.postDelayed(originalPollTask, 3_000L)
+        originalPollHandler.post(originalPollTask)
     }
 
     override fun onPause() {
@@ -252,6 +259,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         originalPollHandler.removeCallbacks(originalPollTask)
+        originalPollExecutor.shutdownNow()
         super.onDestroy()
     }
 
@@ -261,6 +269,6 @@ class MainActivity : Activity() {
 
     companion object {
         private const val FILE_CHOOSER_REQUEST = 7002
-        private const val ORIGINAL_POLL_INTERVAL_MS = 15_000L
+        private const val ORIGINAL_POLL_INTERVAL_MS = 5_000L
     }
 }
