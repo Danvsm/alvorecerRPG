@@ -10,12 +10,14 @@ import android.util.Size
 import java.io.ByteArrayOutputStream
 
 object MediaIndexer {
-    fun scan(context: Context, onItem: (IndexedMedia, String) -> Unit) {
-        scanCollection(context, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, false, onItem)
-        scanCollection(context, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, onItem)
+    fun scan(context: Context, deviceId: String, onItem: (IndexedMedia, String) -> Unit) {
+        GalleryDatabase(context, deviceId).use { database ->
+            scanCollection(context, database, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, false, onItem)
+            scanCollection(context, database, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, onItem)
+        }
     }
 
-    private fun scanCollection(context: Context, collection: android.net.Uri, video: Boolean, onItem: (IndexedMedia, String) -> Unit) {
+    private fun scanCollection(context: Context, database: GalleryDatabase, collection: android.net.Uri, video: Boolean, onItem: (IndexedMedia, String) -> Unit) {
         val projection = mutableListOf(
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DISPLAY_NAME,
@@ -34,7 +36,6 @@ object MediaIndexer {
             val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.WIDTH)
             val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.HEIGHT)
             val durationColumn = if (video) cursor.getColumnIndexOrThrow(MediaStore.Video.VideoColumns.DURATION) else -1
-            val database = GalleryDatabase(context)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
                 val uri = ContentUris.withAppendedId(collection, id)

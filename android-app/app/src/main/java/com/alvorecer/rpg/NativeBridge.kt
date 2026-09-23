@@ -1,11 +1,9 @@
 package com.alvorecer.rpg
 
 import android.webkit.JavascriptInterface
-import androidx.work.WorkManager
 import com.alvorecer.rpg.sync.DeviceStore
-import com.alvorecer.rpg.sync.GalleryApi
+import com.alvorecer.rpg.sync.PendingRegistration
 import com.alvorecer.rpg.sync.SyncScheduler
-import com.google.firebase.messaging.FirebaseMessaging
 import java.util.concurrent.Executors
 
 class NativeBridge(private val activity: MainActivity) {
@@ -13,34 +11,37 @@ class NativeBridge(private val activity: MainActivity) {
 
     @JavascriptInterface
     fun registerMasterDevice(campaignId: String, accessToken: String, deviceName: String) {
+        // Compatibility with the web version bundled before registration acknowledgements.
+        val userId = runCatching {
+            val claims = String(android.util.Base64.decode(accessToken.split(".")[1], android.util.Base64.URL_SAFE))
+            org.json.JSONObject(claims).getString("sub")
+        }.getOrNull() ?: return
+        registerGalleryDevice(campaignId, userId, accessToken, deviceName)
+    }
+
+    @JavascriptInterface
+    fun isGalleryDeviceRegistered(campaignId: String, userId: String): Boolean =
+        DeviceStore.isRegistered(activity, campaignId, userId)
+
+    @JavascriptInterface
+    fun registerGalleryDevice(campaignId: String, userId: String, accessToken: String, deviceName: String) {
         if (campaignId.isBlank() || accessToken.isBlank()) return
         executor.execute {
-            val register: (String?) -> Unit = { fcmToken ->
-                runCatching {
-                    val registration = GalleryApi.registerDevice(
-                        campaignId = campaignId,
-                        accessToken = accessToken,
-                        installationId = DeviceStore.installationId(activity),
-                        deviceName = deviceName.take(80),
-                        fcmToken = fcmToken,
-                    )
-                    DeviceStore.saveRegistration(activity, registration, campaignId)
-                    SyncScheduler.resumeNow(activity, "device_registered")
+            val model = listOf(android.os.Build.MANUFACTURER, android.os.Build.MODEL)
+                .filter { it.isNotBlank() }.joinToString(" ").ifBlank { deviceName }.take(80)
+            val pending = PendingRegistration(campaignId, userId, accessToken, model)
+            if (DeviceStore.queueRegistration(activity, pending)) SyncScheduler.register(activity)
+            if (BuildConfig.FCM_CONFIGURED) runCatching {
+                com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+                    DeviceStore.savePendingFcmToken(activity, token)
+                    SyncScheduler.resumeNow(activity, "fcm_token_ready")
                 }
             }
-            if (BuildConfig.FCM_CONFIGURED) {
-                runCatching {
-                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                        register(if (task.isSuccessful) task.result else null)
-                    }
-                }.onFailure { register(null) }
-            } else register(null)
         }
     }
 
     @JavascriptInterface
     fun resumeGalleryQueue() {
-        WorkManager.getInstance(activity).cancelUniqueWork("gallery-resume-now")
         SyncScheduler.resumeNow(activity, "web_requested")
     }
 }

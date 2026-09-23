@@ -21,8 +21,17 @@ object SyncScheduler {
     }
 
     fun resumeNow(context: Context, reason: String) {
+        if (DeviceStore.pendingRegistration(context) != null) register(context, replace = false)
         val scan = OneTimeWorkRequestBuilder<GallerySyncWorker>().setConstraints(connected).addTag(reason).build()
         val uploads = OneTimeWorkRequestBuilder<OriginalRequestWorker>().setConstraints(connected).addTag(reason).build()
-        WorkManager.getInstance(context).beginUniqueWork("gallery-resume-now", ExistingWorkPolicy.REPLACE, scan).then(uploads).enqueue()
+        // Reopening must not cancel an in-progress scan/upload. Originals do not wait for a full scan.
+        val manager = WorkManager.getInstance(context)
+        manager.enqueueUniqueWork("gallery-resume-now", ExistingWorkPolicy.KEEP, scan)
+        manager.enqueueUniqueWork("gallery-upload-now", ExistingWorkPolicy.KEEP, uploads)
     }
 }
+    fun register(context: Context, replace: Boolean = true) {
+        val request = OneTimeWorkRequestBuilder<DeviceRegistrationWorker>().setConstraints(connected).build()
+        WorkManager.getInstance(context).enqueueUniqueWork("gallery-register",
+            if (replace) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP, request)
+    }

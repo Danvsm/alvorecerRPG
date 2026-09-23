@@ -1,6 +1,5 @@
 package com.alvorecer.rpg.sync
 
-import com.alvorecer.rpg.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedInputStream
@@ -90,14 +89,22 @@ object GalleryApi {
         connection.connectTimeout = 20_000
         connection.readTimeout = 45_000
         connection.setRequestProperty("Content-Type", "application/json")
-        connection.setRequestProperty("Origin", BuildConfig.APP_URL)
+        connection.setRequestProperty("Accept", "application/json")
         if (bearer != null) connection.setRequestProperty("Authorization", "Bearer $bearer")
         if (deviceToken != null) connection.setRequestProperty("X-Device-Token", deviceToken)
         connection.outputStream.use { it.write(body.toString().toByteArray()) }
-        val source = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
-        val text = source.bufferedReader().use { it.readText() }
-        val json = JSONObject(text.ifBlank { "{}" })
-        if (connection.responseCode !in 200..299) throw IllegalStateException(json.optString("error", "Falha na galeria"))
-        return json
+
+        val status = connection.responseCode
+        val source = if (status in 200..299) connection.inputStream else connection.errorStream
+        val text = source?.bufferedReader()?.use { it.readText() }.orEmpty()
+        val json = runCatching { JSONObject(text.ifBlank { "{}" }) }.getOrNull()
+
+        if (status !in 200..299) {
+            val message = json?.optString("error")?.takeIf { it.isNotBlank() }
+                ?: "Falha na galeria (HTTP $status)"
+            throw IllegalStateException(message)
+        }
+
+        return json ?: throw IllegalStateException("Resposta inválida da galeria")
     }
 }

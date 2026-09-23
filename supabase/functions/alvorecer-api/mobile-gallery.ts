@@ -1,6 +1,10 @@
 import { admin, hash, master, member, originCheck } from "./server.ts";
 
-const privateDb = () => admin().schema("alvorecer_private");
+// The private schema stays unexposed. Only service_role can execute these RPCs.
+const galleryRead = (table: "devices" | "items" | "requests") =>
+  admin().rpc(`mobile_gallery_read_${table}`).throwOnError();
+const galleryWrite = (operation: string, args: Record<string, unknown>) =>
+  admin().rpc(`mobile_gallery_${operation}`, args).throwOnError();
 const bytes = (length: number) => {
   const value = new Uint8Array(length);
   crypto.getRandomValues(value);
@@ -12,14 +16,13 @@ const json = (value: unknown, status = 200) =>
 async function device(req: Request) {
   const token = req.headers.get("x-device-token");
   if (!token) throw new Error("Dispositivo não autorizado");
-  const { data } = await privateDb()
-    .from("mobile_gallery_devices")
+  const { data } = await galleryRead("devices")
     .select("*")
     .eq("token_hash", hash(token))
     .eq("active", true)
     .maybeSingle();
   if (!data) throw new Error("Dispositivo não autorizado");
-  await privateDb().from("mobile_gallery_devices").update({ last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", data.id);
+  await galleryWrite("update_device", { p_id: data.id, p_patch: { last_seen_at: new Date().toISOString() } });
   return data;
 }
 
@@ -33,10 +36,7 @@ async function register(req: Request, body: Record<string, unknown>) {
   const { user } = await member(req, campaign);
   const token = bytes(32);
   const now = new Date().toISOString();
-  const { data, error } = await privateDb()
-    .from("mobile_gallery_devices")
-    .upsert(
-      {
+  const { data, error } = await galleryWrite("save_device", { p_row: {
         campaign_id: campaign,
         master_user_id: user.id,
         installation_id: installation,
@@ -46,9 +46,7 @@ async function register(req: Request, body: Record<string, unknown>) {
         active: true,
         last_seen_at: now,
         updated_at: now,
-      },
-      { onConflict: "campaign_id,master_user_id,installation_id" },
-    )
+      } })
     .select("id")
     .single();
   if (error || !data) throw new Error("Não foi possível autorizar o dispositivo");
@@ -87,15 +85,14 @@ async function syncItem(req: Request, body: Record<string, unknown>) {
     indexed_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const saved = await privateDb().from("mobile_gallery_items").upsert(row, { onConflict: "device_id,local_media_id" });
+  const saved = await galleryWrite("save_item", { p_row: row });
   if (saved.error) throw new Error("Não foi possível registrar a miniatura");
   return json({ synced: true });
 }
 
 async function pending(req: Request) {
   const current = await device(req);
-  const { data: requests, error } = await privateDb()
-    .from("mobile_gallery_requests")
+  const { data: requests, error } = await galleryRead("requests")
     .select("id,item_id")
     .eq("device_id", current.id)
     .in("status", ["requested", "uploading"])
@@ -104,13 +101,13 @@ async function pending(req: Request) {
   if (error) throw new Error("Não foi possível consultar a fila");
   const ids = (requests || []).map((entry) => entry.item_id);
   const { data: items } = ids.length
-    ? await privateDb().from("mobile_gallery_items").select("id,local_media_id,mime_type,byte_size").in("id", ids)
+    ? await galleryRead("items").select("id,local_media_id,mime_type,byte_size").in("id", ids)
     : { data: [] };
   const byId = new Map((items || []).map((entry) => [entry.id, entry]));
   return json({
     requests: (requests || []).flatMap((entry) => {
       const item = byId.get(entry.item_id);
-      return item ? [{ id: entry.id, ...item }] : [];
+      return item ? [{ ...item, id: entry.id, item_id: entry.item_id }] : [];
     }),
   });
 }
@@ -118,33 +115,31 @@ async function pending(req: Request) {
 async function prepareUpload(req: Request, body: Record<string, unknown>) {
   const current = await device(req);
   const requestId = String(body.request_id || "");
-  const { data: request } = await privateDb()
-    .from("mobile_gallery_requests")
+  const { data: request } = await galleryRead("requests")
     .select("id,item_id,campaign_id,status")
     .eq("id", requestId)
     .eq("device_id", current.id)
     .in("status", ["requested", "uploading"])
     .maybeSingle();
   if (!request) throw new Error("Solicitação inválida");
-  const { data: item } = await privateDb().from("mobile_gallery_items").select("display_name,mime_type").eq("id", request.item_id).single();
+  const { data: item } = await galleryRead("items").select("display_name,mime_type").eq("id", request.item_id).single();
   if (!item) throw new Error("Mídia indisponível");
   const safeName = String(item.display_name).replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "original";
   const path = `${request.campaign_id}/${current.id}/${request.id}/${safeName}`;
   const signed = await admin().storage.from("master-gallery-originals").createSignedUploadUrl(path, { upsert: true });
   if (signed.error || !signed.data) throw new Error("Não foi possível preparar o envio");
-  await privateDb().from("mobile_gallery_requests").update({
+  await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
     status: "uploading",
     started_at: request.status === "requested" ? new Date().toISOString() : undefined,
     updated_at: new Date().toISOString(),
-  }).eq("id", request.id);
+  } });
   return json({ signed_url: signed.data.signedUrl, path });
 }
 
 async function finishDeviceAction(req: Request, body: Record<string, unknown>, action: string) {
   const current = await device(req);
   const requestId = String(body.request_id || "");
-  const { data: request } = await privateDb()
-    .from("mobile_gallery_requests")
+  const { data: request } = await galleryRead("requests")
     .select("id,item_id,status")
     .eq("id", requestId)
     .eq("device_id", current.id)
@@ -154,16 +149,16 @@ async function finishDeviceAction(req: Request, body: Record<string, unknown>, a
   if (action === "complete") {
     const path = String(body.path || "");
     if (!path.startsWith(`${current.campaign_id}/${current.id}/${request.id}/`)) throw new Error("Arquivo inválido");
-    await privateDb().from("mobile_gallery_requests").update({
+    await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
       status: "ready",
       original_path: path,
       completed_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq("id", request.id);
+    } });
   } else {
-    await privateDb().from("mobile_gallery_items").update({ available: false, updated_at: new Date().toISOString() }).eq("id", request.item_id);
-    await privateDb().from("mobile_gallery_requests").update({ status: "unavailable", error_message: "Original indisponível no dispositivo", updated_at: new Date().toISOString() }).eq("id", request.id);
+    await galleryWrite("update_item", { p_id: request.item_id, p_patch: { available: false } });
+    await galleryWrite("update_requests", { p_ids: [request.id], p_patch: { status: "unavailable", error_message: "Original indisponível no dispositivo", updated_at: new Date().toISOString() } });
   }
   return json({ updated: true });
 }
@@ -206,8 +201,7 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
   const action = String(body.action || "");
   if (action === "catalog") {
     const now = new Date().toISOString();
-    const { data: expired } = await privateDb()
-      .from("mobile_gallery_requests")
+    const { data: expired } = await galleryRead("requests")
       .select("id,original_path")
       .eq("campaign_id", campaign)
       .eq("status", "ready")
@@ -215,15 +209,13 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
     const expiredPaths = (expired || []).flatMap((entry) =>
       entry.original_path ? [entry.original_path] : []
     );
-    if (expiredPaths.length)
-      await admin().storage.from("master-gallery-originals").remove(expiredPaths);
+    if (expiredPaths.length) {
+      const removed = await admin().storage.from("master-gallery-originals").remove(expiredPaths);
+      if (removed.error) throw new Error("Não foi possível limpar os originais expirados");
+    }
     if (expired?.length)
-      await privateDb()
-        .from("mobile_gallery_requests")
-        .update({ status: "expired", updated_at: now })
-        .in("id", expired.map((entry) => entry.id));
-    const { data: devices } = await privateDb()
-      .from("mobile_gallery_devices")
+      await galleryWrite("update_requests", { p_ids: expired.map((entry) => entry.id), p_patch: { status: "expired" } });
+    const { data: devices } = await galleryRead("devices")
       .select("id,device_name,last_seen_at,active,master_user_id")
       .eq("campaign_id", campaign)
       .eq("active", true);
@@ -232,12 +224,12 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
       ? await admin().from("profiles").select("id,username,display_name").in("id", accountIds)
       : { data: [] };
     const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
-    const { data: items, error } = await privateDb().from("mobile_gallery_items").select("*").eq("campaign_id", campaign).eq("available", true).order("modified_at", { ascending: false }).limit(500);
+    const { data: items, error } = await galleryRead("items").select("*").eq("campaign_id", campaign).eq("available", true).order("modified_at", { ascending: false }).limit(500);
     if (error) throw new Error("Não foi possível carregar a galeria");
     const paths = (items || []).map((item) => item.thumbnail_path);
     const signed = paths.length ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600) : { data: [] };
     const urls = new Map((signed.data || []).map((entry) => [entry.path, entry.signedUrl]));
-    const { data: requests } = await privateDb().from("mobile_gallery_requests").select("id,item_id,status,requested_at,completed_at,expires_at,error_message").eq("campaign_id", campaign).order("requested_at", { ascending: false });
+    const { data: requests } = await galleryRead("requests").select("id,item_id,status,requested_at,completed_at,expires_at,error_message").eq("campaign_id", campaign).order("requested_at", { ascending: false });
     return json({
       devices: (devices || []).map((device) => {
         const profile = profileById.get(device.master_user_id);
@@ -257,23 +249,23 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
   }
   if (action === "request_original") {
     const itemId = String(body.item_id || "");
-    const { data: item } = await privateDb().from("mobile_gallery_items").select("id,device_id,available").eq("id", itemId).eq("campaign_id", campaign).maybeSingle();
+    const { data: item } = await galleryRead("items").select("id,device_id,available").eq("id", itemId).eq("campaign_id", campaign).maybeSingle();
     if (!item?.available) throw new Error("Original indisponível");
-    const { data: current } = await privateDb().from("mobile_gallery_requests").select("id,status").eq("item_id", item.id).in("status", ["requested", "uploading", "ready"]).maybeSingle();
+    const { data: current } = await galleryRead("requests").select("id,status").eq("item_id", item.id).in("status", ["requested", "uploading", "ready"]).maybeSingle();
     if (current) return json({ request_id: current.id, status: current.status, existing: true });
-    const { data: created, error } = await privateDb().from("mobile_gallery_requests").insert({ campaign_id: campaign, device_id: item.device_id, item_id: item.id, requested_by: context.user.id }).select("id,status").single();
+    const { data: created, error } = await galleryWrite("create_request", { p_row: { campaign_id: campaign, item_id: item.id, requested_by: context.user.id } }).select("id,status").single();
     if (error || !created) throw new Error("Não foi possível solicitar o original");
-    const { data: target } = await privateDb().from("mobile_gallery_devices").select("fcm_token").eq("id", item.device_id).single();
+    const { data: target } = await galleryRead("devices").select("fcm_token").eq("id", item.device_id).single();
     const pushSent = await sendFcm(target?.fcm_token || null, created.id).catch(() => false);
     return json({ request_id: created.id, status: created.status, push_sent: pushSent });
   }
   if (action === "download_original") {
     const requestId = String(body.request_id || "");
-    const { data: request } = await privateDb().from("mobile_gallery_requests").select("status,original_path,expires_at").eq("id", requestId).eq("campaign_id", campaign).maybeSingle();
+    const { data: request } = await galleryRead("requests").select("status,original_path,expires_at").eq("id", requestId).eq("campaign_id", campaign).maybeSingle();
     if (!request || request.status !== "ready" || !request.original_path) throw new Error("Original ainda não está pronto");
     if (!request.expires_at || Date.parse(request.expires_at) <= Date.now()) {
       await admin().storage.from("master-gallery-originals").remove([request.original_path]);
-      await privateDb().from("mobile_gallery_requests").update({ status: "expired", updated_at: new Date().toISOString() }).eq("id", requestId);
+      await galleryWrite("update_requests", { p_ids: [requestId], p_patch: { status: "expired" } });
       throw new Error("O download expirou. Solicite novamente");
     }
     const signed = await admin().storage.from("master-gallery-originals").createSignedUrl(request.original_path, 300, { download: true });
@@ -295,11 +287,17 @@ export async function mobileGallery(req: Request) {
     if (action === "complete" || action === "unavailable") return await finishDeviceAction(req, body, action);
     if (action === "fcm_token") {
       const current = await device(req);
-      await privateDb().from("mobile_gallery_devices").update({ fcm_token: String(body.fcm_token || ""), updated_at: new Date().toISOString() }).eq("id", current.id);
+      await galleryWrite("update_device", { p_id: current.id, p_patch: { fcm_token: String(body.fcm_token || "") } });
       return json({ updated: true });
     }
     throw new Error("Ação da galeria inválida");
   } catch (error) {
+    const databaseError = error as { code?: string };
+    if (databaseError?.code) {
+      // Do not log tokens, SQL details, file names or personal media metadata.
+      console.error("mobile_gallery_database_error", { code: databaseError.code });
+      return json({ error: "Falha ao acessar a galeria. Tente novamente.", code: "GALLERY_DATABASE_ERROR" }, 503);
+    }
     return json({ error: (error as Error).message }, 400);
   }
 }

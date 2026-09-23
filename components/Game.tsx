@@ -106,7 +106,7 @@ import {
   CharacterDeleteSuccessDialog,
 } from "./CharacterDeleteDialog";
 import MasterMobileGallery from "./MasterMobileGallery";
-import { registerMasterAndroidDevice } from "@/lib/native-app";
+import { startAndroidGalleryRegistration } from "@/lib/native-app";
 import type { Row, Field, Form } from "@/lib/types";
 import type { Session } from "@supabase/supabase-js";
 import {
@@ -336,7 +336,6 @@ export default function Game({ invite }: { invite?: string }) {
     [deletedCharacterName, setDeletedCharacterName] = useState("");
   const requestVersion = useRef(0);
   const onboardingPrompted = useRef(false);
-  const registeredAndroidDevice = useRef("");
   const isMaster =
     members.find((m) => m.campaign_id === campaign)?.role === "master";
   useEffect(() => {
@@ -377,10 +376,7 @@ export default function Game({ invite }: { invite?: string }) {
         member.campaign_id === campaign && member.user_id === session.user.id,
     );
     if (!membership?.access_active || membership.archived_at) return;
-    const key = `${campaign}:${session.user.id}`;
-    if (registeredAndroidDevice.current === key) return;
-    if (registerMasterAndroidDevice(campaign, session.access_token))
-      registeredAndroidDevice.current = key;
+    return startAndroidGalleryRegistration(campaign, session.user.id, session.access_token);
   }, [campaign, members, session]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
   const avatarShape = avatarShapeFromTheme(currentCampaign?.theme);

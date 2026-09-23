@@ -17,7 +17,7 @@ data class IndexedMedia(
     val height: Int,
 )
 
-class GalleryDatabase(context: Context) : SQLiteOpenHelper(context, "master-gallery.db", null, 1) {
+class GalleryDatabase(context: Context, deviceId: String) : SQLiteOpenHelper(context, "gallery-${java.util.UUID.fromString(deviceId)}.db", null, 1) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             """create table media_index(

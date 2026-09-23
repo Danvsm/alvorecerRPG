@@ -1,5 +1,17 @@
 # Validação do Alvorecer
 
+## Correção da galeria privada, 23/09/2026
+
+- Reproduzido via HTTP: `PGRST106`, schema `alvorecer_private` não exposto pela Data API.
+- Migration `mobile_gallery_service_bridge` aplicada, Edge Function `alvorecer-api` v25 ACTIVE.
+- As nove RPCs são `SECURITY INVOKER`: `anon=false`, `authenticated=false`, `service_role=true` para execução, conferido no Supabase real.
+- PostgreSQL local: cadastro idempotente, dois aparelhos com a mesma chave local de mídia sem mistura, metadados atualizáveis, unicidade de pedido ativo, transições de fila e novo pedido após expiração. Chamadas diretas de anon/authenticated rejeitadas.
+- Handler real da Edge executado com transporte simulado: utiliza RPC pública restrita, filtra o aparelho, preserva o ID de solicitação diferente do ID da mídia e rejeita catálogo sem Mestre.
+- HTTP real com token inválido: `400 Dispositivo não autorizado`, comprovando que a consulta da Edge já não falha no schema. Não substitui teste completo com sessão real e mídia real.
+- 6/6 testes específicos aprovados; `npm test` 131/132, mantendo a falha anterior de texto do Perfil. `npm run typecheck`, `npm run build` e `git diff --check` aprovados.
+- Não validado nesta etapa: execução nativa em aparelho físico, galeria pessoal, envio/download completo, boot/Doze de fabricante, FCM e revisão visual.
+- A compilação do novo APK e o deploy web ainda devem ser confirmados após a publicação. As afirmações históricas de registro exclusivo do Mestre abaixo foram substituídas pelo cadastro de membros ativos introduzido em `02f33fe`; a leitura administrativa segue exclusiva do Mestre.
+
 ## Gates automatizados
 
 ```bash

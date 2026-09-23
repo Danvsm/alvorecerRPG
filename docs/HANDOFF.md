@@ -1,5 +1,22 @@
 # Handoff — Alvorecer RPG
 
+## Correção da galeria Android, 23/09/2026
+
+- Base desta correção: `02f33fe`, incluindo as alterações do usuário que agrupam aparelhos por conta e permitem cadastro por membro ativo. O usuário confirmou que as contas correspondem aos seus próprios celulares. Painel, solicitação e download continuam exclusivos do Mestre.
+- Causa confirmada por HTTP: a Edge Function usava `.schema("alvorecer_private")`, mas o PostgREST só expõe `public` e `graphql_public`, retornando `PGRST106`. As tabelas existiam, com zero aparelhos/miniaturas no diagnóstico inicial. A implementação anterior não havia sido validada ponta a ponta em aparelho real.
+- Migration local `20260922223008_mobile_gallery_service_bridge.sql`, aplicada remotamente como `20260923022319_mobile_gallery_service_bridge`: nove RPCs pequenas, `SECURITY INVOKER`, execução somente por `service_role`. Nenhuma tabela privada ou bucket foi aberto ao cliente.
+- `alvorecer-api` versão 25 ACTIVE. Leituras e escritas da galeria usam a ponte; falhas de banco interrompem a operação e registram somente o código técnico, sem tokens ou metadados pessoais.
+- A fila corrigiu a sobrescrita de `request.id` por `item.id`; o payload preserva `id` da solicitação e `item_id` separado. Criação repetida de solicitação ativa é idempotente no banco.
+- Android `0.1.3` (versionCode 4): registro pendente cifrado, recuperação via WorkManager, confirmação real consultada pela web e nova tentativa com sessão renovada. Retomar não cancela uploads/varreduras já em andamento. Uploads não precisam esperar a varredura inteira.
+- Antes de publicar, recuperadas as alterações Android que só existiam em `android-gallery-apk` (`7025993`, versão 0.1.2): seletor/captura de mídia da WebView, verificação de permissões, ajuste de áudio, tratamento HTTP e identificação pelo fabricante/modelo. Essas funcionalidades foram preservadas no novo APK e incorporadas à main.
+- Índice SQLite separado pelo identificador de aparelho/conta retornado pelo servidor. Solicitação de mídia existente pode resolver o URI mesmo se o índice local ainda estiver sendo reconstruído.
+- A web repete tentativas de registro e consulta confirmação no APK novo. APK antigo recebe tentativa compatível ao abrir/retomar ou renovar a sessão, mas não oferece confirmação real.
+- Testes específicos: 6/6. Suíte geral: 131/132, com a falha preexistente em `player-profile.test.ts` (`Todas as molduras`). TypeScript e build web aprovados. Permissões das nove RPCs conferidas no Supabase. Chamada HTTP à Edge com token de aparelho inválido retornou a rejeição esperada, sem erro de schema.
+- Advisors: nenhuma das novas RPCs foi apontada como acessível ao cliente. Há avisos anteriores em outras funções e informações de RLS sem policies nas tabelas privadas, compatíveis com o acesso apenas pelo servidor.
+- Ainda não testado: APK em aparelho físico, fotos/vídeos reais, reinício e restrições do fabricante, envio/download real completo e fluxo autenticado do painel no navegador. Nenhum arquivo pessoal foi lido nesta validação.
+- Compilação do APK e deploy web serão acompanhados após publicar este commit. Firebase continua sem configuração comprovada; não afirmar entrega imediata de push.
+- Próximo passo: instalar o APK corrigido nos celulares, abrir/entrar uma vez com fotos e vídeos permitidos e validar miniatura, solicitação do original e download pelo painel.
+
 Atualizado em 22/09/2026, 07:00 UTC.
 
 ## Continuação atual
