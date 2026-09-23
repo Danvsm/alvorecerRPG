@@ -97,7 +97,7 @@ export default function CharacterSheet({
           cosmetics={cosmetics}
           equipment={equipment}
           urls={avatarUrls}
-          size={82}
+          size={108}
           className="sheet-identity-avatar"
         />
         <div className="sheet-identity-copy">
