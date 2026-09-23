@@ -7914,3 +7914,94 @@ dialog.combat-sheet {
     max-width: min(318px, 81%);
   }
 }
+
+
+/* Android capture protection settings */
+.capture-policy-panel {
+  display: grid;
+  gap: 16px;
+}
+.capture-policy-heading,
+.capture-policy-default,
+.capture-policy-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.capture-policy-heading h2,
+.capture-policy-heading p,
+.capture-policy-default p {
+  margin: 0;
+}
+.capture-policy-heading > div,
+.capture-policy-default > div:first-child,
+.capture-policy-account > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+.capture-policy-heading > svg {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  color: #d9b568;
+}
+.capture-policy-default {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--raised);
+}
+.capture-policy-default p,
+.capture-policy-account small,
+.capture-policy-account span,
+.capture-policy-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.capture-policy-options {
+  display: inline-flex;
+  gap: 7px;
+}
+.capture-policy-options button {
+  min-height: 38px;
+  padding: 7px 11px;
+}
+.capture-policy-options button.active {
+  border-color: #8b6a38;
+  color: #f1cd85;
+  background: #251d13;
+}
+.capture-policy-account-list {
+  display: grid;
+  gap: 8px;
+}
+.capture-policy-account {
+  min-height: 64px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.capture-policy-account > div:first-child {
+  min-width: 0;
+}
+.capture-policy-account select {
+  width: min(250px, 42vw);
+}
+.capture-policy-note {
+  margin: 0;
+}
+@media (max-width: 680px) {
+  .capture-policy-heading,
+  .capture-policy-default,
+  .capture-policy-account {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .capture-policy-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .capture-policy-account select {
+    width: 100%;
+  }
+}
