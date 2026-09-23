@@ -78,6 +78,7 @@ object DeviceStore {
     fun deviceToken(context: Context) = prefs(context).getString("device_token", null)
     fun deviceId(context: Context) = prefs(context).getString("device_id", null)
     fun campaignId(context: Context) = prefs(context).getString("campaign_id", null)
+    fun userId(context: Context) = prefs(context).getString("user_id", null)
     fun savePendingFcmToken(context: Context, token: String) {
         prefs(context).edit().putString("pending_fcm_token", token).apply()
     }
