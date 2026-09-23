@@ -8,6 +8,7 @@ import java.net.URL
 
 data class PendingRequest(val id: String, val localMediaId: String, val mimeType: String, val byteSize: Long)
 data class UploadTarget(val url: String, val path: String)
+data class NotificationPollResult(val latestId: Long, val newCount: Int)
 
 object GalleryApi {
     private val endpoint = "https://wsihnbrnqdnmidjvjchn.supabase.co/functions/v1/alvorecer-api/mobile-gallery"
@@ -45,6 +46,19 @@ object GalleryApi {
     fun capturePolicy(token: String): Boolean {
         val result = post(JSONObject().put("action", "capture_policy"), deviceToken = token)
         return result.optBoolean("flag_secure_enabled", true)
+    }
+
+    fun notificationPoll(token: String, afterId: Long): NotificationPollResult {
+        val result = post(
+            JSONObject()
+                .put("action", "notification_poll")
+                .put("after_id", afterId),
+            deviceToken = token,
+        )
+        return NotificationPollResult(
+            latestId = result.optLong("latest_id", afterId),
+            newCount = result.optInt("new_count", 0),
+        )
     }
 
     fun pending(token: String): List<PendingRequest> {
