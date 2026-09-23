@@ -3,6 +3,8 @@ const IMAGE_META_CACHE_NAME = "alvorecer-images-meta-v2";
 const IMAGE_CACHE_PREFIX = "alvorecer-images-";
 const MAX_IMAGES = 300;
 const REVALIDATE_AFTER_MS = 60 * 60 * 1000;
+const STATIC_REVALIDATE_AFTER_MS = 24 * 60 * 60 * 1000;
+const STATIC_IMAGE_PREFIXES = ["/combat/", "/community/", "/jokenpo/", "/treasure/"];
 const inFlight = new Map();
 let debug = new URL(self.location.href).searchParams.get("debug") === "1";
 
@@ -88,9 +90,20 @@ function cacheable(response) {
   return response.ok || response.type === "opaque";
 }
 
+function isStaticImage(url) {
+  return (
+    url.origin === self.location.origin &&
+    STATIC_IMAGE_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))
+  );
+}
+
 function networkRequest(request) {
   const url = new URL(request.url);
-  if (url.searchParams.has("v") || url.pathname.startsWith("/_next/static/"))
+  if (
+    url.searchParams.has("v") ||
+    url.pathname.startsWith("/_next/static/") ||
+    isStaticImage(url)
+  )
     return request;
   return new Request(request, { cache: "no-cache" });
 }
@@ -144,10 +157,14 @@ async function imageResponse(request) {
       accessedAt: now,
       validatedAt: metadata?.validatedAt || 0,
     });
-    const versioned = new URL(request.url).searchParams.has("v");
+    const url = new URL(request.url);
+    const versioned = url.searchParams.has("v");
+    const revalidateAfter = isStaticImage(url)
+      ? STATIC_REVALIDATE_AFTER_MS
+      : REVALIDATE_AFTER_MS;
     const stale =
       !versioned &&
-      (!metadata || now - (metadata.validatedAt || 0) >= REVALIDATE_AFTER_MS);
+      (!metadata || now - (metadata.validatedAt || 0) >= revalidateAfter);
     const background = stale
       ? Promise.all([
           touch,
