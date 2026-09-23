@@ -4285,16 +4285,40 @@ dialog.commentsSheet {
   color: #777370;
 }
 
-.inboxRow time {
-  align-self: center;
+.inboxMeta {
+  display: grid;
   min-width: 47px;
-  padding: 0 2px 0 6px;
+  align-self: center;
+  justify-items: end;
+  gap: 6px;
+  padding-left: 6px;
+}
+
+.inboxRow time {
+  min-width: 0;
+  padding: 0 2px 0 0;
   color: #827e7a;
   font-family: var(--font-ui);
   font-size: 0.78rem;
   font-weight: 400;
   text-align: right;
   white-space: nowrap;
+}
+
+.inboxUnreadBadge {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #061309;
+  background: #36c95c;
+  box-shadow: 0 0 8px #36c95c40;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  place-items: center;
 }
 
 .inboxEmpty {
@@ -4354,9 +4378,20 @@ dialog.commentsSheet {
     font-size: 0.86rem;
   }
 
-  .inboxRow time {
+  .inboxMeta {
     min-width: 42px;
+  }
+
+  .inboxRow time {
+    min-width: 0;
     font-size: 0.72rem;
+  }
+
+  .inboxUnreadBadge {
+    min-width: 19px;
+    height: 19px;
+    padding-inline: 5px;
+    font-size: 0.68rem;
   }
 }
 

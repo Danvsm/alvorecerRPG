@@ -52,6 +52,7 @@ export default function CommunityInbox({
   equipment,
   urls,
   onlineUserIds,
+  unreadMessages,
   openConversation,
   openProfile,
 }: {
@@ -63,6 +64,7 @@ export default function CommunityInbox({
   equipment: Row[];
   urls: Record<string, string>;
   onlineUserIds: Set<string>;
+  unreadMessages: number;
   openConversation: (identityId: string) => void;
   openProfile?: (identityId: string) => void;
 }) {
@@ -72,6 +74,9 @@ export default function CommunityInbox({
   const [groupAvatarBusy, setGroupAvatarBusy] = useState(false);
   const [latestByConversation, setLatestByConversation] = useState<
     Record<string, Row>
+  >({});
+  const [unreadByConversation, setUnreadByConversation] = useState<
+    Record<string, number>
   >({});
   const [error, setError] = useState("");
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
@@ -140,29 +145,63 @@ export default function CommunityInbox({
     const ids = nextConversations.map((item) => item.id);
     if (!ids.length) {
       setLatestByConversation({});
+      setUnreadByConversation({});
       return;
     }
 
-    const messageResult = await retryNetworkRead(() =>
-      browserDb()
-        .from("direct_messages")
-        .select("id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)")
-        .in("conversation_id", ids)
-        .order("created_at", { ascending: false }),
-    );
+    const [messageResult, receiptResult] = await Promise.all([
+      retryNetworkRead(() =>
+        browserDb()
+          .from("direct_messages")
+          .select(
+            "id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)",
+          )
+          .in("conversation_id", ids)
+          .is("cleared_at", null)
+          .order("created_at", { ascending: false }),
+      ),
+      retryNetworkRead(() =>
+        browserDb()
+          .from("conversation_reads")
+          .select("conversation_id,read_at")
+          .eq("identity_id", actor)
+          .in("conversation_id", ids),
+      ),
+    ]);
 
-    if (messageResult.error) {
-      setError(readableErrorMessage(messageResult.error));
+    if (messageResult.error || receiptResult.error) {
+      setError(
+        readableErrorMessage(messageResult.error || receiptResult.error),
+      );
       return;
+    }
+
+    const readAtByConversation = new Map<string, number>();
+    for (const receipt of receiptResult.data || []) {
+      const readAt = Date.parse(String(receipt.read_at || ""));
+      if (Number.isFinite(readAt)) {
+        readAtByConversation.set(String(receipt.conversation_id), readAt);
+      }
     }
 
     const latest: Record<string, Row> = {};
+    const unreadCounts: Record<string, number> = {};
     for (const message of messageResult.data || []) {
-      if (!latest[message.conversation_id]) {
-        latest[message.conversation_id] = message;
+      const conversationId = String(message.conversation_id);
+      if (!latest[conversationId]) {
+        latest[conversationId] = message;
+      }
+
+      if (String(message.sender_id) === String(actor)) continue;
+      const createdAt = Date.parse(String(message.created_at || ""));
+      const readAt =
+        readAtByConversation.get(conversationId) ?? Number.NEGATIVE_INFINITY;
+      if (Number.isFinite(createdAt) && createdAt > readAt) {
+        unreadCounts[conversationId] = (unreadCounts[conversationId] || 0) + 1;
       }
     }
     setLatestByConversation(latest);
+    setUnreadByConversation(unreadCounts);
   }, [actor, campaign, identities]);
 
   useEffect(() => {
@@ -180,7 +219,39 @@ export default function CommunityInbox({
       window.removeEventListener("alvorecer:chat-updated", refresh);
       window.removeEventListener("focus", refresh);
     };
-  }, [campaign, load]);
+  }, [campaign, load, unreadMessages]);
+
+  useEffect(() => {
+    if (!actor) return;
+    const db = browserDb();
+    const channel = db
+      .channel(`community-inbox-reads:${campaign}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversation_reads",
+          filter: `identity_id=eq.${actor}`,
+        },
+        () => void load(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "campaign_group_reads",
+          filter: `identity_id=eq.${actor}`,
+        },
+        () => void load(),
+      )
+      .subscribe();
+
+    return () => {
+      void db.removeChannel(channel);
+    };
+  }, [actor, campaign, load]);
 
   useEffect(() => {
     const path = String(group?.avatar_storage_path || "");
@@ -419,14 +490,31 @@ export default function CommunityInbox({
             </small>
           </span>
 
-          {group?.latest_created_at && (
-            <time dateTime={String(group.latest_created_at)}>
-              {conversationTime(String(group.latest_created_at))}
-            </time>
+          {(group?.latest_created_at || Number(group?.unread || 0) > 0) && (
+            <span className={styles.inboxMeta}>
+              {group?.latest_created_at && (
+                <time dateTime={String(group.latest_created_at)}>
+                  {conversationTime(String(group.latest_created_at))}
+                </time>
+              )}
+              {Number(group?.unread || 0) > 0 && (
+                <span
+                  className={styles.inboxUnreadBadge}
+                  aria-label={`${Number(group?.unread || 0)} mensagens não lidas`}
+                >
+                  {Number(group?.unread || 0) > 99
+                    ? "99+"
+                    : Number(group?.unread || 0)}
+                </span>
+              )}
+            </span>
           )}
         </button>
 
         {contacts.map(({ identity, conversation, latest, activityAt, online }) => {
+          const unreadCount = conversation
+            ? Number(unreadByConversation[conversation.id] || 0)
+            : 0;
           const lastMessage = latest?.media_id
             ? inboxMediaType(latest) === "audio"
               ? latest.sender_id === actor
@@ -487,9 +575,23 @@ export default function CommunityInbox({
               </span>
 
               {conversation && (
-                <time dateTime={activityAt}>
-                  {conversationTime(activityAt)}
-                </time>
+                <span className={styles.inboxMeta}>
+                  <time dateTime={activityAt}>
+                    {conversationTime(activityAt)}
+                  </time>
+                  {unreadCount > 0 && (
+                    <span
+                      className={styles.inboxUnreadBadge}
+                      aria-label={`${unreadCount} ${
+                        unreadCount === 1
+                          ? "mensagem não lida"
+                          : "mensagens não lidas"
+                      }`}
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </span>
               )}
             </button>
           );

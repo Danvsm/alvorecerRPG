@@ -631,6 +631,7 @@ export default function CommunityPanel({
           equipment={equipment}
           urls={urls}
           onlineUserIds={onlineUserIds}
+          unreadMessages={unreadMessages}
           openConversation={message}
           openProfile={revealProfile}
         />

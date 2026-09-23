@@ -294,6 +294,28 @@ test("community inbox exposes Bar do Pink and opens the shared group chat", asyn
 });
 
 
+test("community inbox shows unread badges per conversation and group", async () => {
+  const [panel, inbox, css] = await Promise.all([
+    readFile(new URL("../components/CommunityPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/CommunityInbox.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../components/CommunityPanel.module.css", import.meta.url),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(panel, /unreadMessages=\\{unreadMessages\\}/);
+  assert.match(inbox, /from\\("conversation_reads"\\)/);
+  assert.match(inbox, /unreadByConversation/);
+  assert.match(inbox, /campaign_group_reads/);
+  assert.match(inbox, /styles\\.inboxUnreadBadge/);
+  assert.match(inbox, /unreadCount > 99 \\? "99\\+" : unreadCount/);
+  assert.match(inbox, /Number\\(group\\?\\.unread \\|\\| 0\\) > 99/);
+  assert.match(css, /\\.inboxUnreadBadge/);
+  assert.match(css, /background: #36c95c/);
+});
+
+
 test("master can replace the Bar do Pink avatar from the chat UI", async () => {
   const [inbox, chat, media, migration] = await Promise.all([
     readFile(new URL("../components/CommunityInbox.tsx", import.meta.url), "utf8"),
