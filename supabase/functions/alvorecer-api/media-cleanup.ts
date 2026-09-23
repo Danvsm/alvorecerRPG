@@ -205,6 +205,27 @@ export async function cleanup(req: Request) {
     if (!saved.error) removedQueuedCallRecordings++;
   }
 
+  const orphanThumbnails = await db.rpc(
+    "mobile_gallery_orphan_thumbnail_paths",
+    { p_limit: 500 },
+  );
+  if (orphanThumbnails.error)
+    throw new Error("Falha ao listar miniaturas órfãs da galeria");
+
+  const orphanThumbnailPaths = (orphanThumbnails.data || []).map(
+    (entry: { path: string }) => entry.path,
+  );
+  let removedOrphanThumbnails = 0;
+  if (orphanThumbnailPaths.length) {
+    const deletion = await db.storage
+      .from("master-gallery-thumbnails")
+      .remove(orphanThumbnailPaths);
+    if (deletion.error)
+      throw new Error("Falha ao remover miniaturas órfãs da galeria");
+    removedOrphanThumbnails =
+      deletion.data?.length ?? orphanThumbnailPaths.length;
+  }
+
   const pendingChat =
     (expiredChat.data || []).length -
     removedChat +
@@ -234,7 +255,8 @@ export async function cleanup(req: Request) {
       removedPosts +
       removedQueuedPosts +
       removedExpiredCallRecordings +
-      removedQueuedCallRecordings,
+      removedQueuedCallRecordings +
+      removedOrphanThumbnails,
     pending:
       pendingChat +
       pendingStories +
@@ -259,6 +281,10 @@ export async function cleanup(req: Request) {
       expired: removedExpiredCallRecordings,
       queued: removedQueuedCallRecordings,
       pending: pendingCallRecordings,
+    },
+    galleryThumbnails: {
+      found: orphanThumbnailPaths.length,
+      removed: removedOrphanThumbnails,
     },
   });
 }
