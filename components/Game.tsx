@@ -339,6 +339,11 @@ export default function Game({ invite }: { invite?: string }) {
     } | null>(null),
     [deletedCharacterName, setDeletedCharacterName] = useState("");
   const requestVersion = useRef(0);
+  const loadInFlight = useRef<{
+    campaign: string;
+    strict: boolean;
+    promise: Promise<void>;
+  } | null>(null);
   const onboardingPrompted = useRef(false);
   const isMaster =
     members.find((m) => m.campaign_id === campaign)?.role === "master";
@@ -494,107 +499,96 @@ export default function Game({ invite }: { invite?: string }) {
       s.subscription.unsubscribe();
     };
   }, []);
-  const load = useCallback(async (c: string, strict = false) => {
+  const load = useCallback((c: string, strict = false) => {
+    const active = loadInFlight.current;
+    if (
+      active &&
+      active.campaign === c &&
+      (!strict || active.strict)
+    ) {
+      return strict ? active.promise : active.promise.catch(() => undefined);
+    }
+
     const version = ++requestVersion.current;
     setLoading(true);
-    try {
-      const db = browserDb();
-      const [
-        result,
-        snapshot,
-        directory,
-        visuals,
-        avatarCatalog,
-        frameCatalog,
-        campaignResult,
-      ] = await Promise.all([
-        Promise.all(
-          tables.map((t) => {
-            let q = db.from(t).select("*");
-            if (
-              [
-                "characters",
-                "attributes",
-                "advantages",
-                "items",
-                "creature_templates",
-                "combat_rooms",
-                "audit_logs",
-                "invites",
-                "campaign_members",
-                "campaign_avatars",
-                "dracma_transactions",
-                "dracma_charges",
-                "activity_sessions",
-                "session_feedback",
-                "social_identities",
-                "cosmetics",
-                "cosmetic_collections",
-                "notifications",
-              ].includes(t)
-            )
-              q = q.eq("campaign_id", c);
-            if (t === "audit_logs")
-              q = q.order("created_at", { ascending: false }).limit(200);
-            if (t === "dracma_transactions")
-              q = q.order("created_at", { ascending: false }).limit(200);
-            if (t === "dracma_charges" || t === "session_feedback")
-              q = q.order("created_at", { ascending: false }).limit(200);
-            if (t === "activity_sessions")
-              q = q.order("started_at", { ascending: false }).limit(200);
-            if (t === "notifications")
-              q = q.order("created_at", { ascending: false }).limit(200);
-            return q;
-          }),
-        ),
-        retryNetworkRead(() => db.rpc("combat_snapshot", { c })),
-        retryNetworkRead(() => db.rpc("transfer_recipients", { c })),
-        retryNetworkRead(() => db.rpc("combat_identities", { c })),
-        retryNetworkRead(() => db.rpc("avatar_catalog", { c })),
-        retryNetworkRead(() => db.rpc("frame_catalog", { c })),
-        db.from("campaigns").select("*").eq("id", c).single(),
-      ]);
-      const failed = result.findIndex((r) => r.error);
-      if (failed !== -1)
-        throw new Error(
-          `Não foi possível carregar ${tables[failed]}: ${result[failed].error?.message}`,
+
+    const promise = (async () => {
+      try {
+        const response = await retryNetworkRead(() =>
+          browserDb().rpc("game_load_bundle", { c }),
         );
-      if (snapshot.error) throw snapshot.error;
-      if (directory.error) throw directory.error;
-      if (visuals.error) throw visuals.error;
-      if (avatarCatalog.error) throw avatarCatalog.error;
-      if (frameCatalog.error) throw frameCatalog.error;
-      if (campaignResult.error) throw campaignResult.error;
-      if (version !== requestVersion.current) return;
-      const loaded = Object.fromEntries(
-        result.map((r, i) => [tables[i], r.data || []]),
-      );
-      setData({
-        ...loaded,
-        campaign_avatars: avatarCatalog.data || [],
-        cosmetics: [
-          ...(loaded.cosmetics || []).filter(
-            (item: Row) => item.kind !== "frame",
-          ),
-          ...(frameCatalog.data || []),
-        ],
-      });
-      setParticipants(
-        (snapshot.data || []).map((p: Row) => ({
-          ...p,
-          ...(visuals.data || []).find((v: Row) => v.participant_id === p.id),
-        })),
-      );
-      setRecipients(directory.data || []);
-      setCampaigns((current) =>
-        current.map((entry) => (entry.id === c ? campaignResult.data : entry)),
-      );
-    } catch (e) {
-      setError(readableErrorMessage(e));
-      if (strict) throw e;
-    } finally {
-      if (version === requestVersion.current) setLoading(false);
-    }
+        if (response.error) throw response.error;
+        if (version !== requestVersion.current) return;
+
+        const bundle = (response.data || {}) as Row;
+        const bundledTables =
+          (bundle.tables as Record<string, Row[]> | undefined) || {};
+        const loaded = Object.fromEntries(
+          tables.map((table) => [
+            table,
+            Array.isArray(bundledTables[table]) ? bundledTables[table] : [],
+          ]),
+        ) as Record<string, Row[]>;
+
+        const snapshot = Array.isArray(bundle.combat_snapshot)
+          ? (bundle.combat_snapshot as Row[])
+          : [];
+        const directory = Array.isArray(bundle.transfer_recipients)
+          ? (bundle.transfer_recipients as Row[])
+          : [];
+        const visuals = Array.isArray(bundle.combat_identities)
+          ? (bundle.combat_identities as Row[])
+          : [];
+        const avatarCatalog = Array.isArray(bundle.avatar_catalog)
+          ? (bundle.avatar_catalog as Row[])
+          : [];
+        const frameCatalog = Array.isArray(bundle.frame_catalog)
+          ? (bundle.frame_catalog as Row[])
+          : [];
+        const campaignResult = bundle.campaign as Row | null | undefined;
+
+        setData({
+          ...loaded,
+          campaign_avatars: avatarCatalog,
+          cosmetics: [
+            ...(loaded.cosmetics || []).filter(
+              (item: Row) => item.kind !== "frame",
+            ),
+            ...frameCatalog,
+          ],
+        });
+        setParticipants(
+          snapshot.map((participant: Row) => ({
+            ...participant,
+            ...visuals.find(
+              (visual: Row) => visual.participant_id === participant.id,
+            ),
+          })),
+        );
+        setRecipients(directory);
+        if (campaignResult) {
+          setCampaigns((current) =>
+            current.map((entry) =>
+              entry.id === c ? campaignResult : entry,
+            ),
+          );
+        }
+      } catch (e) {
+        setError(readableErrorMessage(e));
+        if (strict) throw e;
+      } finally {
+        if (version === requestVersion.current) setLoading(false);
+      }
+    })();
+
+    loadInFlight.current = { campaign: c, strict, promise };
+    const clearLoad = () => {
+      if (loadInFlight.current?.promise === promise) {
+        loadInFlight.current = null;
+      }
+    };
+    void promise.then(clearLoad, clearLoad);
+    return promise;
   }, []);
   useEffect(() => {
     if (!session) return;
@@ -638,7 +632,7 @@ export default function Game({ invite }: { invite?: string }) {
         },
         () => {
           clearTimeout(timer);
-          timer = setTimeout(() => load(campaign), 100);
+          timer = setTimeout(() => load(campaign), 250);
         },
       )
       .on(
