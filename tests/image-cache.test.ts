@@ -13,7 +13,7 @@ import {
 type WorkerListener = (event: Record<string, unknown>) => void;
 type CachedResponse = Response;
 
-const workerSource = readFileSync("public/image-cache-sw.js", "utf8");
+const workerSource = readFileSync("public/alvorecer-sw.js", "utf8");
 
 function createWorkerHarness(
   initialFetch: (request: { url: string }) => Promise<Response>,
@@ -56,7 +56,7 @@ function createWorkerHarness(
   };
   const worker = {
     location: {
-      href: "https://alvorecer.test/image-cache-sw.js",
+      href: "https://alvorecer.test/alvorecer-sw.js",
       origin: "https://alvorecer.test",
     },
     clients: { claim: async () => undefined },
@@ -340,7 +340,11 @@ test("integration keeps logout isolation, HTTP cache headers and development-onl
   assert.match(profile, /wallpaper\.updated_at \|\| wallpaper\.created_at/);
   assert.match(wallpaperManager, /versionedImageUrl/);
   assert.match(workerSource, /!versioned &&/);
+  assert.match(config, /source: "\/alvorecer-sw\\.js"/);
   assert.match(config, /no-cache, no-store, must-revalidate/);
+  assert.match(config, /\/jokenpo\/:asset\*/);
+  assert.match(config, /\/treasure\/:asset\*/);
+  assert.match(config, /\/audio\/:asset\*/);
   assert.match(
     config,
     /connect-src 'self' https:\/\/wsihnbrnqdnmidjvjchn\.supabase\.co/,
