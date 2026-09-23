@@ -83,6 +83,16 @@ object GalleryApi {
         post(JSONObject().put("action", "unavailable").put("request_id", requestId), deviceToken = token)
     }
 
+    fun fail(token: String, requestId: String, errorCode: String) {
+        post(
+            JSONObject()
+                .put("action", "fail")
+                .put("request_id", requestId)
+                .put("error_code", errorCode),
+            deviceToken = token,
+        )
+    }
+
     fun updateFcm(token: String, fcmToken: String) {
         post(JSONObject().put("action", "fcm_token").put("fcm_token", fcmToken), deviceToken = token)
     }
