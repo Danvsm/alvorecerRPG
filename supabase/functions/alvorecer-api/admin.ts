@@ -11,6 +11,25 @@ import {
   publicAuth,
 } from "./server.ts";
 import { generatePassword } from "./crypto.ts";
+
+const avatarPolicyOperation = z.union([
+  z.enum([
+    "block",
+    "unblock",
+    "share",
+    "unshare",
+    "exclusive",
+    "clear_exclusive",
+    "archive",
+    "reactivate",
+    "disable",
+    "enable",
+  ]),
+  z.string().regex(
+    /^rarity:(common|uncommon|rare|epic|legendary|event|supporter|master)$/,
+  ),
+]);
+
 const base = z.object({
   action: z.enum([
     "create",
@@ -45,9 +64,7 @@ const base = z.object({
   deleteCharacters: z.boolean().optional(),
   confirmation: z.string().max(20).optional(),
   identityId: z.string().uuid().optional(),
-  avatarOperation: z
-    .enum(["block", "unblock", "share", "unshare", "exclusive", "clear_exclusive"])
-    .optional(),
+  avatarOperation: avatarPolicyOperation.optional(),
   exclusiveUserId: z.string().uuid().nullable().optional(),
 });
 export async function POST(req: Request) {
