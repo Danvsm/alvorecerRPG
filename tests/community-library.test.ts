@@ -58,9 +58,11 @@ test("the editorial experience lets players write only in their collection", asy
   assert.match(library, /body: 20000/);
   assert.match(library, /community_article_action/);
   assert.match(library, /community_articles/);
-  assert.match(library, /\.download\(path\)/);
-  assert.match(library, /URL\.createObjectURL/);
-  assert.match(library, /URL\.revokeObjectURL/);
+  assert.match(library, /createSignedUrls/);
+  assert.match(library, /versionedImageUrl/);
+  assert.doesNotMatch(library, /\.download\(path\)/);
+  assert.doesNotMatch(library, /URL\.createObjectURL/);
+  assert.doesNotMatch(library, /URL\.revokeObjectURL/);
   assert.match(library, /unoptimized/);
   assert.match(library, /Segure um card para gerenciar/);
   assert.match(library, /onPointerDown/);
