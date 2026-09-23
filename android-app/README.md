@@ -8,6 +8,15 @@ O workflow `Android APK` gera gratuitamente um APK de depuração. Quando o secr
 
 O arquivo `google-services.json` nunca deve ser commitado.
 
+Para habilitar o aviso ao celular em segundo plano quando um original for solicitado, configure
+o secret `GOOGLE_SERVICES_JSON_BASE64` nas Actions deste repositório e as variáveis
+`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` e `FIREBASE_PRIVATE_KEY` na Edge
+Function do Supabase. A compilação avisa quando o arquivo Android estiver
+ausente. Mesmo com Firebase, a entrega pode atrasar por economia de bateria.
+Sem essa configuração, abra o Alvorecer no aparelho para consultar o
+pedido imediatamente; a consulta periódica em segundo plano tem intervalo
+mínimo de 15 minutos e pode atrasar por economia de bateria do Android.
+
 ## Garantias da fila
 
 - SQLite preserva o índice local da galeria.
