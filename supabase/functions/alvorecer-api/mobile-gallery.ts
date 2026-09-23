@@ -192,8 +192,10 @@ async function finishDeviceAction(req: Request, body: Record<string, unknown>, a
     });
     await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
       status: "unavailable",
+      original_path: null,
       error_message: "Original indisponível no dispositivo",
       completed_at: new Date().toISOString(),
+      expires_at: null,
       updated_at: new Date().toISOString(),
     } });
     return json({ updated: true });
@@ -212,8 +214,10 @@ async function finishDeviceAction(req: Request, body: Record<string, unknown>, a
   };
   await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
     status: "failed",
+    original_path: null,
     error_message: messages[code] || messages.processing_failed,
     completed_at: new Date().toISOString(),
+    expires_at: null,
     updated_at: new Date().toISOString(),
   } });
   return json({ updated: true });
