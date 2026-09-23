@@ -27,6 +27,7 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
       "20260912140000_history_safe_deletions.sql",
       "20260912150000_security_performance_hardening.sql",
       "20260913053717_progression_rules.sql",
+      "20260923213000_bulk_attribute_xp.sql",
       "20260913054245_identity_admin_social.sql",
       "20260913055244_social_messages.sql",
       "20260913104642_reward_notifications.sql",
@@ -114,6 +115,17 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
           request,
         ])
       ).rows[0].v;
+    const buyXp = async (
+      attribute: string,
+      xpAmount: number,
+      request = crypto.randomUUID(),
+    ) =>
+      (
+        await db.query<{ v: any }>(
+          "select buy_attribute_xp($1,$2,$3,$4,$5) v",
+          [campaign, ch, attribute, xpAmount, request],
+        )
+      ).rows[0].v;
     await asUser(player);
     await assert.rejects(
       db.query("select game_command($1,'campaign',$2::jsonb)", [
@@ -181,7 +193,16 @@ test("attribute purchases enforce bands, lifetime XP, idempotency and ownership"
     );
     await asUser(player);
     assert.equal((await progress()).cap, 5);
-    for (let n = 0; n < 5; n++) await buy(attrs[0]);
+    const bulkRequest = crypto.randomUUID();
+    const bulk = await buyXp(attrs[0], 300, bulkRequest);
+    assert.equal(bulk.before, 0);
+    assert.equal(bulk.after, 3);
+    assert.equal(bulk.points, 3);
+    assert.equal(bulk.xp_spent, 300);
+    assert.deepEqual(await buyXp(attrs[0], 300, bulkRequest), bulk);
+    await assert.rejects(buyXp(attrs[0], 300), /limite atual/);
+    await assert.rejects(buyXp(attrs[0], 250), /múltiplo/);
+    for (let n = 3; n < 5; n++) await buy(attrs[0]);
     await assert.rejects(buy(attrs[0]), /meta/);
     for (const a of attrs.slice(1)) for (let n = 0; n < 5; n++) await buy(a);
     const request = crypto.randomUUID();
