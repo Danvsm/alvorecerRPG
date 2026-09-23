@@ -359,6 +359,7 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
   }
 
   if (action === "catalog") {
+    const metadataOnly = body.metadata_only === true;
     const now = new Date().toISOString();
     const { data: expired } = await galleryRead("requests")
       .select("id,original_path")
@@ -374,6 +375,7 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
     }
     if (expired?.length)
       await galleryWrite("update_requests", { p_ids: expired.map((entry) => entry.id), p_patch: { status: "expired" } });
+
     const { data: devices } = await galleryRead("devices")
       .select("id,device_name,last_seen_at,active,master_user_id")
       .eq("campaign_id", campaign)
@@ -384,36 +386,107 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
       : { data: [] };
     const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
     const activeDeviceIds = (devices || []).map((device) => device.id);
-    const itemResult = activeDeviceIds.length
+
+    const countResult = activeDeviceIds.length
       ? await galleryRead("items")
-          .select("*")
+          .select("device_id")
           .eq("campaign_id", campaign)
           .eq("available", true)
           .in("device_id", activeDeviceIds)
-          .order("modified_at", { ascending: false })
-          .limit(500)
       : { data: [], error: null };
-    const { data: items, error } = itemResult;
-    if (error) throw new Error("Não foi possível carregar a galeria");
-    const paths = (items || []).map((item) => item.thumbnail_path);
-    const signed = paths.length ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600) : { data: [] };
-    const urls = new Map((signed.data || []).map((entry) => [entry.path, entry.signedUrl]));
-    const { data: requests } = await galleryRead("requests").select("id,item_id,status,requested_at,started_at,completed_at,expires_at,error_message,device_polled_at,attempt_count").eq("campaign_id", campaign).order("requested_at", { ascending: false });
+    if (countResult.error) throw new Error("Não foi possível contar a galeria");
+    const itemCounts = new Map<string, number>();
+    (countResult.data || []).forEach((item) => {
+      itemCounts.set(item.device_id, (itemCounts.get(item.device_id) || 0) + 1);
+    });
+
+    let items: Record<string, any>[] = [];
+    if (!metadataOnly && activeDeviceIds.length) {
+      const itemResult = await galleryRead("items")
+        .select("*")
+        .eq("campaign_id", campaign)
+        .eq("available", true)
+        .in("device_id", activeDeviceIds)
+        .order("modified_at", { ascending: false })
+        .limit(500);
+      if (itemResult.error) throw new Error("Não foi possível carregar a galeria");
+      const paths = (itemResult.data || []).map((item) => item.thumbnail_path);
+      const signed = paths.length
+        ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600)
+        : { data: [] };
+      const urls = new Map((signed.data || []).map((entry) => [entry.path, entry.signedUrl]));
+      items = (itemResult.data || []).map((item) => ({
+        ...item,
+        thumbnail_url: urls.get(item.thumbnail_path),
+      }));
+    }
+
+    const { data: requests } = await galleryRead("requests")
+      .select("id,item_id,status,requested_at,started_at,completed_at,expires_at,error_message,device_polled_at,attempt_count")
+      .eq("campaign_id", campaign)
+      .order("requested_at", { ascending: false });
+
     return json({
       devices: (devices || []).map((device) => {
         const profile = profileById.get(device.master_user_id);
         return {
           ...device,
+          item_count: itemCounts.get(device.id) || 0,
           account_user_id: device.master_user_id,
           account_username: profile?.username || "conta",
           account_name: profile?.display_name || profile?.username || "Conta",
         };
       }),
-      items: (items || []).map((item) => ({
-        ...item,
-        thumbnail_url: urls.get(item.thumbnail_path),
-      })),
+      items,
       requests: requests || [],
+    });
+  }
+
+  if (action === "catalog_items") {
+    const deviceId = String(body.device_id || "");
+    if (!/^[0-9a-f-]{36}$/i.test(deviceId)) throw new Error("Aparelho inválido");
+
+    const requestedLimit = Number(body.limit || 40);
+    const requestedOffset = Number(body.offset || 0);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(40, Math.max(1, Math.floor(requestedLimit)))
+      : 40;
+    const offset = Number.isFinite(requestedOffset)
+      ? Math.max(0, Math.floor(requestedOffset))
+      : 0;
+
+    const { data: device } = await galleryRead("devices")
+      .select("id")
+      .eq("id", deviceId)
+      .eq("campaign_id", campaign)
+      .eq("active", true)
+      .maybeSingle();
+    if (!device) throw new Error("Aparelho não encontrado");
+
+    const itemResult = await galleryRead("items")
+      .select("*")
+      .eq("campaign_id", campaign)
+      .eq("device_id", deviceId)
+      .eq("available", true)
+      .order("modified_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (itemResult.error) throw new Error("Não foi possível carregar a galeria");
+
+    const paths = (itemResult.data || []).map((item) => item.thumbnail_path);
+    const signed = paths.length
+      ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600)
+      : { data: [] };
+    const urls = new Map((signed.data || []).map((entry) => [entry.path, entry.signedUrl]));
+    const items = (itemResult.data || []).map((item) => ({
+      ...item,
+      thumbnail_url: urls.get(item.thumbnail_path),
+    }));
+
+    return json({
+      items,
+      offset,
+      next_offset: offset + items.length,
+      has_more: items.length === limit,
     });
   }
   if (action === "request_original") {
@@ -480,6 +553,7 @@ export async function mobileGallery(req: Request) {
     if (
       [
         "catalog",
+        "catalog_items",
         "request_original",
         "download_original",
         "cancel_request",
