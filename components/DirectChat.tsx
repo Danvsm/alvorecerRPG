@@ -5,6 +5,7 @@ import {
   BellOff,
   ChevronLeft,
   Flag,
+  Heart,
   MessageCircle,
   Mic,
   MoreVertical,
@@ -139,6 +140,10 @@ export default function DirectChat({
       message: Row;
     } | null>(null),
     [messageReportReason, setMessageReportReason] = useState("");
+  const [messageLikes, setMessageLikes] = useState<
+    Record<string, { count: number; mine: boolean }>
+  >({});
+  const [likingMessageId, setLikingMessageId] = useState("");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [position, setPosition] = useState({ right: true, y: 75 });
@@ -407,6 +412,41 @@ export default function DirectChat({
     const x = Math.max(10, Math.min(clientX, window.innerWidth - width - 10));
     const y = Math.max(10, Math.min(clientY, window.innerHeight - height - 10));
     setMessageMenu({ message, x, y });
+  };
+
+  const toggleMessageLike = async (message: Row) => {
+    const messageId = String(message.id || "");
+    if (
+      !messageId ||
+      selected === CAMPAIGN_GROUP_SELECTION ||
+      likingMessageId === messageId
+    ) {
+      return;
+    }
+
+    setLikingMessageId(messageId);
+    setError("");
+    try {
+      const result = await browserDb().rpc("direct_message_like_toggle", {
+        c: campaign,
+        actor_id: actor,
+        target_message_id: messageId,
+      });
+      if (result.error) throw result.error;
+
+      const state = (result.data || {}) as Row;
+      setMessageLikes((current) => ({
+        ...current,
+        [messageId]: {
+          count: Number(state.count || 0),
+          mine: Boolean(state.liked),
+        },
+      }));
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setLikingMessageId("");
+    }
   };
 
   const deleteOwnMessage = async () => {
@@ -815,7 +855,45 @@ export default function DirectChat({
             setError(readableErrorMessage(r.error));
             return;
           }
-          setMessages((r.data || []).reverse());
+          const nextMessages = ((r.data || []) as Row[]).reverse();
+          setMessages(nextMessages);
+
+          const messageIds = nextMessages
+            .map((message) => String(message.id || ""))
+            .filter(Boolean);
+          if (messageIds.length) {
+            const likesResult = await retryNetworkRead(() =>
+              browserDb()
+                .from("direct_message_likes")
+                .select("message_id,identity_id")
+                .in("message_id", messageIds),
+            );
+            if (!valid) return;
+            if (likesResult.error) {
+              setError(readableErrorMessage(likesResult.error));
+            } else {
+              const nextLikes: Record<
+                string,
+                { count: number; mine: boolean }
+              > = {};
+              for (const like of likesResult.data || []) {
+                const messageId = String(like.message_id);
+                const current = nextLikes[messageId] || {
+                  count: 0,
+                  mine: false,
+                };
+                nextLikes[messageId] = {
+                  count: current.count + 1,
+                  mine:
+                    current.mine || String(like.identity_id) === String(actor),
+                };
+              }
+              setMessageLikes(nextLikes);
+            }
+          } else {
+            setMessageLikes({});
+          }
+
           if (
             conversations.some(
               (c) =>
@@ -859,6 +937,40 @@ export default function DirectChat({
     group?.id,
   ]);
   useEffect(() => {
+    if (!open || !selected || selected === CAMPAIGN_GROUP_SELECTION) return;
+    const db = browserDb();
+    const channel = db
+      .channel(`direct-message-likes:${selected}:${actor}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "direct_message_likes",
+        },
+        (payload) => {
+          const changed = ((payload.new && Object.keys(payload.new).length
+            ? payload.new
+            : payload.old) || {}) as Row;
+          if (
+            !changed.message_id ||
+            !messages.some(
+              (message) => String(message.id) === String(changed.message_id),
+            )
+          ) {
+            return;
+          }
+          setRefresh((value) => value + 1);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void db.removeChannel(channel);
+    };
+  }, [actor, messages, open, selected]);
+
+  useEffect(() => {
     if (!group?.id) return;
     const db = browserDb();
     const channel = db
@@ -897,6 +1009,7 @@ export default function DirectChat({
 
   useEffect(() => {
     setMessages([]);
+    setMessageLikes({});
     setEmojiOpen(false);
   }, [selected]);
 
@@ -1674,6 +1787,54 @@ export default function DirectChat({
                   new Date(m.created_at).getTime() <=
                     new Date(peerReadAt).getTime(),
                 );
+                const likeState = messageLikes[String(m.id)] || {
+                  count: 0,
+                  mine: false,
+                };
+                const messageActions = !selectedGroup ? (
+                  <div className="chat-message-actions" aria-label="Ações da mensagem">
+                    <button
+                      type="button"
+                      className={`chat-message-action-button chat-message-like${
+                        likeState.mine ? " is-liked" : ""
+                      }`}
+                      aria-label={
+                        likeState.mine
+                          ? "Remover curtida da mensagem"
+                          : "Curtir mensagem"
+                      }
+                      aria-pressed={likeState.mine}
+                      disabled={likingMessageId === String(m.id)}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void toggleMessageLike(m);
+                      }}
+                    >
+                      <Heart
+                        aria-hidden="true"
+                        fill={likeState.mine ? "currentColor" : "none"}
+                      />
+                      {likeState.count > 0 && (
+                        <span>{likeState.count > 99 ? "99+" : likeState.count}</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="chat-message-action-button chat-message-more"
+                      aria-label="Abrir opções da mensagem"
+                      title="Opções da mensagem"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        openMessageMenu(m, rect.left, rect.bottom + 6);
+                      }}
+                    >
+                      <MoreVertical aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : null;
 
                 return (
                   <div className="chat-message-block" key={m.id}>
@@ -1705,6 +1866,7 @@ export default function DirectChat({
                           />
                         </button>
                       )}
+                      {mine && messageActions}
                       <div
                         className={
                           mine
@@ -1775,6 +1937,7 @@ export default function DirectChat({
                           )}
                         </span>
                       </div>
+                      {!mine && messageActions}
                     </div>
                   </div>
                 );

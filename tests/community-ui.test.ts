@@ -194,6 +194,35 @@ test("floating chat list shows unread counts per direct conversation", async () 
 });
 
 
+test("direct chat exposes accessible like and options buttons on messages", async () => {
+  const [chat, css, migration] = await Promise.all([
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260923042701_direct_message_likes.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(chat, /direct_message_like_toggle/);
+  assert.match(chat, /className="chat-message-actions"/);
+  assert.match(chat, /Curtir mensagem/);
+  assert.match(chat, /Remover curtida da mensagem/);
+  assert.match(chat, /className="chat-message-action-button chat-message-more"/);
+  assert.match(chat, /aria-label="Abrir opções da mensagem"/);
+  assert.match(chat, /<Heart/);
+  assert.match(css, /\\.chat-message-actions/);
+  assert.match(css, /\\.chat-message-like\\.is-liked/);
+  assert.match(migration, /create table if not exists public\\.direct_message_likes/);
+  assert.match(migration, /direct_message_like_toggle/);
+  assert.match(migration, /public\\.can_converse/);
+  assert.match(migration, /alter publication supabase_realtime/);
+});
+
+
 test("community moves the real unread count from the floating chat to Conversar", async () => {
   const [game, chat, community] = await Promise.all([
     readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
