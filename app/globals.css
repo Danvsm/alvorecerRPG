@@ -9418,3 +9418,64 @@ dialog.combat-sheet {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Galeria do celular: apenas um dispositivo aberto por vez. */
+.mobile-gallery-device-picker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(10, 10, 14, 0.72);
+}
+
+.mobile-gallery-device-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #d9b568;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.mobile-gallery-device-picker select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 38px 8px 12px;
+  border: 1px solid #ffffff1a;
+  border-radius: 11px;
+  background: #111116;
+  color: var(--text);
+}
+
+.mobile-gallery-device-single {
+  margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .mobile-gallery-device-picker {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .mobile-gallery-device-picker select {
+    min-height: 46px;
+    font-size: 0.85rem;
+  }
+
+  .mobile-gallery-device-single .mobile-gallery-device-heading {
+    align-items: flex-start;
+  }
+
+  .mobile-gallery-device-single .mobile-gallery-device-heading p {
+    max-width: 240px;
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+}

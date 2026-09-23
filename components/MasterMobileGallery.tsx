@@ -68,10 +68,10 @@ export default function MasterMobileGallery({
   campaign: string;
 }) {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
   const [pages, setPages] = useState<Record<string, DevicePage>>({});
-  const [selectedDevices, setSelectedDevices] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -175,6 +175,43 @@ export default function MasterMobileGallery({
     void loadCatalog();
   }, [loadCatalog]);
 
+  const sortedDevices = useMemo(
+    () =>
+      [...devices].sort((left, right) => {
+        const accountCompare = left.account_name.localeCompare(
+          right.account_name,
+          "pt-BR",
+        );
+        if (accountCompare) return accountCompare;
+        return (
+          Date.parse(right.last_seen_at || "1970-01-01") -
+          Date.parse(left.last_seen_at || "1970-01-01")
+        );
+      }),
+    [devices],
+  );
+
+  useEffect(() => {
+    if (!sortedDevices.length) {
+      if (selectedDeviceId) setSelectedDeviceId("");
+      return;
+    }
+
+    if (!sortedDevices.some((device) => device.id === selectedDeviceId)) {
+      setSelectedDeviceId(sortedDevices[0].id);
+    }
+  }, [selectedDeviceId, sortedDevices]);
+
+  useEffect(() => {
+    if (refreshing || !selectedDeviceId || pages[selectedDeviceId]) return;
+    void loadDevicePage(selectedDeviceId, 0, true);
+  }, [
+    loadDevicePage,
+    pages,
+    refreshing,
+    selectedDeviceId,
+  ]);
+
   const latest = useMemo(() => {
     const result = new Map<string, Request>();
     requests.forEach((request) => {
@@ -188,63 +225,17 @@ export default function MasterMobileGallery({
     [devices],
   );
 
-  const accounts = useMemo(() => {
-    const grouped = new Map<
-      string,
-      {
-        userId: string;
-        username: string;
-        name: string;
-        devices: Device[];
-      }
-    >();
+  const selectedDevice = useMemo(
+    () => deviceById.get(selectedDeviceId),
+    [deviceById, selectedDeviceId],
+  );
 
-    devices.forEach((device) => {
-      const current = grouped.get(device.account_user_id);
-      if (current) {
-        current.devices.push(device);
-        return;
-      }
-      grouped.set(device.account_user_id, {
-        userId: device.account_user_id,
-        username: device.account_username,
-        name: device.account_name,
-        devices: [device],
-      });
-    });
+  const selectedItems = useMemo(
+    () => items.filter((item) => item.device_id === selectedDeviceId),
+    [items, selectedDeviceId],
+  );
 
-    const result = [...grouped.values()];
-    result.forEach((account) => {
-      account.devices.sort(
-        (left, right) =>
-          Date.parse(right.last_seen_at || "1970-01-01") -
-          Date.parse(left.last_seen_at || "1970-01-01"),
-      );
-    });
-    return result.sort((left, right) =>
-      left.name.localeCompare(right.name, "pt-BR"),
-    );
-  }, [devices]);
-
-  useEffect(() => {
-    if (refreshing) return;
-
-    accounts.forEach((account) => {
-      const selectedId =
-        selectedDevices[account.userId] &&
-        account.devices.some(
-          (device) => device.id === selectedDevices[account.userId],
-        )
-          ? selectedDevices[account.userId]
-          : account.devices[0]?.id;
-
-      if (!selectedId) return;
-      const page = pages[selectedId];
-      if (!page) {
-        void loadDevicePage(selectedId, 0, true);
-      }
-    });
-  }, [accounts, loadDevicePage, pages, refreshing, selectedDevices]);
+  const selectedPage = selectedDeviceId ? pages[selectedDeviceId] : undefined;
 
   const online = (deviceId: string) => {
     const device = deviceById.get(deviceId);
@@ -378,8 +369,7 @@ export default function MasterMobileGallery({
         <div>
           <h2>Galeria do celular</h2>
           <p className="muted">
-            Miniaturas privadas separadas por conta e aparelho. A atualização é
-            manual para reduzir o consumo do Storage.
+            Escolha um dispositivo. Somente a galeria selecionada fica aberta.
           </p>
         </div>
         <button
@@ -397,141 +387,97 @@ export default function MasterMobileGallery({
         </p>
       )}
 
-      {!devices.length ? (
+      {!sortedDevices.length ? (
         <p className="muted">
           Abra o aplicativo Android em um celular e entre em qualquer conta
           ativa do Alvorecer para iniciar a sincronização.
         </p>
       ) : (
-        accounts.map((account) => {
-          const selectedId =
-            selectedDevices[account.userId] &&
-            account.devices.some(
-              (device) => device.id === selectedDevices[account.userId],
-            )
-              ? selectedDevices[account.userId]
-              : account.devices[0]?.id;
-          const selectedDevice = account.devices.find(
-            (device) => device.id === selectedId,
-          );
-          const selectedItems = selectedDevice
-            ? items.filter((item) => item.device_id === selectedDevice.id)
-            : [];
-          const page = selectedDevice ? pages[selectedDevice.id] : undefined;
+        <>
+          <section className="mobile-gallery-device-picker">
+            <label htmlFor="mobile-gallery-device-select">
+              <Smartphone size={17} />
+              <span>Dispositivo</span>
+            </label>
+            <select
+              id="mobile-gallery-device-select"
+              value={selectedDeviceId}
+              onChange={(event) => setSelectedDeviceId(event.target.value)}
+            >
+              {sortedDevices.map((device) => {
+                const total = device.item_count || 0;
+                const shortId = device.id.slice(0, 6).toUpperCase();
+                return (
+                  <option key={device.id} value={device.id}>
+                    {device.account_name} · {device.device_name} · {shortId} ·{" "}
+                    {total} {total === 1 ? "arquivo" : "arquivos"}
+                  </option>
+                );
+              })}
+            </select>
+          </section>
 
-          return (
-            <section className="mobile-gallery-account" key={account.userId}>
-              <div className="spread">
+          {selectedDevice && (
+            <section
+              className="mobile-gallery-device mobile-gallery-device-single"
+              aria-label={`Galeria de ${selectedDevice.device_name}`}
+            >
+              <div className="mobile-gallery-device-heading">
                 <div>
-                  <h3>{account.name}</h3>
-                  <p className="muted">@{account.username}</p>
+                  <h4>
+                    <Smartphone size={16} /> {selectedDevice.device_name}
+                  </h4>
+                  <p className="muted">
+                    {selectedDevice.account_name} · @{selectedDevice.account_username}
+                    {" · "}
+                    Dispositivo {selectedDevice.id.slice(0, 6).toUpperCase()}
+                    {" · "}
+                    {online(selectedDevice.id) ? "Disponível" : "Celular offline"}
+                  </p>
                 </div>
+                <strong>
+                  {selectedDevice.item_count || 0}{" "}
+                  {(selectedDevice.item_count || 0) === 1
+                    ? "arquivo"
+                    : "arquivos"}
+                </strong>
               </div>
 
-              <p className="mobile-gallery-device-hint">
-                Escolha um aparelho para abrir somente a galeria dele.
-              </p>
-              <div
-                className="mobile-device-list"
-                role="tablist"
-                aria-label={`Aparelhos de ${account.name}`}
-              >
-                {account.devices.map((device) => {
-                  const total = device.item_count || 0;
-                  const shortId = device.id.slice(0, 6).toUpperCase();
-                  const selected = device.id === selectedId;
-
-                  return (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={selected}
-                      className={`mobile-device-tab ${selected ? "selected" : ""} ${
-                        online(device.id) ? "device-online" : "device-offline"
-                      }`}
-                      key={device.id}
-                      onClick={() =>
-                        setSelectedDevices((current) => ({
-                          ...current,
-                          [account.userId]: device.id,
-                        }))
-                      }
-                    >
-                      <Smartphone size={17} />
-                      <span>
-                        <strong>{device.device_name}</strong>
-                        <small>
-                          Dispositivo {shortId} · {total}{" "}
-                          {total === 1 ? "arquivo" : "arquivos"}
-                        </small>
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="mobile-gallery-grid">
+                {selectedItems.map(renderItem)}
               </div>
 
-              {selectedDevice && (
-                <section
-                  className="mobile-gallery-device"
-                  aria-label={`Galeria de ${selectedDevice.device_name}`}
+              {selectedPage?.loading && !selectedItems.length && (
+                <p className="muted">Carregando miniaturas...</p>
+              )}
+
+              {!selectedPage?.loading &&
+                !selectedItems.length &&
+                (selectedDevice.item_count || 0) === 0 && (
+                  <p className="muted">
+                    Aguardando a primeira sincronização deste aparelho.
+                  </p>
+                )}
+
+              {selectedPage?.hasMore && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={selectedPage.loading}
+                  onClick={() =>
+                    void loadDevicePage(
+                      selectedDevice.id,
+                      selectedPage.loaded,
+                      false,
+                    )
+                  }
                 >
-                  <div className="mobile-gallery-device-heading">
-                    <div>
-                      <h4>
-                        <Smartphone size={16} /> {selectedDevice.device_name}
-                      </h4>
-                      <p className="muted">
-                        Dispositivo {selectedDevice.id.slice(0, 6).toUpperCase()} ·{" "}
-                        {online(selectedDevice.id)
-                          ? "Disponível"
-                          : "Celular offline"}
-                      </p>
-                    </div>
-                    <strong>
-                      {selectedDevice.item_count || 0}{" "}
-                      {(selectedDevice.item_count || 0) === 1
-                        ? "arquivo"
-                        : "arquivos"}
-                    </strong>
-                  </div>
-
-                  <div className="mobile-gallery-grid">
-                    {selectedItems.map(renderItem)}
-                  </div>
-
-                  {page?.loading && !selectedItems.length && (
-                    <p className="muted">Carregando miniaturas...</p>
-                  )}
-
-                  {!page?.loading &&
-                    !selectedItems.length &&
-                    (selectedDevice.item_count || 0) === 0 && (
-                      <p className="muted">
-                        Aguardando a primeira sincronização deste aparelho.
-                      </p>
-                    )}
-
-                  {page?.hasMore && (
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={page.loading}
-                      onClick={() =>
-                        void loadDevicePage(
-                          selectedDevice.id,
-                          page.loaded,
-                          false,
-                        )
-                      }
-                    >
-                      {page.loading ? "Carregando..." : "Carregar mais 40"}
-                    </button>
-                  )}
-                </section>
+                  {selectedPage.loading ? "Carregando..." : "Carregar mais 40"}
+                </button>
               )}
             </section>
-          );
-        })
+          )}
+        </>
       )}
     </section>
   );
