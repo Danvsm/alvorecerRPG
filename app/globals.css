@@ -2741,14 +2741,23 @@ dialog::backdrop {
   color: #fff;
   box-shadow: 0 4px 20px #0008;
 }
-.chat-bubble span {
+.chat-bubble-unread {
   position: absolute;
-  top: -5px;
-  right: -3px;
-  border-radius: 12px;
-  background: #d02a43;
-  padding: 2px 6px;
-  font-size: 12px;
+  top: -6px;
+  right: -5px;
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border: 2px solid #0b0909;
+  border-radius: 999px;
+  color: #061309;
+  background: #36c95c;
+  box-shadow: 0 0 8px #36c95c55;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  place-items: center;
 }
 .chat-window {
   position: fixed;
@@ -5064,15 +5073,16 @@ dialog.combat-sheet {
   opacity: 0.68;
 }
 
-.chat-group-unread {
+.chat-unread-count {
   display: grid;
   min-width: 22px;
   height: 22px;
   place-items: center;
   padding: 0 6px;
   border-radius: 999px;
-  color: #fff;
-  background: #a6263a;
+  color: #061309;
+  background: #36c95c;
+  box-shadow: 0 0 8px #36c95c40;
   font-size: 0.68rem;
   font-style: normal;
   font-weight: 800;

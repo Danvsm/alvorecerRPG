@@ -106,6 +106,9 @@ export default function DirectChat({
     [latestByConversation, setLatestByConversation] = useState<
       Record<string, Row>
     >({}),
+    [unreadByConversation, setUnreadByConversation] = useState<
+      Record<string, number>
+    >({}),
     [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set()),
     [contactsInteractive, setContactsInteractive] = useState(true),
     [mutedConversations, setMutedConversations] = useState<Set<string>>(
@@ -695,32 +698,64 @@ export default function DirectChat({
       const ids = nextConversations.map((entry) => entry.id);
       if (!ids.length) {
         setLatestByConversation({});
+        setUnreadByConversation({});
         return;
       }
 
-      const latestResult = await retryNetworkRead(() =>
-        browserDb()
-          .from("direct_messages")
-          .select(
-            "id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)",
-          )
-          .in("conversation_id", ids)
-          .order("created_at", { ascending: false }),
-      );
+      const [latestResult, receiptResult] = await Promise.all([
+        retryNetworkRead(() =>
+          browserDb()
+            .from("direct_messages")
+            .select(
+              "id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)",
+            )
+            .in("conversation_id", ids)
+            .is("cleared_at", null)
+            .order("created_at", { ascending: false }),
+        ),
+        retryNetworkRead(() =>
+          browserDb()
+            .from("conversation_reads")
+            .select("conversation_id,read_at")
+            .eq("identity_id", actor)
+            .in("conversation_id", ids),
+        ),
+      ]);
 
       if (!valid) return;
-      if (latestResult.error) {
-        setError(readableErrorMessage(latestResult.error));
+      if (latestResult.error || receiptResult.error) {
+        setError(
+          readableErrorMessage(latestResult.error || receiptResult.error),
+        );
         return;
+      }
+
+      const readAtByConversation = new Map<string, number>();
+      for (const receipt of receiptResult.data || []) {
+        const readAt = Date.parse(String(receipt.read_at || ""));
+        if (Number.isFinite(readAt)) {
+          readAtByConversation.set(String(receipt.conversation_id), readAt);
+        }
       }
 
       const latest: Record<string, Row> = {};
+      const unreadCounts: Record<string, number> = {};
       for (const message of latestResult.data || []) {
-        if (!latest[message.conversation_id]) {
-          latest[message.conversation_id] = message;
+        const conversationId = String(message.conversation_id);
+        if (!latest[conversationId]) {
+          latest[conversationId] = message;
+        }
+        if (String(message.sender_id) === String(actor)) continue;
+
+        const createdAt = Date.parse(String(message.created_at || ""));
+        const readAt =
+          readAtByConversation.get(conversationId) ?? Number.NEGATIVE_INFINITY;
+        if (Number.isFinite(createdAt) && createdAt > readAt) {
+          unreadCounts[conversationId] = (unreadCounts[conversationId] || 0) + 1;
         }
       }
       setLatestByConversation(latest);
+      setUnreadByConversation(unreadCounts);
     });
     return () => {
       valid = false;
@@ -795,8 +830,13 @@ export default function DirectChat({
                   actor,
                 }),
               );
-              if (!unreadResult.error && valid)
+              if (!unreadResult.error && valid) {
                 setUnread(Number(unreadResult.data || 0));
+                setUnreadByConversation((current) => ({
+                  ...current,
+                  [selected]: 0,
+                }));
+              }
             } catch (e) {
               setError(readableErrorMessage(e));
             }
@@ -1209,7 +1249,11 @@ export default function DirectChat({
           }}
         >
           <MessageCircle />
-          {unread > 0 && <span>{unread}</span>}
+          {unread > 0 && (
+            <span className="chat-bubble-unread">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
         </button>
       )}
       {open && (
@@ -1415,7 +1459,10 @@ export default function DirectChat({
 
                   <span className="chat-contact-meta">
                     {Number(group?.unread || 0) > 0 && (
-                      <i className="chat-group-unread">
+                      <i
+                        className="chat-unread-count"
+                        aria-label={`${Number(group?.unread || 0)} mensagens não lidas`}
+                      >
                         {Number(group?.unread) > 99
                           ? "99+"
                           : Number(group?.unread)}
@@ -1431,6 +1478,9 @@ export default function DirectChat({
 
               {contactRows.map(
                 ({ identity, conversation, latest, activityAt, online }) => {
+                  const unreadCount = conversation
+                    ? Number(unreadByConversation[conversation.id] || 0)
+                    : 0;
                   const lastMessage = latest?.media_id
                     ? mediaType(latest) === "audio"
                       ? latest.sender_id === actor
@@ -1567,6 +1617,18 @@ export default function DirectChat({
 
                       {conversation && (
                         <span className="chat-contact-meta">
+                          {unreadCount > 0 && (
+                            <i
+                              className="chat-unread-count"
+                              aria-label={`${unreadCount} ${
+                                unreadCount === 1
+                                  ? "mensagem não lida"
+                                  : "mensagens não lidas"
+                              }`}
+                            >
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </i>
+                          )}
                           {mutedConversations.has(String(conversation.id)) && (
                             <BellOff
                               size={14}

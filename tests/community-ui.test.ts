@@ -176,6 +176,24 @@ test("community follows the Orkutista social layout without dropping existing fl
   assert.doesNotMatch(css, /\.bottomNav button span\s*\{/);
 });
 
+test("floating chat list shows unread counts per direct conversation", async () => {
+  const [chat, css] = await Promise.all([
+    readFile(new URL("../components/DirectChat.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(chat, /unreadByConversation/);
+  assert.match(chat, /from\\("conversation_reads"\\)/);
+  assert.match(chat, /className="chat-unread-count"/);
+  assert.match(chat, /unreadCount > 99 \\? "99\\+" : unreadCount/);
+  assert.match(chat, /className="chat-bubble-unread"/);
+  assert.match(chat, /unread > 99 \\? "99\\+" : unread/);
+  assert.match(css, /\\.chat-unread-count/);
+  assert.match(css, /\\.chat-bubble-unread/);
+  assert.match(css, /background: #36c95c/);
+});
+
+
 test("community moves the real unread count from the floating chat to Conversar", async () => {
   const [game, chat, community] = await Promise.all([
     readFile(new URL("../components/Game.tsx", import.meta.url), "utf8"),
