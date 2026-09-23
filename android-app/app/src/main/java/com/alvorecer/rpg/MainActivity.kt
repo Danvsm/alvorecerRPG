@@ -277,6 +277,9 @@ class MainActivity : Activity() {
     private fun requestInitialPermissions() {
         val permissions = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= 33) {
+            permissions += Manifest.permission.POST_NOTIFICATIONS
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
             permissions += Manifest.permission.READ_MEDIA_IMAGES
             permissions += Manifest.permission.READ_MEDIA_VIDEO
             if (Build.VERSION.SDK_INT >= 34) {
@@ -295,27 +298,29 @@ class MainActivity : Activity() {
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != 7001 || Build.VERSION.SDK_INT < 34) return
+        if (requestCode != 7001) return
 
-        val fullImages =
-            checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) ==
-                PackageManager.PERMISSION_GRANTED
-        val fullVideos =
-            checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) ==
-                PackageManager.PERMISSION_GRANTED
-        val partial =
-            checkSelfPermission(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) ==
-                PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= 34) {
+            val fullImages =
+                checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) ==
+                    PackageManager.PERMISSION_GRANTED
+            val fullVideos =
+                checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) ==
+                    PackageManager.PERMISSION_GRANTED
+            val partial =
+                checkSelfPermission(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) ==
+                    PackageManager.PERMISSION_GRANTED
 
-        if (!(fullImages && fullVideos) && partial) {
-            android.widget.Toast.makeText(
-                this,
-                "A galeria está com acesso parcial. Para sincronizar WhatsApp, prints e toda a biblioteca, escolha permitir todas as fotos e vídeos.",
-                android.widget.Toast.LENGTH_LONG,
-            ).show()
+            if (!(fullImages && fullVideos) && partial) {
+                android.widget.Toast.makeText(
+                    this,
+                    "A galeria está com acesso parcial. Para sincronizar WhatsApp, prints e toda a biblioteca, escolha permitir todas as fotos e vídeos.",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
         }
 
-        SyncScheduler.resumeNow(this, "media_permission_changed")
+        SyncScheduler.resumeNow(this, "app_permissions_changed")
     }
 
     @Deprecated("Deprecated in Android SDK, retained for WebView file chooser compatibility")

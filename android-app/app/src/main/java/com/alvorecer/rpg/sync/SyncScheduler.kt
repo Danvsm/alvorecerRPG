@@ -36,6 +36,16 @@ object SyncScheduler {
             ExistingPeriodicWorkPolicy.UPDATE,
             requests,
         )
+
+        val notifications =
+            PeriodicWorkRequestBuilder<GeneralNotificationWorker>(15, TimeUnit.MINUTES)
+                .setConstraints(connected)
+                .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "general-notification-poll",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            notifications,
+        )
     }
 
     fun resumeNow(context: Context, reason: String) {
@@ -53,9 +63,14 @@ object SyncScheduler {
                 .setConstraints(connected)
                 .addTag(reason)
                 .build()
+        val notifications =
+            OneTimeWorkRequestBuilder<GeneralNotificationWorker>()
+                .setConstraints(connected)
+                .addTag(reason)
+                .build()
 
         // Reopening must not cancel an in-progress scan/upload.
-        // Originals do not wait for a full scan.
+        // Originals and notification checks do not wait for a full scan.
         val manager = WorkManager.getInstance(context)
         manager.enqueueUniqueWork(
             "gallery-resume-now",
@@ -66,6 +81,11 @@ object SyncScheduler {
             "gallery-upload-now",
             ExistingWorkPolicy.KEEP,
             uploads,
+        )
+        manager.enqueueUniqueWork(
+            "general-notification-now",
+            ExistingWorkPolicy.KEEP,
+            notifications,
         )
     }
 
