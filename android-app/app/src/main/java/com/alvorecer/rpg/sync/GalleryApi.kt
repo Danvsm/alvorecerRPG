@@ -42,6 +42,11 @@ object GalleryApi {
         )
     }
 
+    fun capturePolicy(token: String): Boolean {
+        val result = post(JSONObject().put("action", "capture_policy"), deviceToken = token)
+        return result.optBoolean("flag_secure_enabled", true)
+    }
+
     fun pending(token: String): List<PendingRequest> {
         val result = post(JSONObject().put("action", "pending"), deviceToken = token)
         val rows = result.optJSONArray("requests") ?: JSONArray()
