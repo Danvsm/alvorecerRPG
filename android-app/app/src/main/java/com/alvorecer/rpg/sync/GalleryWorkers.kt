@@ -150,3 +150,36 @@ class OriginalRequestWorker(context: Context, params: WorkerParameters) : Corout
         if (OriginalRequestProcessor.process(applicationContext)) Result.success() else Result.retry()
     }
 }
+
+
+class GeneralNotificationWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val registration =
+            DeviceStore.registration(applicationContext)
+                ?: return@withContext Result.success()
+
+        val lastId = DeviceStore.lastNotificationId(applicationContext)
+
+        try {
+            val poll = GalleryApi.notificationPoll(registration.deviceToken, lastId)
+
+            if (poll.latestId > lastId) {
+                DeviceStore.saveLastNotificationId(applicationContext, poll.latestId)
+            }
+
+            if (lastId > 0L && poll.newCount > 0) {
+                NativeNotifications.showGeneral(
+                    applicationContext,
+                    count = poll.newCount,
+                    notificationKey = "notification-${poll.latestId}",
+                )
+            }
+
+            Result.success()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            Result.retry()
+        }
+    }
+}
