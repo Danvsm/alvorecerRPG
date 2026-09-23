@@ -108,10 +108,12 @@ export default function CharacterSheet({
             {character.race || "Raça não definida"}
           </p>
         </div>
-      </section>
-
-      <section className="panel sheet-resources" aria-label="Recursos atuais">
-        {resources.map((resource) => resourceControl(resource))}
+        <aside
+          className="sheet-identity-resources"
+          aria-label="Vida, Mana e Fôlego atuais"
+        >
+          {resources.map((resource) => resourceControl(resource))}
+        </aside>
       </section>
 
       <nav className="sheet-tabs" aria-label="Seções da ficha">
