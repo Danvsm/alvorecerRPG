@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+
+const STATIC_ASSET_CACHE =
+  "public, max-age=86400, stale-while-revalidate=604800";
+
 const config: NextConfig = {
   poweredByHeader: false,
   images: {
@@ -13,7 +17,7 @@ const config: NextConfig = {
   async headers() {
     return [
       {
-        source: "/image-cache-sw.js",
+        source: "/alvorecer-sw.js",
         headers: [
           {
             key: "Content-Type",
@@ -31,21 +35,27 @@ const config: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
-      {
-        source: "/combat/:asset*",
+      ...[
+        "/combat/:asset*",
+        "/community/:asset*",
+        "/jokenpo/:asset*",
+        "/treasure/:asset*",
+        "/audio/:asset*",
+      ].map((source) => ({
+        source,
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=604800",
+            value: STATIC_ASSET_CACHE,
           },
         ],
-      },
+      })),
       ...["/alvorecer-mark.svg", "/favicon.svg"].map((source) => ({
         source,
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=604800",
+            value: STATIC_ASSET_CACHE,
           },
         ],
       })),
