@@ -13,7 +13,7 @@ import {
 type WorkerListener = (event: Record<string, unknown>) => void;
 type CachedResponse = Response;
 
-const workerSource = readFileSync("public/image-cache-sw.js", "utf8");
+const workerSource = readFileSync("public/alvorecer-sw.js", "utf8");
 
 function createWorkerHarness(
   initialFetch: (request: { url: string }) => Promise<Response>,
@@ -56,7 +56,7 @@ function createWorkerHarness(
   };
   const worker = {
     location: {
-      href: "https://alvorecer.test/image-cache-sw.js",
+      href: "https://alvorecer.test/alvorecer-sw.js",
       origin: "https://alvorecer.test",
     },
     clients: { claim: async () => undefined },
@@ -153,10 +153,10 @@ test("image URLs keep their authorization token and change only with the asset v
 });
 
 test("the worker revision forces browsers to install the immutable-version cache update", () => {
-  assert.equal(IMAGE_CACHE_WORKER_REVISION, "8");
+  assert.equal(IMAGE_CACHE_WORKER_REVISION, "9");
   assert.equal(IMAGE_CACHE_NAME, "alvorecer-images-v2");
-  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=8");
-  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=8&debug=1");
+  assert.equal(imageCacheWorkerUrl(), "/alvorecer-sw.js?v=9");
+  assert.equal(imageCacheWorkerUrl(true), "/alvorecer-sw.js?v=9&debug=1");
   assert.match(workerSource, /alvorecer-images-v2/);
   assert.match(workerSource, /alvorecer-images-meta-v2/);
 });
@@ -340,7 +340,11 @@ test("integration keeps logout isolation, HTTP cache headers and development-onl
   assert.match(profile, /wallpaper\.updated_at \|\| wallpaper\.created_at/);
   assert.match(wallpaperManager, /versionedImageUrl/);
   assert.match(workerSource, /!versioned &&/);
+  assert.match(config, /source: "\/alvorecer-sw\\.js"/);
   assert.match(config, /no-cache, no-store, must-revalidate/);
+  assert.match(config, /\/jokenpo\/:asset\*/);
+  assert.match(config, /\/treasure\/:asset\*/);
+  assert.match(config, /\/audio\/:asset\*/);
   assert.match(
     config,
     /connect-src 'self' https:\/\/wsihnbrnqdnmidjvjchn\.supabase\.co/,

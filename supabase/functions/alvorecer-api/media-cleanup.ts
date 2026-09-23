@@ -226,6 +226,31 @@ export async function cleanup(req: Request) {
       deletion.data?.length ?? orphanThumbnailPaths.length;
   }
 
+  const legacyCacheAssets = await db.rpc("legacy_storage_cache_paths", {
+    p_limit: 25,
+  });
+  if (legacyCacheAssets.error)
+    throw new Error("Falha ao listar arquivos com cache antigo");
+
+  let normalizedCacheAssets = 0;
+  for (const asset of legacyCacheAssets.data || []) {
+    const downloaded = await db.storage
+      .from(asset.bucket_id)
+      .download(asset.path);
+    if (downloaded.error || !downloaded.data) continue;
+
+    const updated = await db.storage
+      .from(asset.bucket_id)
+      .update(asset.path, downloaded.data, {
+        cacheControl: "31536000",
+        contentType:
+          asset.mime_type ||
+          downloaded.data.type ||
+          "application/octet-stream",
+      });
+    if (!updated.error) normalizedCacheAssets++;
+  }
+
   const pendingChat =
     (expiredChat.data || []).length -
     removedChat +
@@ -285,6 +310,10 @@ export async function cleanup(req: Request) {
     galleryThumbnails: {
       found: orphanThumbnailPaths.length,
       removed: removedOrphanThumbnails,
+    },
+    storageCache: {
+      found: (legacyCacheAssets.data || []).length,
+      normalized: normalizedCacheAssets,
     },
   });
 }
