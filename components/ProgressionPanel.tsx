@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3, CircleHelp } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import type { Row } from "@/lib/types";
+import AttributeXpDialog from "./AttributeXpDialog";
 
 function compactNumber(value: number) {
   if (!Number.isFinite(value)) return "0";
@@ -40,6 +41,10 @@ export default function ProgressionPanel({
   const [rule, setRule] = useState<Row>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [purchase, setPurchase] = useState<{
+    attribute: Row;
+    currentValue: number;
+  } | null>(null);
 
   useEffect(() => {
     let valid = true;
@@ -98,27 +103,33 @@ export default function ProgressionPanel({
     [active, character.id, values],
   );
 
-  const buy = async (attribute: Row) => {
-    const value = attributeValue(attribute.id);
+  const openPurchase = (attribute: Row) => {
     if (!rule || busy) return;
-    if (
-      !confirm(
-        `Evoluir ${attribute.name} para ${value + 1} por ${rule.cost} XP?`,
-      )
-    )
-      return;
+    setPurchase({
+      attribute,
+      currentValue: attributeValue(attribute.id),
+    });
+  };
+
+  const buy = async (points: number) => {
+    if (!rule || !purchase || busy) return;
+    const cost = Number(rule.cost || 0);
+    const xpAmount = points * cost;
+    if (points <= 0 || cost <= 0 || xpAmount <= 0) return;
 
     setBusy(true);
     setError("");
     try {
-      const result = await browserDb().rpc("buy_attribute", {
+      const result = await browserDb().rpc("buy_attribute_xp", {
         c: character.campaign_id,
         target: character.id,
-        attribute: attribute.id,
+        attribute: purchase.attribute.id,
+        xp_amount: xpAmount,
         request_id: crypto.randomUUID(),
       });
       if (result.error) throw new Error(result.error.message);
       setRule(result.data);
+      setPurchase(null);
       await refresh();
     } catch (caught) {
       setError((caught as Error).message);
@@ -127,9 +138,26 @@ export default function ProgressionPanel({
     }
   };
 
+  const purchaseDialog =
+    purchase && rule ? (
+      <AttributeXpDialog
+        attributeName={String(purchase.attribute.name || "Atributo")}
+        currentValue={purchase.currentValue}
+        cap={Number(rule.cap || 0)}
+        availableXp={Number(character.xp || 0)}
+        cost={Number(rule.cost || 100)}
+        busy={busy}
+        close={() => {
+          if (!busy) setPurchase(null);
+        }}
+        confirm={buy}
+      />
+    ) : null;
+
   if (mode === "attributes") {
     return (
-      <section className="panel sheet-attributes sheet-tab-panel">
+      <>
+        <section className="panel sheet-attributes sheet-tab-panel">
         <div className="sheet-tab-heading">
           <BarChart3 size={19} />
           <div>
@@ -152,7 +180,7 @@ export default function ProgressionPanel({
                     Number(character.xp || 0) < Number(rule.cost || 0) ||
                     value >= Number(rule.cap || 0)
                   }
-                  onClick={() => void buy(attribute)}
+                  onClick={() => openPurchase(attribute)}
                 >
                   +1 · {compactNumber(Number(rule?.cost ?? 100))} XP
                 </button>
@@ -186,7 +214,9 @@ export default function ProgressionPanel({
             {error}
           </p>
         )}
-      </section>
+        </section>
+        {purchaseDialog}
+      </>
     );
   }
 
@@ -248,7 +278,7 @@ export default function ProgressionPanel({
                   Number(character.xp || 0) < Number(rule.cost || 0) ||
                   value >= Number(rule.cap || 0)
                 }
-                onClick={() => void buy(attribute)}
+                onClick={() => openPurchase(attribute)}
               >
                 +1 · {compactNumber(Number(rule?.cost ?? 100))} XP
               </button>
@@ -262,6 +292,7 @@ export default function ProgressionPanel({
           {error}
         </p>
       )}
+      {purchaseDialog}
     </>
   );
 }
