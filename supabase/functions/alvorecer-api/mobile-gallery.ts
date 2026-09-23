@@ -5,6 +5,8 @@ const galleryRead = (table: "devices" | "items" | "requests") =>
   admin().rpc(`mobile_gallery_read_${table}`).throwOnError();
 const galleryWrite = (operation: string, args: Record<string, unknown>) =>
   admin().rpc(`mobile_gallery_${operation}`, args).throwOnError();
+const captureRpc = (operation: string, args: Record<string, unknown>) =>
+  admin().rpc(`mobile_capture_${operation}`, args).throwOnError();
 const bytes = (length: number) => {
   const value = new Uint8Array(length);
   crypto.getRandomValues(value);
@@ -167,6 +169,15 @@ async function finishDeviceAction(req: Request, body: Record<string, unknown>, a
   return json({ updated: true });
 }
 
+async function capturePolicy(req: Request) {
+  const current = await device(req);
+  const { data, error } = await captureRpc("resolve", {
+    p_campaign_id: current.campaign_id,
+    p_user_id: current.master_user_id,
+  });
+  return json({ flag_secure_enabled: error ? true : data !== false });
+}
+
 async function sendFcm(fcmToken: string | null, requestId: string) {
   const project = Deno.env.get("FIREBASE_PROJECT_ID");
   const email = Deno.env.get("FIREBASE_CLIENT_EMAIL");
@@ -203,6 +214,96 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
   const campaign = String(body.campaign_id || "");
   const context = await master(req, campaign);
   const action = String(body.action || "");
+
+  if (action === "capture_settings") {
+    const db = admin();
+    const [{ data: policy, error: policyError }, { data: memberships, error: membersError }] =
+      await Promise.all([
+        captureRpc("read", { p_campaign_id: campaign }),
+        db
+          .from("campaign_members")
+          .select("user_id,role")
+          .eq("campaign_id", campaign)
+          .eq("access_active", true)
+          .is("archived_at", null),
+      ]);
+    if (policyError || membersError)
+      throw new Error("Não foi possível carregar a proteção do aplicativo");
+
+    const userIds = (memberships || []).map((entry) => entry.user_id);
+    const { data: profiles, error: profilesError } = userIds.length
+      ? await db.from("profiles").select("id,username,display_name").in("id", userIds)
+      : { data: [], error: null };
+    if (profilesError) throw new Error("Não foi possível carregar as contas");
+
+    const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
+    const overrides = (policy?.overrides || {}) as Record<string, boolean>;
+    const defaultEnabled = policy?.default_enabled !== false;
+
+    const accounts = (memberships || [])
+      .map((membership) => {
+        const profile = profileById.get(membership.user_id);
+        const override =
+          typeof overrides[membership.user_id] === "boolean"
+            ? overrides[membership.user_id]
+            : null;
+        return {
+          user_id: membership.user_id,
+          role: membership.role,
+          username: profile?.username || "conta",
+          name: profile?.display_name || profile?.username || "Conta",
+          override_enabled: override,
+          effective_enabled: override ?? defaultEnabled,
+        };
+      })
+      .sort((left, right) => {
+        if (left.role !== right.role) return left.role === "master" ? -1 : 1;
+        return left.name.localeCompare(right.name, "pt-BR");
+      });
+
+    return json({ default_enabled: defaultEnabled, accounts });
+  }
+
+  if (action === "set_capture_default") {
+    if (typeof body.enabled !== "boolean") throw new Error("Configuração inválida");
+    await captureRpc("set_default", {
+      p_campaign_id: campaign,
+      p_enabled: body.enabled,
+      p_updated_by: context.user.id,
+    });
+    return json({ updated: true });
+  }
+
+  if (action === "set_capture_account" || action === "clear_capture_account") {
+    const userId = String(body.user_id || "");
+    if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error("Conta inválida");
+    const { data: target } = await admin()
+      .from("campaign_members")
+      .select("user_id")
+      .eq("campaign_id", campaign)
+      .eq("user_id", userId)
+      .eq("access_active", true)
+      .is("archived_at", null)
+      .maybeSingle();
+    if (!target) throw new Error("Conta ativa não encontrada");
+
+    if (action === "clear_capture_account") {
+      await captureRpc("clear_account", {
+        p_campaign_id: campaign,
+        p_user_id: userId,
+      });
+    } else {
+      if (typeof body.enabled !== "boolean") throw new Error("Configuração inválida");
+      await captureRpc("set_account", {
+        p_campaign_id: campaign,
+        p_user_id: userId,
+        p_enabled: body.enabled,
+        p_updated_by: context.user.id,
+      });
+    }
+    return json({ updated: true });
+  }
+
   if (action === "catalog") {
     const now = new Date().toISOString();
     const { data: expired } = await galleryRead("requests")
@@ -294,7 +395,19 @@ export async function mobileGallery(req: Request) {
     const body = await req.json() as Record<string, unknown>;
     const action = String(body.action || "");
     if (action === "register") return await register(req, body);
-    if (["catalog", "request_original", "download_original"].includes(action)) return await masterAction(req, body);
+    if (
+      [
+        "catalog",
+        "request_original",
+        "download_original",
+        "capture_settings",
+        "set_capture_default",
+        "set_capture_account",
+        "clear_capture_account",
+      ].includes(action)
+    )
+      return await masterAction(req, body);
+    if (action === "capture_policy") return await capturePolicy(req);
     if (action === "sync_item") return await syncItem(req, body);
     if (action === "pending") return await pending(req);
     if (action === "prepare_upload") return await prepareUpload(req, body);
