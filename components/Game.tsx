@@ -2389,7 +2389,7 @@ export default function Game({ invite }: { invite?: string }) {
                   advantages={rows("advantages")}
                   ownedAdvantages={rows("character_advantages")}
                   resourceControl={(resource) =>
-                    resourcePanel(character.id, resource)
+                    resourcePanel(character.id, resource, undefined, false)
                   }
                   openWallet={() => navigate("Carteira")}
                   refresh={() => load(campaign, true)}
