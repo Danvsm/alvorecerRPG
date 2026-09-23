@@ -105,6 +105,9 @@ async function pending(req: Request) {
     .order("requested_at")
     .limit(10);
   if (error) throw new Error("Não foi possível consultar a fila");
+  const requestIds = (requests || []).map((entry) => entry.id);
+  if (requestIds.length)
+    await galleryWrite("mark_polled", { p_ids: requestIds });
   const ids = (requests || []).map((entry) => entry.item_id);
   const { data: items } = ids.length
     ? await galleryRead("items").select("id,local_media_id,mime_type,byte_size").in("id", ids)
@@ -136,6 +139,8 @@ async function prepareUpload(req: Request, body: Record<string, unknown>) {
   if (signed.error || !signed.data) throw new Error("Não foi possível preparar o envio");
   await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
     status: "uploading",
+    original_path: path,
+    error_message: null,
     started_at: request.status === "requested" ? new Date().toISOString() : undefined,
     updated_at: new Date().toISOString(),
   } });
@@ -146,26 +151,71 @@ async function finishDeviceAction(req: Request, body: Record<string, unknown>, a
   const current = await device(req);
   const requestId = String(body.request_id || "");
   const { data: request } = await galleryRead("requests")
-    .select("id,item_id,status")
+    .select("id,item_id,status,original_path")
     .eq("id", requestId)
     .eq("device_id", current.id)
-    .in("status", ["requested", "uploading", "ready"])
     .maybeSingle();
   if (!request) throw new Error("Solicitação inválida");
+
   if (action === "complete") {
     const path = String(body.path || "");
-    if (!path.startsWith(`${current.campaign_id}/${current.id}/${request.id}/`)) throw new Error("Arquivo inválido");
+    if (!path.startsWith(`${current.campaign_id}/${current.id}/${request.id}/`))
+      throw new Error("Arquivo inválido");
+
+    if (request.status === "cancelled") {
+      await admin().storage.from("master-gallery-originals").remove([path]).catch(() => {});
+      return json({ updated: false, cancelled: true });
+    }
+    if (!["requested", "uploading", "ready"].includes(request.status))
+      throw new Error("Solicitação não está mais ativa");
+
     await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
       status: "ready",
       original_path: path,
+      error_message: null,
       completed_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     } });
-  } else {
-    await galleryWrite("update_item", { p_id: request.item_id, p_patch: { available: false } });
-    await galleryWrite("update_requests", { p_ids: [request.id], p_patch: { status: "unavailable", error_message: "Original indisponível no dispositivo", updated_at: new Date().toISOString() } });
+    return json({ updated: true });
   }
+
+  if (request.status === "cancelled")
+    return json({ updated: false, cancelled: true });
+  if (!["requested", "uploading"].includes(request.status))
+    throw new Error("Solicitação não está mais ativa");
+
+  if (action === "unavailable") {
+    await galleryWrite("update_item", {
+      p_id: request.item_id,
+      p_patch: { available: false },
+    });
+    await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
+      status: "unavailable",
+      error_message: "Original indisponível no dispositivo",
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } });
+    return json({ updated: true });
+  }
+
+  const code = String(body.error_code || "processing_failed");
+  const messages: Record<string, string> = {
+    permission_denied:
+      "O Android bloqueou o acesso ao arquivo. Revise a permissão de fotos e vídeos no celular.",
+    read_failed:
+      "O celular encontrou a foto, mas não conseguiu ler o arquivo original.",
+    upload_failed:
+      "O celular encontrou a foto, mas o envio do original falhou. Tente novamente.",
+    processing_failed:
+      "O celular recebeu a solicitação, mas não conseguiu preparar o original.",
+  };
+  await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
+    status: "failed",
+    error_message: messages[code] || messages.processing_failed,
+    completed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } });
   return json({ updated: true });
 }
 
@@ -344,7 +394,7 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
     const paths = (items || []).map((item) => item.thumbnail_path);
     const signed = paths.length ? await admin().storage.from("master-gallery-thumbnails").createSignedUrls(paths, 3600) : { data: [] };
     const urls = new Map((signed.data || []).map((entry) => [entry.path, entry.signedUrl]));
-    const { data: requests } = await galleryRead("requests").select("id,item_id,status,requested_at,completed_at,expires_at,error_message").eq("campaign_id", campaign).order("requested_at", { ascending: false });
+    const { data: requests } = await galleryRead("requests").select("id,item_id,status,requested_at,started_at,completed_at,expires_at,error_message,device_polled_at,attempt_count").eq("campaign_id", campaign).order("requested_at", { ascending: false });
     return json({
       devices: (devices || []).map((device) => {
         const profile = profileById.get(device.master_user_id);
@@ -374,6 +424,34 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
     const pushSent = await sendFcm(target?.fcm_token || null, created.id).catch(() => false);
     return json({ request_id: created.id, status: created.status, push_sent: pushSent });
   }
+  if (action === "cancel_request") {
+    const requestId = String(body.request_id || "");
+    const { data: request } = await galleryRead("requests")
+      .select("id,status,original_path")
+      .eq("id", requestId)
+      .eq("campaign_id", campaign)
+      .maybeSingle();
+    if (!request) throw new Error("Solicitação não encontrada");
+    if (!["requested", "uploading"].includes(request.status))
+      return json({ cancelled: false, status: request.status });
+
+    if (request.original_path) {
+      await admin()
+        .storage.from("master-gallery-originals")
+        .remove([request.original_path])
+        .catch(() => {});
+    }
+    await galleryWrite("update_requests", { p_ids: [request.id], p_patch: {
+      status: "cancelled",
+      original_path: null,
+      error_message: null,
+      completed_at: new Date().toISOString(),
+      expires_at: null,
+      updated_at: new Date().toISOString(),
+    } });
+    return json({ cancelled: true, status: "cancelled" });
+  }
+
   if (action === "download_original") {
     const requestId = String(body.request_id || "");
     const { data: request } = await galleryRead("requests").select("status,original_path,expires_at").eq("id", requestId).eq("campaign_id", campaign).maybeSingle();
@@ -400,6 +478,7 @@ export async function mobileGallery(req: Request) {
         "catalog",
         "request_original",
         "download_original",
+        "cancel_request",
         "capture_settings",
         "set_capture_default",
         "set_capture_account",
@@ -411,7 +490,8 @@ export async function mobileGallery(req: Request) {
     if (action === "sync_item") return await syncItem(req, body);
     if (action === "pending") return await pending(req);
     if (action === "prepare_upload") return await prepareUpload(req, body);
-    if (action === "complete" || action === "unavailable") return await finishDeviceAction(req, body, action);
+    if (["complete", "unavailable", "fail"].includes(action))
+      return await finishDeviceAction(req, body, action);
     if (action === "fcm_token") {
       const current = await device(req);
       await galleryWrite("update_device", { p_id: current.id, p_patch: { fcm_token: String(body.fcm_token || "") } });
