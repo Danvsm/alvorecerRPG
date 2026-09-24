@@ -8,7 +8,13 @@ import java.net.URL
 
 data class PendingRequest(val id: String, val localMediaId: String, val mimeType: String, val byteSize: Long)
 data class UploadTarget(val url: String, val path: String)
-data class NotificationPollResult(val latestId: Long, val newCount: Int)
+data class NotificationPollResult(
+    val latestId: Long,
+    val newCount: Int,
+    val latestKind: String?,
+    val latestTitle: String?,
+    val latestBody: String?,
+)
 
 object GalleryApi {
     private val endpoint = "https://wsihnbrnqdnmidjvjchn.supabase.co/functions/v1/alvorecer-api/mobile-gallery"
@@ -58,6 +64,9 @@ object GalleryApi {
         return NotificationPollResult(
             latestId = result.optLong("latest_id", afterId),
             newCount = result.optInt("new_count", 0),
+            latestKind = result.optString("latest_kind").takeIf { it.isNotBlank() && it != "null" },
+            latestTitle = result.optString("latest_title").takeIf { it.isNotBlank() && it != "null" },
+            latestBody = result.optString("latest_body").takeIf { it.isNotBlank() && it != "null" },
         )
     }
 
