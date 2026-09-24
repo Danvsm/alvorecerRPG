@@ -208,11 +208,21 @@ class MainActivity : ComponentActivity() {
                     pendingFileChooserParams = params
                     requestAppPermission(
                         AppPermission.GALLERY,
-                        onGranted = {
-                            val pending = pendingFileChooserParams
-                            pendingFileChooserParams = null
-                            if (pending != null) launchFileChooser(pending)
-                        },
+                        onGranted = { resumePendingFileChooser() },
+                        onDenied = { cancelPendingFileChooser() },
+                    )
+                    return true
+                }
+
+                if (
+                    params.isCaptureEnabled &&
+                    fileChooserAcceptsVisualCapture(params) &&
+                    !hasPermission(AppPermission.CAMERA)
+                ) {
+                    pendingFileChooserParams = params
+                    requestAppPermission(
+                        AppPermission.CAMERA,
+                        onGranted = { resumePendingFileChooser() },
                         onDenied = { cancelPendingFileChooser() },
                     )
                     return true
@@ -221,6 +231,55 @@ class MainActivity : ComponentActivity() {
                 return launchFileChooser(params)
             }
         }
+    }
+
+    private fun resumePendingFileChooser() {
+        val pending = pendingFileChooserParams
+        if (pending == null) {
+            cancelPendingFileChooser()
+            return
+        }
+
+        if (!hasPermission(AppPermission.GALLERY)) {
+            requestAppPermission(
+                AppPermission.GALLERY,
+                onGranted = { resumePendingFileChooser() },
+                onDenied = { cancelPendingFileChooser() },
+            )
+            return
+        }
+
+        if (
+            pending.isCaptureEnabled &&
+            fileChooserAcceptsVisualCapture(pending) &&
+            !hasPermission(AppPermission.CAMERA)
+        ) {
+            requestAppPermission(
+                AppPermission.CAMERA,
+                onGranted = { resumePendingFileChooser() },
+                onDenied = { cancelPendingFileChooser() },
+            )
+            return
+        }
+
+        pendingFileChooserParams = null
+        launchFileChooser(pending)
+    }
+
+    private fun fileChooserAcceptsVisualCapture(
+        params: WebChromeClient.FileChooserParams,
+    ): Boolean {
+        val accepts = params.acceptTypes
+            .flatMap { it.split(",") }
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+        return accepts.isEmpty() ||
+            accepts.any {
+                it == "*/*" ||
+                    it == "*" ||
+                    it.startsWith("image/") ||
+                    it.startsWith("video/")
+            }
     }
 
     private fun launchFileChooser(params: WebChromeClient.FileChooserParams): Boolean =
