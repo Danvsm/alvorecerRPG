@@ -48,6 +48,15 @@ const textPostMigration = async () =>
     "utf8",
   );
 
+const mentionMigration = async () =>
+  readFile(
+    new URL(
+      "../supabase/migrations/20260924021500_community_comment_mentions.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
 test("Orkutista feed enforces identity, unique likes and one-level replies", async () => {
   const db = new PGlite();
   try {
@@ -72,6 +81,8 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
         campaign_id uuid references public.campaigns(id),
         user_id uuid references public.profiles(id),
         role text not null,
+        access_active boolean not null default true,
+        archived_at timestamptz,
         primary key(campaign_id,user_id)
       );
       create table public.social_identities(
@@ -82,6 +93,18 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
         name text not null,
         subtitle text not null default '',
         active boolean not null default true
+      );
+      create table public.notifications(
+        id bigserial primary key,
+        campaign_id uuid not null references public.campaigns(id),
+        user_id uuid not null references public.profiles(id),
+        kind text not null,
+        title text not null,
+        reference_id text,
+        read_at timestamptz,
+        dismissed_at timestamptz,
+        created_at timestamptz not null default now(),
+        body text
       );
       create table public.campaign_events(
         campaign_id uuid primary key references public.campaigns(id),
@@ -120,6 +143,7 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
     await db.exec(await commentDeletionMigration());
     await db.exec(await paginationMigration());
     await db.exec(await textPostMigration());
+    await db.exec(await mentionMigration());
 
     const campaign = crypto.randomUUID();
     const master = crypto.randomUUID();
@@ -293,8 +317,28 @@ test("Orkutista feed enforces identity, unique likes and one-level replies", asy
       actor_id: otherIdentity,
       post_id: post.id,
       parent_id: root.id,
-      body: "Também gostei.",
+      body: "@darkvsm Também gostei.",
+      mention_ids: [playerIdentity],
     });
+    const mentionNotification = (
+      await db.query<{
+        user_id: string;
+        kind: string;
+        title: string;
+        body: string;
+        reference_id: string;
+      }>(
+        "select user_id,kind,title,body,reference_id from notifications order by id desc limit 1",
+      )
+    ).rows[0];
+    assert.equal(mentionNotification.user_id, player);
+    assert.equal(mentionNotification.kind, "mention");
+    assert.match(mentionNotification.title, /Gabriel mencionou darkvsm/);
+    assert.equal(
+      mentionNotification.body,
+      "Você recebeu uma menção em um comentário da Comunidade.",
+    );
+    assert.equal(mentionNotification.reference_id, post.id);
     await assert.rejects(
       action("comment", {
         actor_id: otherIdentity,
@@ -513,6 +557,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     commentDeletionSource,
     paginationSource,
     textPostSource,
+    mentionSource,
     communityStyles,
   ] = await Promise.all([
     readFile(
@@ -537,6 +582,7 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     commentDeletionMigration(),
     paginationMigration(),
     textPostMigration(),
+    mentionMigration(),
     readFile(
       new URL("../components/CommunityPanel.module.css", import.meta.url),
       "utf8",
@@ -573,6 +619,9 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
   assert.match(feed, /Excluir publicação/);
   assert.match(feed, /master \|\| post\.author_id === actor/);
   assert.match(feed, /parent_id: replyingTo\?\.id \|\| null/);
+  assert.match(feed, /mention_ids: validMentionIds/);
+  assert.match(feed, /Mencionar jogador/);
+  assert.match(feed, /renderMentionBody/);
   assert.doesNotMatch(feed, /video|reel|share/i);
   assert.match(media, /uploadCommunityPostImage/);
   assert.match(media, /1600/);
@@ -611,6 +660,9 @@ test("community feed UI keeps post media optimized and interactions scoped", asy
     /media_path is null and char_length\(content\)>1000/,
   );
   assert.match(textPostSource, /if old\.image_path is not null then/);
+  assert.match(mentionSource, /'mention'/);
+  assert.match(mentionSource, /mention_ids/);
+  assert.match(mentionSource, /mencionou/);
   assert.match(communityStyles, /\.feedCard\s*\{[^}]*border:\s*0;/s);
   assert.match(
     communityStyles,
