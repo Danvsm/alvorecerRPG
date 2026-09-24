@@ -21,6 +21,7 @@ export default function CharacterSlotSettings({
   const [rows, setRows] = useState<SlotRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState("");
+  const [drafts, setDrafts] = useState({ class: "", race: "" });
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -62,9 +63,66 @@ export default function CharacterSlotSettings({
     }
   };
 
+  const addOption = async (kind: "class" | "race") => {
+    const value = drafts[kind].trim();
+    if (value.length < 2) return;
+    const key = `add:${kind}`;
+    setBusyKey(key);
+    setError("");
+    try {
+      const result = await browserDb().rpc("add_character_option", {
+        c: campaign,
+        p_kind: kind,
+        p_value: value,
+      });
+      if (result.error) throw result.error;
+      setDrafts((current) => ({ ...current, [kind]: "" }));
+      await load();
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyKey("");
+    }
+  };
+
   const group = (kind: "class" | "race", title: string) => (
     <div className="character-slot-group">
-      <h3>{title}</h3>
+      <div className="character-option-heading">
+        <h3>{title}</h3>
+        <div className="character-option-add">
+          <input
+            value={drafts[kind]}
+            onChange={(event) =>
+              setDrafts((current) => ({
+                ...current,
+                [kind]: event.target.value,
+              }))
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void addOption(kind);
+              }
+            }}
+            placeholder={kind === "class" ? "Nova classe" : "Nova raça"}
+            maxLength={120}
+            aria-label={kind === "class" ? "Nome da nova classe" : "Nome da nova raça"}
+          />
+          <button
+            type="button"
+            className="secondary"
+            disabled={Boolean(busyKey) || drafts[kind].trim().length < 2}
+            onClick={() => void addOption(kind)}
+          >
+            <Plus size={16} />
+            {busyKey === `add:${kind}`
+              ? "Adicionando..."
+              : kind === "class"
+                ? "Adicionar classe"
+                : "Adicionar raça"}
+          </button>
+        </div>
+      </div>
       {rows
         .filter((row) => row.option_kind === kind)
         .map((row) => {
@@ -124,9 +182,9 @@ export default function CharacterSlotSettings({
       <div>
         <h2>Vagas de classes e raças</h2>
         <p>
-          Cada classe e raça começa com 1 vaga. Use os botões para aumentar ou
-          diminuir o total. O limite nunca pode ficar abaixo das vagas que já
-          estão ocupadas.
+          Cada classe e raça começa com 1 vaga. Você também pode criar novas
+          opções para a campanha. Use os botões para aumentar ou diminuir o total;
+          o limite nunca pode ficar abaixo das vagas que já estão ocupadas.
         </p>
       </div>
       {error && <div className="notice">{error}</div>}
