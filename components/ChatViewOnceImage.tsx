@@ -58,13 +58,15 @@ export default function ChatViewOnceImage({
     setUrl("");
     setSeconds(0);
     setExpired(true);
-    await browserDb()
-      .rpc("chat_media_action", {
+    try {
+      await browserDb().rpc("chat_media_action", {
         c: campaign,
         op: "consume_once",
         d: { actor_id: actor, media_id: id },
-      })
-      .catch(() => {});
+      });
+    } catch {
+      // A janela de leitura também expira no servidor.
+    }
   }, [actor, campaign, id, mine]);
 
   useEffect(() => {
