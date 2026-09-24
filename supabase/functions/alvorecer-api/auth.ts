@@ -9,6 +9,8 @@ import {
   provision,
   throttle,
 } from "./server.ts";
+
+class PlayerAppOnlyError extends Error {}
 const schema = z
   .object({
     action: z.enum(["login", "invite"]),
@@ -18,6 +20,8 @@ const schema = z
       .toLowerCase()
       .regex(/^[a-z0-9_]{3,32}$/),
     password: z.string().min(6).max(72),
+    client: z.enum(["web", "android"]).default("web"),
+    webAccessCode: z.string().trim().max(120).optional(),
     token: z.string().max(128).optional(),
     fullName: z.string().trim().max(160).optional(),
     email: z.string().trim().toLowerCase().email().max(254).optional(),
@@ -110,22 +114,37 @@ export async function POST(req: Request) {
           .eq("user_id", p.id)
           .single()
       : { data: null };
+    let activeRoles: string[] = [];
     if (p) {
-      const { data: membership } = await db
+      const { data: memberships } = await db
         .from("campaign_members")
-        .select("user_id")
+        .select("role")
         .eq("user_id", p.id)
         .eq("access_active", true)
-        .is("archived_at", null)
-        .limit(1)
-        .maybeSingle();
-      if (!membership) throw new Error("Acesso desativado. Fale com o Mestre.");
+        .is("archived_at", null);
+      activeRoles = (memberships || []).map((membership) =>
+        String(membership.role || ""),
+      );
+      if (!activeRoles.length)
+        throw new Error("Acesso desativado. Fale com o Mestre.");
     }
+
     const { data, error } = await publicAuth().auth.signInWithPassword({
       email: v?.identity || "unknown@auth.alvorecer.invalid",
       password: d.password,
     });
     if (error || !data.session) throw new Error("Username ou senha incorretos");
+
+    const playerOnly =
+      activeRoles.length > 0 && activeRoles.every((role) => role === "player");
+    if (d.action === "login" && d.client === "web" && playerOnly) {
+      const { data: allowed, error: accessError } = await db.rpc(
+        "verify_web_player_access_code",
+        { p_code: d.webAccessCode || "" },
+      );
+      if (accessError || allowed !== true) throw new PlayerAppOnlyError();
+    }
+
     return Response.json(
       {
         access_token: data.session.access_token,
@@ -134,10 +153,12 @@ export async function POST(req: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (e) {
+    const playerAppOnly = e instanceof PlayerAppOnlyError;
     return Response.json(
       {
-        error:
-          e instanceof z.ZodError
+        error: playerAppOnly
+          ? "Entre pelo aplicativo Alvorecer."
+          : e instanceof z.ZodError
             ? e.issues
                 .map((issue) =>
                   issue.path[0] === "birthDate"
@@ -146,8 +167,12 @@ export async function POST(req: Request) {
                 )
                 .join(" ")
             : (e as Error).message,
+        code: playerAppOnly ? "PLAYER_APP_ONLY" : undefined,
       },
-      { status: 400, headers: { "Cache-Control": "no-store" } },
+      {
+        status: playerAppOnly ? 403 : 400,
+        headers: { "Cache-Control": "no-store" },
+      },
     );
   }
 }
