@@ -89,6 +89,20 @@ object SyncScheduler {
         )
     }
 
+    fun forceGalleryScanNow(context: Context, reason: String = "gallery_permission_changed") {
+        val scan =
+            OneTimeWorkRequestBuilder<GallerySyncWorker>()
+                .setConstraints(connected)
+                .addTag(reason)
+                .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "gallery-resume-now",
+            ExistingWorkPolicy.REPLACE,
+            scan,
+        )
+    }
+
     fun pollOriginalsNow(context: Context, reason: String = "foreground_original_poll") {
         val request =
             OneTimeWorkRequestBuilder<OriginalRequestWorker>()
