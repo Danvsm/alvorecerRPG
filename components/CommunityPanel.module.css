@@ -5344,3 +5344,95 @@ dialog.commentsSheet {
     justify-self: stretch;
   }
 }
+
+
+.commentMention {
+  display: inline;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 1px;
+  padding: 0;
+  border: 0;
+  color: #e9b566;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  line-height: inherit;
+  vertical-align: baseline;
+}
+
+.commentMention:hover,
+.commentMention:focus-visible {
+  color: #ffd28e;
+  text-decoration: underline;
+  background: transparent;
+}
+
+.commentComposerWrap {
+  position: relative;
+}
+
+.mentionSuggestions {
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  max-height: 264px;
+  overflow-y: auto;
+  padding: 7px;
+  border: 1px solid #5d4934;
+  border-radius: 13px;
+  background: #0d0b0f;
+  box-shadow: 0 18px 50px #000a;
+}
+
+.mentionSuggestionsTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px 8px;
+  color: #b99a70;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mentionSuggestions > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 46px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 10px;
+  color: #f3e6d3;
+  background: transparent;
+  text-align: left;
+}
+
+.mentionSuggestions > button:hover,
+.mentionSuggestions > button:focus-visible {
+  background: #2c1c16;
+}
+
+.mentionSuggestions > button > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.mentionSuggestions > button strong,
+.mentionSuggestions > button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mentionSuggestions > button small {
+  color: #918679;
+  font-size: 0.7rem;
+}
