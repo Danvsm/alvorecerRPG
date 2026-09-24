@@ -119,6 +119,22 @@ import {
   installAlvorecerSoundUnlock,
   playAlvorecerSound,
 } from "@/lib/site-sounds";
+const CHARACTER_CLASSES = [
+  "Lutador",
+  "Assassino",
+  "Arqueiro-Guerreiro",
+  "Suporte",
+  "Cavaleiro Tank Celestial",
+  "Arcano",
+  "Necromante",
+  "Druida",
+  "Monge",
+  "Cavaleiro/Guerreiro",
+  "Bárbaro",
+  "Bardo",
+  "Bruxo/Pactuário",
+] as const;
+
 const CHARACTER_RACES = [
   "Humanos",
   "Anões",
@@ -1518,7 +1534,16 @@ export default function Game({ invite }: { invite?: string }) {
                   <div className="invite-pair">
                     <label>
                       Classe
-                      <input name="characterClass" maxLength={120} />
+                      <select name="characterClass" defaultValue="" required>
+                        <option value="" disabled>
+                          Selecione sua classe
+                        </option>
+                        {CHARACTER_CLASSES.map((characterClass) => (
+                          <option key={characterClass} value={characterClass}>
+                            {characterClass}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <label>
                       Raça
