@@ -70,9 +70,7 @@ const postDate = new Intl.DateTimeFormat("pt-BR", {
 const FEED_PAGE_SIZE = 5;
 
 function escapeMentionPattern(value: string) {
-  return value.replace(/[.*+?^$()|[\]\\]/g, "\\const FEED_PAGE_SIZE = 5;
-
-export default function CommunityFeed({");
+  return value.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
 }
 
 function renderMentionBody(
