@@ -99,7 +99,10 @@ async function syncItem(req: Request, body: Record<string, unknown>) {
 async function pending(req: Request) {
   const current = await device(req);
   const { data: requests, error } = await galleryRead("requests")
-    .select("id,item_id")
+    // PostgREST can only order RPC rows by columns kept in its source CTE.
+    // Keep requested_at in the projection even though the Android payload
+    // does not need to expose it.
+    .select("id,item_id,requested_at")
     .eq("device_id", current.id)
     .in("status", ["requested", "uploading"])
     .order("requested_at")
