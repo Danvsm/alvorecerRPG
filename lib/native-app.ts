@@ -11,6 +11,10 @@ declare global {
   }
 }
 
+export function isAndroidApp() {
+  return typeof window !== "undefined" && Boolean(window.AlvorecerNative);
+}
+
 export function startAndroidGalleryRegistration(campaignId: string, userId: string, accessToken: string) {
   if (typeof window === "undefined" || !window.AlvorecerNative) return;
   const bridge = window.AlvorecerNative;
