@@ -9479,3 +9479,44 @@ dialog.combat-sheet {
     line-height: 1.35;
   }
 }
+
+
+.web-access-settings {
+  display: grid;
+  gap: 18px;
+}
+
+.web-access-settings > div:first-child > p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  max-width: 760px;
+}
+
+.web-access-player-list {
+  display: grid;
+  gap: 10px;
+}
+
+.web-access-player {
+  gap: 14px;
+}
+
+.web-access-player > div:first-child {
+  min-width: 0;
+}
+
+.web-access-player p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 560px) {
+  .web-access-player {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .web-access-player button {
+    width: 100%;
+  }
+}
