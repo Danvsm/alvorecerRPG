@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage } from "@/lib/network";
 
@@ -42,15 +42,16 @@ export default function CharacterSlotSettings({
     void load();
   }, [load]);
 
-  const increase = async (row: SlotRow) => {
-    const key = `${row.option_kind}:${row.option_value}`;
+  const adjust = async (row: SlotRow, delta: -1 | 1) => {
+    const key = `${row.option_kind}:${row.option_value}:${delta}`;
     setBusyKey(key);
     setError("");
     try {
-      const result = await browserDb().rpc("increase_character_option_slot", {
+      const result = await browserDb().rpc("adjust_character_option_slot", {
         c: campaign,
         p_kind: row.option_kind,
         p_value: row.option_value,
+        p_delta: delta,
       });
       if (result.error) throw result.error;
       await load();
@@ -80,15 +81,38 @@ export default function CharacterSlotSettings({
                   {row.remaining_slots === 1 ? "disponível" : "disponíveis"}
                 </p>
               </div>
-              <button
-                type="button"
-                className="secondary"
-                disabled={Boolean(busyKey)}
-                onClick={() => void increase(row)}
-              >
-                <Plus size={16} />
-                {busyKey === key ? "Aumentando..." : "Adicionar vaga"}
-              </button>
+              <div className="character-slot-controls">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={
+                    Boolean(busyKey) ||
+                    row.max_slots <= Math.max(1, row.used_slots)
+                  }
+                  onClick={() => void adjust(row, -1)}
+                  aria-label={`Diminuir vagas de ${row.option_value}`}
+                  title={
+                    row.max_slots <= Math.max(1, row.used_slots)
+                      ? "Não é possível diminuir abaixo das vagas ocupadas"
+                      : "Diminuir uma vaga"
+                  }
+                >
+                  <Minus size={16} />
+                  {busyKey === `${key}:-1` ? "Diminuindo..." : "Diminuir"}
+                </button>
+                <strong className="character-slot-total">{row.max_slots}</strong>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={Boolean(busyKey) || row.max_slots >= 100}
+                  onClick={() => void adjust(row, 1)}
+                  aria-label={`Aumentar vagas de ${row.option_value}`}
+                  title="Aumentar uma vaga"
+                >
+                  <Plus size={16} />
+                  {busyKey === `${key}:1` ? "Aumentando..." : "Aumentar"}
+                </button>
+              </div>
             </div>
           );
         })}
@@ -100,8 +124,9 @@ export default function CharacterSlotSettings({
       <div>
         <h2>Vagas de classes e raças</h2>
         <p>
-          Cada classe e raça começa com 1 vaga. Quando uma vaga é ocupada, novos
-          jogadores não podem escolhê-la até você adicionar outra.
+          Cada classe e raça começa com 1 vaga. Use os botões para aumentar ou
+          diminuir o total. O limite nunca pode ficar abaixo das vagas que já
+          estão ocupadas.
         </p>
       </div>
       {error && <div className="notice">{error}</div>}
