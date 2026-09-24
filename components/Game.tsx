@@ -341,7 +341,8 @@ export default function Game({ invite }: { invite?: string }) {
     } | null>(null),
     [deletedCharacterName, setDeletedCharacterName] = useState(""),
     [webPlayerBlocked, setWebPlayerBlocked] = useState(false),
-    [webAccessChecked, setWebAccessChecked] = useState(false);
+    [webAccessChecked, setWebAccessChecked] = useState(false),
+    [webAccessRequired, setWebAccessRequired] = useState(false);
   const requestVersion = useRef(0);
   const loadInFlight = useRef<{
     campaign: string;
@@ -489,6 +490,7 @@ export default function Game({ invite }: { invite?: string }) {
       setSession(s);
       if (!s) {
         clearAndroidWebSession();
+        sessionStorage.removeItem("alvorecer:web-player-override");
         setChatPeer(undefined);
         setSpeakingAs("");
         setData({});
@@ -614,13 +616,17 @@ export default function Game({ invite }: { invite?: string }) {
       const activeMemberships = memberships.filter(
         (member) => member.access_active && !member.archived_at,
       );
+      const browserOverride =
+        sessionStorage.getItem("alvorecer:web-player-override") === "1";
       const browserPlayerOnly =
         !isAndroidApp() &&
+        !browserOverride &&
         activeMemberships.length > 0 &&
         activeMemberships.every((member) => member.role === "player");
 
       if (browserPlayerOnly) {
         setWebPlayerBlocked(true);
+        setWebAccessRequired(true);
         setWebAccessChecked(true);
         await db.auth.signOut();
         return;
@@ -1054,6 +1060,8 @@ export default function Game({ invite }: { invite?: string }) {
           action: invite ? "invite" : "login",
           username: d.username,
           password: d.password,
+          client: isAndroidApp() ? "android" : "web",
+          webAccessCode: d.webAccessCode,
           token: invite,
           fullName: d.fullName,
           email: d.email,
@@ -1064,13 +1072,25 @@ export default function Game({ invite }: { invite?: string }) {
         }),
       });
       const s = await r.json();
-      if (!r.ok) throw new Error(s.error);
+      if (!r.ok) {
+        if (s.code === "PLAYER_APP_ONLY") {
+          setWebAccessRequired(true);
+          setError("");
+          return;
+        }
+        throw new Error(s.error);
+      }
 
       if (invite) {
         location.replace("/inscricao-concluida");
         return;
       }
 
+      if (!isAndroidApp() && d.webAccessCode) {
+        sessionStorage.setItem("alvorecer:web-player-override", "1");
+      }
+      setWebPlayerBlocked(false);
+      setWebAccessRequired(false);
       const { error } = await browserDb().auth.setSession(s);
       if (error) throw error;
     });
@@ -1363,27 +1383,6 @@ export default function Game({ invite }: { invite?: string }) {
       </main>
     );
 
-  if (!invite && webPlayerBlocked)
-    return (
-      <main className="auth">
-        <div className="auth-panel">
-          <Brand />
-          <div className="auth-symbol">
-            <Smartphone size={42} />
-          </div>
-          <p className="eyebrow">ACESSO DO JOGADOR</p>
-          <h1>Use o aplicativo Alvorecer.</h1>
-          <p>
-            Sua conta de jogador está ativa, mas a área da campanha fica
-            disponível somente pelo aplicativo.
-          </p>
-          <p className="muted">
-            Abra o APK do Alvorecer e entre com o mesmo username e senha.
-          </p>
-        </div>
-      </main>
-    );
-
   if (!invite && session && !webAccessChecked)
     return (
       <main className="auth">
@@ -1514,6 +1513,29 @@ export default function Game({ invite }: { invite?: string }) {
                   </label>
                 </>
               )}
+              {!invite && webAccessRequired && (
+                <div className="web-player-access-notice" role="alert">
+                  <div className="web-player-access-heading">
+                    <Smartphone size={20} />
+                    <strong>Entre pelo aplicativo Alvorecer.</strong>
+                  </div>
+                  <p>
+                    Esta conta é de jogador. Para abrir pelo navegador em modo
+                    de teste, informe o código de acesso.
+                  </p>
+                  <label>
+                    Código de acesso
+                    <input
+                      name="webAccessCode"
+                      type="password"
+                      required
+                      autoComplete="off"
+                      placeholder="Digite o código"
+                      autoFocus
+                    />
+                  </label>
+                </div>
+              )}
               <button className="primary" disabled={busy}>
                 {busy
                   ? invite
@@ -1521,7 +1543,9 @@ export default function Game({ invite }: { invite?: string }) {
                     : "Entrando..."
                   : invite
                     ? "Concluir inscrição"
-                    : "Entrar"}
+                    : webAccessRequired
+                      ? "Entrar com código"
+                      : "Entrar"}
                 <ChevronRight size={18} />
               </button>
             </form>
