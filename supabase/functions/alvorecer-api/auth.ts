@@ -11,6 +11,22 @@ import {
 } from "./server.ts";
 
 class PlayerAppOnlyError extends Error {}
+const CHARACTER_CLASSES = [
+  "Lutador",
+  "Assassino",
+  "Arqueiro-Guerreiro",
+  "Suporte",
+  "Cavaleiro Tank Celestial",
+  "Arcano",
+  "Necromante",
+  "Druida",
+  "Monge",
+  "Cavaleiro/Guerreiro",
+  "Bárbaro",
+  "Bardo",
+  "Bruxo/Pactuário",
+] as const;
+
 const CHARACTER_RACES = [
   "Humanos",
   "Anões",
@@ -46,7 +62,7 @@ const schema = z
       .optional()
       .or(z.literal("")),
     characterName: z.string().trim().max(120).optional(),
-    characterClass: z.string().trim().max(120).optional(),
+    characterClass: z.enum(CHARACTER_CLASSES).optional(),
     characterRace: z.enum(CHARACTER_RACES).optional(),
   })
   .superRefine((value, context) => {
@@ -74,6 +90,12 @@ const schema = z
         code: "custom",
         path: ["characterName"],
         message: "Personagem obrigatório",
+      });
+    if (!value.characterClass)
+      context.addIssue({
+        code: "custom",
+        path: ["characterClass"],
+        message: "Classe obrigatória",
       });
     if (!value.characterRace)
       context.addIssue({
