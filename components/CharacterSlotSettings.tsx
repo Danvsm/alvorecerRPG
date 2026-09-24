@@ -76,8 +76,8 @@ export default function CharacterSlotSettings({
                   {row.used_slots} em uso de {row.max_slots}{" "}
                   {row.max_slots === 1 ? "vaga" : "vagas"}
                   {" · "}
-                  {row.remaining_slots} disponível
-                  {row.remaining_slots === 1 ? "" : "is"}
+                  {row.remaining_slots}{" "}
+                  {row.remaining_slots === 1 ? "disponível" : "disponíveis"}
                 </p>
               </div>
               <button
