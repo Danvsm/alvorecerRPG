@@ -39,8 +39,18 @@ class GallerySyncWorker(context: Context, params: WorkerParameters) : CoroutineW
         val registration = DeviceStore.registration(applicationContext) ?: return@withContext Result.success()
         val token = registration.deviceToken
         runCatching {
-            MediaIndexer.scan(applicationContext, registration.deviceId) { item, thumbnail -> GalleryApi.syncItem(token, item, thumbnail) }
-        }.fold(onSuccess = { Result.success() }, onFailure = { Result.retry() })
+            MediaIndexer.scan(applicationContext, registration.deviceId) { item, thumbnail ->
+                runCatching {
+                    GalleryApi.syncItem(token, item, thumbnail)
+                    true
+                }.getOrDefault(false)
+            }
+        }.fold(
+            onSuccess = { scan ->
+                if (scan.failed > 0) Result.retry() else Result.success()
+            },
+            onFailure = { Result.retry() },
+        )
     }
 }
 

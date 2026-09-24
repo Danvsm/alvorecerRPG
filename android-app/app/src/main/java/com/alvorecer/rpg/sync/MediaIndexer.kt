@@ -9,8 +9,22 @@ import android.util.Base64
 import android.util.Size
 import java.io.ByteArrayOutputStream
 
+data class MediaScanResult(
+    val discovered: Int,
+    val synced: Int,
+    val failed: Int,
+)
+
 object MediaIndexer {
-    fun scan(context: Context, deviceId: String, onItem: (IndexedMedia, String) -> Unit) {
+    fun scan(
+        context: Context,
+        deviceId: String,
+        onItem: (IndexedMedia, String) -> Boolean,
+    ): MediaScanResult {
+        var discovered = 0
+        var synced = 0
+        var failed = 0
+
         GalleryDatabase(context, deviceId).use { database ->
             val imageCollection =
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -25,12 +39,26 @@ object MediaIndexer {
                     MediaStore.Video.Media.EXTERNAL_CONTENT_URI
                 }
 
-            scanCollection(context, database, imageCollection, false, onItem)
-            scanCollection(context, database, videoCollection, true, onItem)
+            val imageResult = scanCollection(context, database, imageCollection, false, onItem)
+            val videoResult = scanCollection(context, database, videoCollection, true, onItem)
+            discovered = imageResult.discovered + videoResult.discovered
+            synced = imageResult.synced + videoResult.synced
+            failed = imageResult.failed + videoResult.failed
         }
+
+        return MediaScanResult(discovered, synced, failed)
     }
 
-    private fun scanCollection(context: Context, database: GalleryDatabase, collection: android.net.Uri, video: Boolean, onItem: (IndexedMedia, String) -> Unit) {
+    private fun scanCollection(
+        context: Context,
+        database: GalleryDatabase,
+        collection: android.net.Uri,
+        video: Boolean,
+        onItem: (IndexedMedia, String) -> Boolean,
+    ): MediaScanResult {
+        var discovered = 0
+        var synced = 0
+        var failed = 0
         val projection = mutableListOf(
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DISPLAY_NAME,
@@ -50,6 +78,7 @@ object MediaIndexer {
             val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.HEIGHT)
             val durationColumn = if (video) cursor.getColumnIndexOrThrow(MediaStore.Video.VideoColumns.DURATION) else -1
             while (cursor.moveToNext()) {
+                discovered += 1
                 val id = cursor.getLong(idColumn)
                 val uri = ContentUris.withAppendedId(collection, id)
                 val item = IndexedMedia(
@@ -65,7 +94,12 @@ object MediaIndexer {
                 )
                 if (!database.needsSync(item)) continue
                 database.upsert(item, false)
-                val thumbnail = createThumbnail(context, uri, video) ?: continue
+                val thumbnail = createThumbnail(context, uri, video)
+                if (thumbnail == null) {
+                    failed += 1
+                    continue
+                }
+
                 val output = ByteArrayOutputStream()
                 val format = if (Build.VERSION.SDK_INT >= 30) {
                     Bitmap.CompressFormat.WEBP_LOSSY
@@ -75,10 +109,23 @@ object MediaIndexer {
                 }
                 thumbnail.compress(format, 68, output)
                 thumbnail.recycle()
-                onItem(item, Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP))
-                database.upsert(item, true)
+
+                val uploaded = runCatching {
+                    onItem(
+                        item,
+                        Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP),
+                    )
+                }.getOrDefault(false)
+
+                if (uploaded) {
+                    database.upsert(item, true)
+                    synced += 1
+                } else {
+                    failed += 1
+                }
             }
         }
+        return MediaScanResult(discovered, synced, failed)
     }
 
     private fun createThumbnail(context: Context, uri: android.net.Uri, video: Boolean): Bitmap? = runCatching {
