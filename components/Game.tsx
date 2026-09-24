@@ -207,6 +207,8 @@ const historyActions: Row = {
   notification_sent: "Notificação enviada",
   player_disabled: "Acesso de jogador desativado",
   player_enabled: "Acesso de jogador reativado",
+  player_web_access_enabled: "Acesso pelo navegador liberado",
+  player_web_access_disabled: "Acesso pelo navegador bloqueado",
   player_delete_prepared: "Jogador excluído",
   invite_deleted: "Convite expirado removido",
   character_deleted: "Personagem excluído",
@@ -617,7 +619,10 @@ export default function Game({ invite }: { invite?: string }) {
       const browserPlayerOnly =
         !isAndroidApp() &&
         activeMemberships.length > 0 &&
-        activeMemberships.every((member) => member.role === "player");
+        activeMemberships.every((member) => member.role === "player") &&
+        !activeMemberships.some(
+          (member) => member.web_access_enabled === true,
+        );
 
       if (browserPlayerOnly) {
         setWebPlayerBlocked(true);
@@ -1024,6 +1029,30 @@ export default function Game({ invite }: { invite?: string }) {
     if (!r.ok) throw new Error(v.error);
     return v;
   }
+  async function setPlayerWebAccess(userId: string, enabled: boolean) {
+    const result = await browserDb().rpc("set_player_web_access", {
+      c: campaign,
+      p_user_id: userId,
+      p_enabled: enabled,
+    });
+    if (result.error) throw new Error(result.error.message);
+
+    setMembers((current) =>
+      current.map((member) =>
+        member.campaign_id === campaign && member.user_id === userId
+          ? { ...member, web_access_enabled: enabled }
+          : member,
+      ),
+    );
+    setData((current) => ({
+      ...current,
+      campaign_members: (current.campaign_members || []).map((member) =>
+        member.campaign_id === campaign && member.user_id === userId
+          ? { ...member, web_access_enabled: enabled }
+          : member,
+      ),
+    }));
+  }
   function edit(title: string, fields: Field[], op: string, extra: Row = {}) {
     setForm({
       title,
@@ -1054,6 +1083,7 @@ export default function Game({ invite }: { invite?: string }) {
           action: invite ? "invite" : "login",
           username: d.username,
           password: d.password,
+          client: isAndroidApp() ? "android" : "web",
           token: invite,
           fullName: d.fullName,
           email: d.email,
@@ -1064,7 +1094,14 @@ export default function Game({ invite }: { invite?: string }) {
         }),
       });
       const s = await r.json();
-      if (!r.ok) throw new Error(s.error);
+      if (!r.ok) {
+        if (s.code === "PLAYER_APP_ONLY") {
+          throw new Error(
+            "Entre pelo aplicativo Alvorecer. O Mestre pode liberar o acesso pelo navegador nas Configurações.",
+          );
+        }
+        throw new Error(s.error);
+      }
 
       if (invite) {
         location.replace("/inscricao-concluida");
@@ -3817,6 +3854,72 @@ export default function Game({ invite }: { invite?: string }) {
               />
               <SessionCountManager campaign={campaign} />
               <MasterCaptureSettings campaign={campaign} />
+              <section className="panel web-access-settings">
+                <div>
+                  <h2>Acesso pelo navegador</h2>
+                  <p>
+                    Por padrão, jogadores usam somente o aplicativo Alvorecer.
+                    Libere o navegador individualmente quando alguém não puder
+                    usar o APK ou quando você precisar testar pelo computador.
+                  </p>
+                </div>
+                <div className="web-access-player-list">
+                  {rows("campaign_members")
+                    .filter(
+                      (member) =>
+                        member.campaign_id === campaign &&
+                        member.role === "player" &&
+                        member.access_active &&
+                        !member.archived_at,
+                    )
+                    .map((member) => {
+                      const profile = rows("profiles").find(
+                        (entry) => entry.id === member.user_id,
+                      );
+                      const allowed = member.web_access_enabled === true;
+                      return (
+                        <div className="list-row web-access-player" key={member.user_id}>
+                          <div>
+                            <strong>
+                              {profile?.display_name ||
+                                profile?.username ||
+                                "Jogador"}
+                            </strong>
+                            <p className="muted">
+                              @{profile?.username || "jogador"} ·{" "}
+                              {allowed
+                                ? "Aplicativo + navegador"
+                                : "Somente aplicativo"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className={allowed ? "secondary" : "primary"}
+                            disabled={busy}
+                            onClick={() =>
+                              run(() =>
+                                setPlayerWebAccess(member.user_id, !allowed),
+                              )
+                            }
+                          >
+                            {allowed
+                              ? "Bloquear navegador"
+                              : "Permitir navegador"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  {!rows("campaign_members").some(
+                    (member) =>
+                      member.campaign_id === campaign &&
+                      member.role === "player" &&
+                      member.access_active &&
+                      !member.archived_at,
+                  ) && (
+                    <p className="muted">Nenhum jogador ativo na campanha.</p>
+                  )}
+                </div>
+              </section>
               <section className="panel">
                 <div className="spread">
                   <h2>Atributos</h2>
