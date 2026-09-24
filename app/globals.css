@@ -9520,3 +9520,223 @@ dialog.combat-sheet {
     width: 100%;
   }
 }
+
+
+/* Chat: foto de visualização única e status de último acesso. */
+.chat-inline-view-once-button {
+  position: relative;
+  display: grid;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #e7c58f;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  place-items: center;
+}
+
+.chat-inline-view-once-button input {
+  display: none;
+}
+
+.chat-inline-view-once-button svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.7;
+}
+
+.chat-inline-view-once-button > span {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #191516;
+  border-radius: 50%;
+  color: #fff7ea;
+  background: #8f2637;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+  place-items: center;
+}
+
+.chat-text-field textarea {
+  padding-right: 122px;
+}
+
+.chat-view-once-message {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(270px, 100%);
+  min-height: 58px;
+  padding: 8px 4px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.chat-view-once-message:disabled {
+  opacity: 0.78;
+  cursor: default;
+}
+
+.chat-view-once-symbol {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border: 1px solid #d0a35b66;
+  border-radius: 50%;
+  color: #f0c77e;
+  background: #161113;
+  place-items: center;
+}
+
+.chat-view-once-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+
+.chat-view-once-symbol b {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  border: 1px solid #2a171b;
+  border-radius: 50%;
+  color: #fff7ed;
+  background: #a3263b;
+  font-size: 0.64rem;
+  place-items: center;
+}
+
+.chat-view-once-message > span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chat-view-once-message strong {
+  color: #fff4e6;
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+.chat-view-once-message small {
+  color: #a9a09a;
+  font-size: 0.7rem;
+}
+
+.chat-view-once-message > svg {
+  width: 19px;
+  color: #d0b07e;
+}
+
+.chat-view-once-overlay {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 100dvh;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    16px
+    max(20px, env(safe-area-inset-bottom));
+  color: #fff;
+  background: #050505;
+}
+
+.chat-view-once-overlay > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+}
+
+.chat-view-once-overlay > header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ead5b1;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.chat-view-once-overlay > header svg {
+  width: 21px;
+  height: 21px;
+}
+
+.chat-view-once-overlay > header strong {
+  display: grid;
+  min-width: 44px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #ffffff1a;
+  border-radius: 999px;
+  background: #171717;
+  font-variant-numeric: tabular-nums;
+  place-items: center;
+}
+
+.chat-view-once-photo {
+  display: grid;
+  min-height: 0;
+  place-items: center;
+}
+
+.chat-view-once-photo img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 150px);
+  object-fit: contain;
+  border-radius: 10px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.chat-view-once-overlay > p {
+  margin: 10px 0 0;
+  color: #9b9693;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .chat-inline-view-once-button {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+  }
+
+  .chat-inline-view-once-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .chat-text-field textarea {
+    padding-right: 112px;
+  }
+
+  .chat-view-once-message {
+    width: min(245px, 100%);
+  }
+}

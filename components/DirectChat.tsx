@@ -16,11 +16,13 @@ import {
   Trash2,
   Users,
   X,
+  TimerReset,
 } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import type { Row } from "@/lib/types";
 import ChatImage from "./ChatImage";
+import ChatViewOnceImage from "./ChatViewOnceImage";
 import ChatAudio from "./ChatAudio";
 import ChatEmojiPicker from "./ChatEmojiPicker";
 import IdentityAvatar from "./IdentityAvatar";
@@ -33,6 +35,12 @@ function mediaType(message: Row) {
   const relation = message.chat_media;
   const media = Array.isArray(relation) ? relation[0] : relation;
   return media?.media_type === "audio" ? "audio" : "image";
+}
+
+function isViewOnceMedia(message: Row) {
+  const relation = message.chat_media;
+  const media = Array.isArray(relation) ? relation[0] : relation;
+  return Boolean(media?.view_once);
 }
 
 function messageDayKey(value?: string) {
@@ -111,6 +119,9 @@ export default function DirectChat({
       Record<string, number>
     >({}),
     [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set()),
+    [lastSeenByUserId, setLastSeenByUserId] = useState<Record<string, string>>(
+      {},
+    ),
     [contactsInteractive, setContactsInteractive] = useState(true),
     [mutedConversations, setMutedConversations] = useState<Set<string>>(
       new Set(),
@@ -196,6 +207,52 @@ export default function DirectChat({
       });
     } catch {
       // A mensagem continua enviada mesmo se o aviso push falhar.
+    }
+  };
+
+  const sendImage = async (file: File, viewOnce = false) => {
+    if (busy || !selected || selected === CAMPAIGN_GROUP_SELECTION) return;
+    setBusy(true);
+    setError("");
+    try {
+      const blob = await optimizedWebp(file, 800);
+      const db = browserDb();
+      const reservation = await db.rpc("chat_media_action", {
+        c: campaign,
+        op: "reserve",
+        d: {
+          actor_id: actor,
+          conversation_id: selected,
+          view_once: viewOnce,
+        },
+      });
+      if (reservation.error) throw reservation.error;
+
+      const upload = await db.storage
+        .from("chat-media")
+        .upload(reservation.data.path, blob, {
+          contentType: "image/webp",
+        });
+      if (upload.error) throw upload.error;
+
+      const sent = await db.rpc("chat_media_action", {
+        c: campaign,
+        op: "send",
+        d: { actor_id: actor, media_id: reservation.data.id },
+      });
+      if (sent.error) throw sent.error;
+
+      void pushReceivedMessage(selected);
+      setRefresh((value) => value + 1);
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:chat-updated", {
+          detail: { campaign },
+        }),
+      );
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -672,7 +729,7 @@ export default function DirectChat({
         browserDb().rpc("unread_messages", { c: campaign, actor }),
       ),
       retryNetworkRead(() =>
-        browserDb().rpc("community_presence", { c: campaign }),
+        browserDb().rpc("community_presence_detail", { c: campaign }),
       ),
       retryNetworkRead(() =>
         browserDb().rpc("campaign_group_summary", {
@@ -734,6 +791,16 @@ export default function DirectChat({
             .map((entry: Row) => entry.user_id),
         ),
       );
+      setLastSeenByUserId(
+        Object.fromEntries(
+          (presence.data || [])
+            .filter((entry: Row) => entry.user_id && entry.last_seen_at)
+            .map((entry: Row) => [
+              String(entry.user_id),
+              String(entry.last_seen_at),
+            ]),
+        ),
+      );
 
       const ids = nextConversations.map((entry) => entry.id);
       if (!ids.length) {
@@ -747,7 +814,7 @@ export default function DirectChat({
           browserDb()
             .from("direct_messages")
             .select(
-              "id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type)",
+              "id,conversation_id,sender_id,body,media_id,created_at,chat_media(media_type,view_once)",
             )
             .in("conversation_id", ids)
             .is("cleared_at", null)
@@ -845,7 +912,7 @@ export default function DirectChat({
     } else {
       browserDb()
         .from("direct_messages")
-        .select("*,chat_media(media_type)")
+        .select("*,chat_media(media_type,view_once)")
         .eq("conversation_id", selected)
         .order("created_at", { ascending: false })
         .limit(limit)
@@ -1219,6 +1286,38 @@ export default function DirectChat({
     });
   };
 
+  const lastSeenLabel = (value?: string) => {
+    if (!value) return "Offline";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Offline";
+
+    const now = new Date();
+    const sameDay =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const wasYesterday =
+      date.getFullYear() === yesterday.getFullYear() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getDate() === yesterday.getDate();
+
+    const time = date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (sameDay) return `Visto hoje às ${time}`;
+    if (wasYesterday) return `Visto ontem às ${time}`;
+
+    return `Visto em ${date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+    })} às ${time}`;
+  };
+
   const selectedGroup = selected === CAMPAIGN_GROUP_SELECTION;
   const selectedConversation = selectedGroup
     ? undefined
@@ -1245,6 +1344,9 @@ export default function DirectChat({
   const selectedPeerOnline = Boolean(
     selectedPeer?.user_id && onlineUserIds.has(selectedPeer.user_id),
   );
+  const selectedPeerLastSeen = selectedPeer?.user_id
+    ? lastSeenByUserId[String(selectedPeer.user_id)]
+    : "";
 
   const canSend =
     selectedGroup ||
@@ -1468,7 +1570,9 @@ export default function DirectChat({
                     <small>{Number(group?.member_count || 0)} participantes</small>
                   ) : (
                     <small className={selectedPeerOnline ? "online" : ""}>
-                      {selectedPeerOnline ? "Online" : "Offline"}
+                      {selectedPeerOnline
+                        ? "Online"
+                        : lastSeenLabel(selectedPeerLastSeen)}
                     </small>
                   )
                 ) : (
@@ -1599,9 +1703,13 @@ export default function DirectChat({
                       ? latest.sender_id === actor
                         ? "Você enviou um áudio"
                         : "Enviou um áudio"
-                      : latest.sender_id === actor
-                        ? "Você enviou uma imagem"
-                        : "Enviou uma imagem"
+                      : isViewOnceMedia(latest)
+                        ? latest.sender_id === actor
+                          ? "Você enviou uma foto de visualização única"
+                          : "Enviou uma foto de visualização única"
+                        : latest.sender_id === actor
+                          ? "Você enviou uma imagem"
+                          : "Enviou uma imagem"
                     : latest?.body
                       ? latest.sender_id === actor
                         ? `Você: ${latest.body}`
@@ -1909,6 +2017,13 @@ export default function DirectChat({
                         {m.media_id ? (
                           mediaType(m) === "audio" ? (
                             <ChatAudio id={m.media_id} />
+                          ) : isViewOnceMedia(m) ? (
+                            <ChatViewOnceImage
+                              id={m.media_id}
+                              campaign={campaign}
+                              actor={actor}
+                              mine={mine}
+                            />
                           ) : (
                             <ChatImage id={m.media_id} />
                           )
@@ -2005,45 +2120,10 @@ export default function DirectChat({
                       type="file"
                       accept="image/png,image/jpeg,image/webp"
                       disabled={busy}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
                         e.target.value = "";
-                        if (!file || busy) return;
-                        setBusy(true);
-                        setError("");
-                        try {
-                          const blob = await optimizedWebp(file, 800);
-                          const db = browserDb();
-                          const r = await db.rpc("chat_media_action", {
-                            c: campaign,
-                            op: "reserve",
-                            d: { actor_id: actor, conversation_id: selected },
-                          });
-                          if (r.error) throw r.error;
-                          const upload = await db.storage
-                            .from("chat-media")
-                            .upload(r.data.path, blob, {
-                              contentType: "image/webp",
-                            });
-                          if (upload.error) throw upload.error;
-                          const sent = await db.rpc("chat_media_action", {
-                            c: campaign,
-                            op: "send",
-                            d: { actor_id: actor, media_id: r.data.id },
-                          });
-                          if (sent.error) throw sent.error;
-                          void pushReceivedMessage(selected);
-                          setRefresh((v) => v + 1);
-                          window.dispatchEvent(
-                            new CustomEvent("alvorecer:chat-updated", {
-                              detail: { campaign },
-                            }),
-                          );
-                        } catch (e) {
-                          setError(readableErrorMessage(e));
-                        } finally {
-                          setBusy(false);
-                        }
+                        if (file) void sendImage(file, false);
                       }}
                     />
                     </label>
@@ -2060,6 +2140,26 @@ export default function DirectChat({
                       onChange={(e) => setBody(e.target.value)}
                     />
                     <div className="chat-inline-actions">
+                      {!selectedGroup && (
+                        <label
+                          className="chat-inline-view-once-button"
+                          aria-label="Enviar foto de visualização única"
+                          title="Visualização única"
+                        >
+                          <TimerReset aria-hidden="true" />
+                          <span>1</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            disabled={busy}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = "";
+                              if (file) void sendImage(file, true);
+                            }}
+                          />
+                        </label>
+                      )}
                       <button
                         type="button"
                         className="chat-inline-emoji-button"
