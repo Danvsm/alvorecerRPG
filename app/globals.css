@@ -9781,3 +9781,29 @@ dialog.combat-sheet {
     grid-template-columns: 1fr;
   }
 }
+
+
+.character-slot-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.character-slot-total {
+  min-width: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  .character-slot-controls {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .character-slot-controls button {
+    flex: 1;
+  }
+}
