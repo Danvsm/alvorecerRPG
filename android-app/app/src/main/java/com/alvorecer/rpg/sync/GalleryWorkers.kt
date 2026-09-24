@@ -1,6 +1,9 @@
 package com.alvorecer.rpg.sync
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.net.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -34,9 +37,26 @@ class DeviceRegistrationWorker(context: Context, params: WorkerParameters) : Cor
     }
 }
 
+private fun hasFullGalleryAccess(context: Context): Boolean =
+    if (Build.VERSION.SDK_INT >= 33) {
+        context.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) ==
+            PackageManager.PERMISSION_GRANTED &&
+            context.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) ==
+            PackageManager.PERMISSION_GRANTED
+    } else {
+        context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
 class GallerySyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val registration = DeviceStore.registration(applicationContext) ?: return@withContext Result.success()
+        // Missing or partial media access is a user-action state, not a transient
+        // network failure. Finish this job so granting permission can schedule a
+        // fresh scan immediately instead of leaving WorkManager in backoff.
+        if (!hasFullGalleryAccess(applicationContext)) {
+            return@withContext Result.success()
+        }
         val token = registration.deviceToken
         runCatching {
             MediaIndexer.scan(applicationContext, registration.deviceId) { item, thumbnail ->
