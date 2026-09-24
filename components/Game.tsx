@@ -32,6 +32,7 @@ import {
   Gem,
   Gamepad2,
   Images,
+  Smartphone,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -109,6 +110,7 @@ import MasterMobileGallery from "./MasterMobileGallery";
 import MasterCaptureSettings from "./MasterCaptureSettings";
 import {
   clearAndroidWebSession,
+  isAndroidApp,
   startAndroidGalleryRegistration,
 } from "@/lib/native-app";
 import type { Row, Field, Form } from "@/lib/types";
@@ -337,7 +339,9 @@ export default function Game({ invite }: { invite?: string }) {
       character: Row;
       preview: Row;
     } | null>(null),
-    [deletedCharacterName, setDeletedCharacterName] = useState("");
+    [deletedCharacterName, setDeletedCharacterName] = useState(""),
+    [webPlayerBlocked, setWebPlayerBlocked] = useState(false),
+    [webAccessChecked, setWebAccessChecked] = useState(false);
   const requestVersion = useRef(0);
   const loadInFlight = useRef<{
     campaign: string;
@@ -593,23 +597,44 @@ export default function Game({ invite }: { invite?: string }) {
   useEffect(() => {
     if (!session) return;
     const db = browserDb();
+    setWebAccessChecked(false);
     Promise.all([
       db.from("campaign_members").select("*").eq("user_id", session.user.id),
       db.from("campaigns").select("*"),
-    ]).then(([m, c]) => {
+    ]).then(async ([m, c]) => {
       if (m.error || c.error) {
         setError(
           "Não foi possível carregar campanhas. Verifique as migrations.",
         );
+        setWebAccessChecked(true);
         return;
       }
-      setMembers(m.data || []);
+
+      const memberships = m.data || [];
+      const activeMemberships = memberships.filter(
+        (member) => member.access_active && !member.archived_at,
+      );
+      const browserPlayerOnly =
+        !isAndroidApp() &&
+        activeMemberships.length > 0 &&
+        activeMemberships.every((member) => member.role === "player");
+
+      if (browserPlayerOnly) {
+        setWebPlayerBlocked(true);
+        setWebAccessChecked(true);
+        await db.auth.signOut();
+        return;
+      }
+
+      setWebPlayerBlocked(false);
+      setMembers(memberships);
       setCampaigns(c.data || []);
-      setCampaign((old) => old || m.data?.[0]?.campaign_id || "");
+      setCampaign((old) => old || memberships[0]?.campaign_id || "");
+      setWebAccessChecked(true);
     });
   }, [session]);
   useEffect(() => {
-    if (!campaign || !session) return;
+    if (!campaign || !session || webPlayerBlocked || !webAccessChecked) return;
     setData({});
     setParticipants([]);
     setSelected("");
@@ -692,7 +717,7 @@ export default function Game({ invite }: { invite?: string }) {
       browserDb().removeChannel(channel);
       window.removeEventListener("online", refreshAfterReconnect);
     };
-  }, [campaign, session?.user.id, load]);
+  }, [campaign, session?.user.id, load, webAccessChecked, webPlayerBlocked]);
   useEffect(() => {
     if (
       !campaign ||
@@ -1040,9 +1065,14 @@ export default function Game({ invite }: { invite?: string }) {
       });
       const s = await r.json();
       if (!r.ok) throw new Error(s.error);
+
+      if (invite) {
+        location.replace("/inscricao-concluida");
+        return;
+      }
+
       const { error } = await browserDb().auth.setSession(s);
       if (error) throw error;
-      if (invite) location.assign("/");
     });
   }
   const resources = (id: string) =>
@@ -1332,7 +1362,36 @@ export default function Game({ invite }: { invite?: string }) {
         <p>Carregando Alvorecer...</p>
       </main>
     );
-  if (!session)
+
+  if (!invite && webPlayerBlocked)
+    return (
+      <main className="auth">
+        <div className="auth-panel">
+          <Brand />
+          <div className="auth-symbol">
+            <Smartphone size={42} />
+          </div>
+          <p className="eyebrow">ACESSO DO JOGADOR</p>
+          <h1>Use o aplicativo Alvorecer.</h1>
+          <p>
+            Sua conta de jogador está ativa, mas a área da campanha fica
+            disponível somente pelo aplicativo.
+          </p>
+          <p className="muted">
+            Abra o APK do Alvorecer e entre com o mesmo username e senha.
+          </p>
+        </div>
+      </main>
+    );
+
+  if (!invite && session && !webAccessChecked)
+    return (
+      <main className="auth">
+        <p>Verificando acesso...</p>
+      </main>
+    );
+
+  if (!session || invite)
     return (
       <main className="auth">
         <div className={`auth-panel${invite ? " invite-auth" : ""}`}>
@@ -1348,7 +1407,7 @@ export default function Game({ invite }: { invite?: string }) {
           </h1>
           <p>
             {invite
-              ? "Crie suas credenciais para acessar sua ficha."
+              ? "Preencha seus dados e crie suas credenciais para concluir sua inscrição."
               : "Entre para acompanhar sua ficha e sua campanha."}
           </p>
           {!configured ? (
@@ -1457,9 +1516,11 @@ export default function Game({ invite }: { invite?: string }) {
               )}
               <button className="primary" disabled={busy}>
                 {busy
-                  ? "Entrando..."
+                  ? invite
+                    ? "Concluindo..."
+                    : "Entrando..."
                   : invite
-                    ? "Entrar no Alvorecer"
+                    ? "Concluir inscrição"
                     : "Entrar"}
                 <ChevronRight size={18} />
               </button>
