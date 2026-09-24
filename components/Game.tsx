@@ -108,6 +108,8 @@ import {
 } from "./CharacterDeleteDialog";
 import MasterMobileGallery from "./MasterMobileGallery";
 import MasterCaptureSettings from "./MasterCaptureSettings";
+import CharacterSlotSettings from "./CharacterSlotSettings";
+import InviteCharacterOptions from "./InviteCharacterOptions";
 import {
   clearAndroidWebSession,
   isAndroidApp,
@@ -119,38 +121,6 @@ import {
   installAlvorecerSoundUnlock,
   playAlvorecerSound,
 } from "@/lib/site-sounds";
-const CHARACTER_CLASSES = [
-  "Lutador",
-  "Assassino",
-  "Arqueiro-Guerreiro",
-  "Suporte",
-  "Cavaleiro Tank Celestial",
-  "Arcano",
-  "Necromante",
-  "Druida",
-  "Monge",
-  "Cavaleiro/Guerreiro",
-  "Bárbaro",
-  "Bardo",
-  "Bruxo/Pactuário",
-] as const;
-
-const CHARACTER_RACES = [
-  "Humanos",
-  "Anões",
-  "Elfos Cinzentos",
-  "Elfos da Floresta",
-  "Elfos Negros",
-  "Selvagens",
-  "Meio-Diabólicos",
-  "Meio-Celestiais",
-  "Titãs Elementais",
-  "Nebulosos",
-  "Meio-Gigantes",
-  "Tieflings",
-  "Halflings",
-] as const;
-
 const tables = [
   "resource_rules",
   "item_effects",
@@ -1531,34 +1501,7 @@ export default function Game({ invite }: { invite?: string }) {
                     Nome do personagem
                     <input name="characterName" required maxLength={120} />
                   </label>
-                  <div className="invite-pair">
-                    <label>
-                      Classe
-                      <select name="characterClass" defaultValue="" required>
-                        <option value="" disabled>
-                          Selecione sua classe
-                        </option>
-                        {CHARACTER_CLASSES.map((characterClass) => (
-                          <option key={characterClass} value={characterClass}>
-                            {characterClass}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Raça
-                      <select name="characterRace" defaultValue="" required>
-                        <option value="" disabled>
-                          Selecione sua raça
-                        </option>
-                        {CHARACTER_RACES.map((race) => (
-                          <option key={race} value={race}>
-                            {race}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
+                  <InviteCharacterOptions invite={invite} />
                 </fieldset>
               )}
               {invite && (
@@ -3904,6 +3847,7 @@ export default function Game({ invite }: { invite?: string }) {
               />
               <SessionCountManager campaign={campaign} />
               <MasterCaptureSettings campaign={campaign} />
+              <CharacterSlotSettings campaign={campaign} />
               <section className="panel web-access-settings">
                 <div>
                   <h2>Acesso pelo navegador</h2>

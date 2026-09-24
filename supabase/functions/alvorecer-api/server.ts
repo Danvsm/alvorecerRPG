@@ -99,10 +99,19 @@ export async function provision(
     const rollback = await db.auth.admin.deleteUser(u);
     if (rollback.error)
       throw new Error("Cadastro pendente de reparo administrativo.");
+    const databaseMessage =
+      typeof e.message === "string" ? e.message : "";
+    const slotMessage =
+      databaseMessage.startsWith("Não há mais vagas para a classe") ||
+      databaseMessage.startsWith("Não há mais vagas para a raça") ||
+      databaseMessage === "Classe inválida" ||
+      databaseMessage === "Raça inválida";
     throw new Error(
       e.code === "23505"
         ? "Username já utilizado."
-        : "Cadastro não concluído. Verifique os campos.",
+        : slotMessage
+          ? databaseMessage
+          : "Cadastro não concluído. Verifique os campos.",
     );
   }
   return ch;

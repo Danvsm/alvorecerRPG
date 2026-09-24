@@ -9740,3 +9740,44 @@ dialog.combat-sheet {
     width: min(245px, 100%);
   }
 }
+
+
+.character-slot-settings {
+  display: grid;
+  gap: 16px;
+}
+
+.character-slot-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.character-slot-group {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.character-slot-group > h3 {
+  margin: 0 0 4px;
+}
+
+.character-slot-row {
+  gap: 12px;
+}
+
+.character-slot-row > div {
+  min-width: 0;
+}
+
+.character-slot-row strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .character-slot-columns {
+    grid-template-columns: 1fr;
+  }
+}
