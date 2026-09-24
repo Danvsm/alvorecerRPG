@@ -11,38 +11,6 @@ import {
 } from "./server.ts";
 
 class PlayerAppOnlyError extends Error {}
-const CHARACTER_CLASSES = [
-  "Lutador",
-  "Assassino",
-  "Arqueiro-Guerreiro",
-  "Suporte",
-  "Cavaleiro Tank Celestial",
-  "Arcano",
-  "Necromante",
-  "Druida",
-  "Monge",
-  "Cavaleiro/Guerreiro",
-  "Bárbaro",
-  "Bardo",
-  "Bruxo/Pactuário",
-] as const;
-
-const CHARACTER_RACES = [
-  "Humanos",
-  "Anões",
-  "Elfos Cinzentos",
-  "Elfos da Floresta",
-  "Elfos Negros",
-  "Selvagens",
-  "Meio-Diabólicos",
-  "Meio-Celestiais",
-  "Titãs Elementais",
-  "Nebulosos",
-  "Meio-Gigantes",
-  "Tieflings",
-  "Halflings",
-] as const;
-
 const inviteOptionsSchema = z.object({
   action: z.literal("invite_options"),
   token: z.string().min(1).max(128),
@@ -67,8 +35,8 @@ const schema = z
       .optional()
       .or(z.literal("")),
     characterName: z.string().trim().max(120).optional(),
-    characterClass: z.enum(CHARACTER_CLASSES).optional(),
-    characterRace: z.enum(CHARACTER_RACES).optional(),
+    characterClass: z.string().trim().min(2).max(120).optional(),
+    characterRace: z.string().trim().min(2).max(120).optional(),
   })
   .superRefine((value, context) => {
     if (value.action !== "invite") return;
