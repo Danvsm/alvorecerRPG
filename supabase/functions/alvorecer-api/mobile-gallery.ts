@@ -129,7 +129,7 @@ async function notificationPoll(req: Request, body: Record<string, unknown>) {
 
   const latestResult = await admin()
     .from("notifications")
-    .select("id")
+    .select("id,kind,title,body")
     .eq("campaign_id", current.campaign_id)
     .eq("user_id", current.master_user_id)
     .is("dismissed_at", null)
@@ -149,7 +149,7 @@ async function notificationPoll(req: Request, body: Record<string, unknown>) {
 
   const { data: rows, error } = await admin()
     .from("notifications")
-    .select("id")
+    .select("id,kind,title,body")
     .eq("campaign_id", current.campaign_id)
     .eq("user_id", current.master_user_id)
     .is("dismissed_at", null)
@@ -160,9 +160,13 @@ async function notificationPoll(req: Request, body: Record<string, unknown>) {
 
   if (error) throw new Error("Não foi possível consultar as notificações");
 
+  const newest = rows?.[0];
   return json({
     latest_id: Math.max(latestId, afterId),
     new_count: (rows || []).length,
+    latest_kind: newest?.kind || null,
+    latest_title: newest?.title || null,
+    latest_body: newest?.body || null,
   });
 }
 
