@@ -180,16 +180,24 @@ class GeneralNotificationWorker(context: Context, params: WorkerParameters) : Co
             if (lastId > 0L && poll.newCount > 0) {
                 val isSingleMention =
                     poll.newCount == 1 && poll.latestKind == "mention"
+                val mentionActor =
+                    poll.latestTitle
+                        ?.substringBefore(" mencionou ")
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+
                 NativeNotifications.showGeneral(
                     applicationContext,
                     count = poll.newCount,
                     notificationKey = "notification-" + poll.latestId,
                     title =
-                        if (isSingleMention) "Nova menção no Alvorecer"
+                        if (isSingleMention)
+                            mentionActor?.let { "$it marcou você" }
+                                ?: "Você recebeu uma menção"
                         else "Alvorecer",
                     message =
                         if (isSingleMention)
-                            "Você recebeu uma nova menção na Comunidade."
+                            "Você foi mencionado em um comentário da Comunidade."
                         else null,
                 )
             }
