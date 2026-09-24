@@ -119,6 +119,22 @@ import {
   installAlvorecerSoundUnlock,
   playAlvorecerSound,
 } from "@/lib/site-sounds";
+const CHARACTER_RACES = [
+  "Humanos",
+  "Anões",
+  "Elfos Cinzentos",
+  "Elfos da Floresta",
+  "Elfos Negros",
+  "Selvagens",
+  "Meio-Diabólicos",
+  "Meio-Celestiais",
+  "Titãs Elementais",
+  "Nebulosos",
+  "Meio-Gigantes",
+  "Tieflings",
+  "Halflings",
+] as const;
+
 const tables = [
   "resource_rules",
   "item_effects",
@@ -1506,7 +1522,16 @@ export default function Game({ invite }: { invite?: string }) {
                     </label>
                     <label>
                       Raça
-                      <input name="characterRace" maxLength={120} />
+                      <select name="characterRace" defaultValue="" required>
+                        <option value="" disabled>
+                          Selecione sua raça
+                        </option>
+                        {CHARACTER_RACES.map((race) => (
+                          <option key={race} value={race}>
+                            {race}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                   </div>
                 </fieldset>
