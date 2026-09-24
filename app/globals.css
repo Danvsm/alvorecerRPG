@@ -9807,3 +9807,39 @@ dialog.combat-sheet {
     flex: 1;
   }
 }
+
+
+.character-option-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.character-option-heading h3 {
+  margin: 0;
+}
+
+.character-option-add {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.character-option-add input {
+  min-width: 0;
+  flex: 1;
+}
+
+.character-option-add button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .character-option-add {
+    flex-direction: column;
+  }
+
+  .character-option-add button {
+    width: 100%;
+  }
+}
