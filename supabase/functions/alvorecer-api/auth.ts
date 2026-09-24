@@ -43,6 +43,11 @@ const CHARACTER_RACES = [
   "Halflings",
 ] as const;
 
+const inviteOptionsSchema = z.object({
+  action: z.literal("invite_options"),
+  token: z.string().min(1).max(128),
+});
+
 const schema = z
   .object({
     action: z.enum(["login", "invite"]),
@@ -107,7 +112,23 @@ const schema = z
 export async function POST(req: Request) {
   try {
     originCheck(req);
-    const d = schema.parse(await req.json());
+    const raw = await req.json();
+
+    if (raw?.action === "invite_options") {
+      const query = inviteOptionsSchema.parse(raw);
+      await throttle(`invite-options:${query.token}`, 30);
+      const db = admin();
+      const options = await db.rpc("invite_character_options", {
+        h: hash(query.token),
+      });
+      if (options.error)
+        throw new Error("Convite inválido, expirado ou em uso");
+      return Response.json(options.data, {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+
+    const d = schema.parse(raw);
     await throttle(`user:${d.username}`);
     let db = admin();
     if (d.action === "invite") {
