@@ -11,6 +11,22 @@ import {
 } from "./server.ts";
 
 class PlayerAppOnlyError extends Error {}
+const CHARACTER_RACES = [
+  "Humanos",
+  "Anões",
+  "Elfos Cinzentos",
+  "Elfos da Floresta",
+  "Elfos Negros",
+  "Selvagens",
+  "Meio-Diabólicos",
+  "Meio-Celestiais",
+  "Titãs Elementais",
+  "Nebulosos",
+  "Meio-Gigantes",
+  "Tieflings",
+  "Halflings",
+] as const;
+
 const schema = z
   .object({
     action: z.enum(["login", "invite"]),
@@ -31,7 +47,7 @@ const schema = z
       .or(z.literal("")),
     characterName: z.string().trim().max(120).optional(),
     characterClass: z.string().trim().max(120).optional(),
-    characterRace: z.string().trim().max(120).optional(),
+    characterRace: z.enum(CHARACTER_RACES).optional(),
   })
   .superRefine((value, context) => {
     if (value.action !== "invite") return;
@@ -58,6 +74,12 @@ const schema = z
         code: "custom",
         path: ["characterName"],
         message: "Personagem obrigatório",
+      });
+    if (!value.characterRace)
+      context.addIssue({
+        code: "custom",
+        path: ["characterRace"],
+        message: "Raça obrigatória",
       });
   });
 export async function POST(req: Request) {
