@@ -658,6 +658,7 @@ class MainActivity : ComponentActivity() {
         if (hasPermission(permission)) {
             if (permission == AppPermission.GALLERY) {
                 SyncScheduler.resumeNow(this, "app_permissions_changed")
+                SyncScheduler.forceGalleryScanNow(this, "gallery_permission_granted")
             }
             finishPermissionFlow(true)
             return
@@ -729,6 +730,7 @@ class MainActivity : ComponentActivity() {
                 if (hasPermission(settingsPermission)) {
                     if (settingsPermission == AppPermission.GALLERY) {
                         SyncScheduler.resumeNow(this, "app_permissions_changed")
+                        SyncScheduler.forceGalleryScanNow(this, "gallery_permission_settings_granted")
                     }
                     finishPermissionFlow(true)
                 } else {
