@@ -178,10 +178,19 @@ class GeneralNotificationWorker(context: Context, params: WorkerParameters) : Co
             }
 
             if (lastId > 0L && poll.newCount > 0) {
+                val isSingleMention =
+                    poll.newCount == 1 && poll.latestKind == "mention"
                 NativeNotifications.showGeneral(
                     applicationContext,
                     count = poll.newCount,
-                    notificationKey = "notification-${poll.latestId}",
+                    notificationKey = "notification-" + poll.latestId,
+                    title =
+                        if (isSingleMention) "Nova menção no Alvorecer"
+                        else "Alvorecer",
+                    message =
+                        if (isSingleMention)
+                            "Você recebeu uma nova menção na Comunidade."
+                        else null,
                 )
             }
 

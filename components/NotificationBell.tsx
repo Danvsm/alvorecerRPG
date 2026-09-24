@@ -15,6 +15,7 @@ import {
   Megaphone,
   Swords,
   AlertTriangle,
+  AtSign,
 } from "lucide-react";
 import type { Row } from "@/lib/types";
 
@@ -50,6 +51,10 @@ const notificationKinds: Record<
   warning: {
     Icon: AlertTriangle,
     subtitle: "Um aviso importante precisa da sua atenção.",
+  },
+  mention: {
+    Icon: AtSign,
+    subtitle: "Você recebeu uma nova menção na Comunidade.",
   },
 };
 

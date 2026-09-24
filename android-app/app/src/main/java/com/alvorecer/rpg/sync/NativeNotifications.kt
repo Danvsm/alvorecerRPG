@@ -30,7 +30,13 @@ object NativeNotifications {
         manager.createNotificationChannel(channel)
     }
 
-    fun showGeneral(context: Context, count: Int = 1, notificationKey: String = "") {
+    fun showGeneral(
+        context: Context,
+        count: Int = 1,
+        notificationKey: String = "",
+        title: String = "Alvorecer",
+        message: String? = null,
+    ) {
         if (
             Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
@@ -53,12 +59,13 @@ object NativeNotifications {
         )
 
         val body =
-            if (count > 1) "Você recebeu $count novas notificações."
-            else "Você recebeu uma nova notificação."
+            message
+                ?: if (count > 1) "Você recebeu $count novas notificações."
+                else "Você recebeu uma nova notificação."
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_alvorecer)
-            .setContentTitle("Alvorecer")
+            .setContentTitle(title)
             .setContentText(body)
             .setStyle(
                 NotificationCompat.BigTextStyle()

@@ -12,6 +12,7 @@ import {
   Smile,
   Trash2,
   X,
+  AtSign,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browserDb } from "@/lib/client";
@@ -67,6 +68,66 @@ const postDate = new Intl.DateTimeFormat("pt-BR", {
 });
 
 const FEED_PAGE_SIZE = 5;
+
+function escapeMentionPattern(value: string) {
+  return value.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+}
+
+function renderMentionBody(
+  body: string,
+  identities: Row[],
+  openProfile?: (identityId: string) => void,
+  close?: () => void,
+) {
+  const mentionable = identities
+    .filter(
+      (identity) =>
+        identity.kind === "player" &&
+        identity.user_id &&
+        identity.active !== false &&
+        String(identity.name || "").trim(),
+    )
+    .toSorted(
+      (left, right) =>
+        String(right.name).length - String(left.name).length,
+    );
+
+  if (!mentionable.length) return body;
+
+  const byName = new Map(
+    mentionable.map((identity) => [
+      String(identity.name).toLocaleLowerCase("pt-BR"),
+      identity,
+    ]),
+  );
+  const pattern = new RegExp(
+    "(@(?:" +
+      mentionable
+        .map((identity) => escapeMentionPattern(String(identity.name)))
+        .join("|") +
+      "))",
+    "gi",
+  );
+
+  return body.split(pattern).map((part, index) => {
+    if (!part.startsWith("@")) return part;
+    const identity = byName.get(part.slice(1).toLocaleLowerCase("pt-BR"));
+    if (!identity) return part;
+    return (
+      <button
+        type="button"
+        className={styles.commentMention}
+        key={String(identity.id) + "-" + index}
+        onClick={() => {
+          close?.();
+          openProfile?.(String(identity.id));
+        }}
+      >
+        {part}
+      </button>
+    );
+  });
+}
 
 export default function CommunityFeed({
   campaign,
@@ -1072,6 +1133,7 @@ function CommentsSheet({
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [body, setBody] = useState("");
   const [replyingTo, setReplyingTo] = useState<FeedComment | null>(null);
+  const [mentionIds, setMentionIds] = useState<string[]>([]);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -1164,6 +1226,77 @@ function CommentsSheet({
     refreshCommentLikeCount,
   ]);
 
+  const mentionableIdentities = useMemo(
+    () =>
+      identities
+        .filter(
+          (identity) =>
+            identity.kind === "player" &&
+            identity.user_id &&
+            identity.active !== false &&
+            identity.id !== actor,
+        )
+        .toSorted((left, right) =>
+          String(left.name || "").localeCompare(
+            String(right.name || ""),
+            "pt-BR",
+          ),
+        ),
+    [actor, identities],
+  );
+
+  const mentionQuery = useMemo(() => {
+    const match = body.match(/(?:^|\s)@([^@\n]{0,60})$/);
+    return match ? match[1].trimStart() : null;
+  }, [body]);
+
+  const mentionSuggestions = useMemo(() => {
+    if (mentionQuery == null) return [];
+    const query = mentionQuery.toLocaleLowerCase("pt-BR");
+    return mentionableIdentities
+      .filter((identity) =>
+        String(identity.name || "")
+          .toLocaleLowerCase("pt-BR")
+          .includes(query),
+      )
+      .slice(0, 6);
+  }, [mentionQuery, mentionableIdentities]);
+
+  const insertMention = (identity: Row) => {
+    const atIndex = body.lastIndexOf("@");
+    if (atIndex < 0) return;
+    setBody(
+      body.slice(0, atIndex) + "@" + String(identity.name).trim() + " ",
+    );
+    setMentionIds((current) =>
+      current.includes(String(identity.id))
+        ? current
+        : [...current, String(identity.id)],
+    );
+  };
+
+  const beginReply = (comment: FeedComment) => {
+    setReplyingTo(comment);
+    const author = identities.find(
+      (identity) => identity.id === comment.author_id,
+    );
+    if (
+      !author ||
+      author.id === actor ||
+      author.kind !== "player" ||
+      !author.user_id
+    )
+      return;
+
+    const token = "@" + String(author.name).trim();
+    setBody((current) => (current.trim() ? current : token + " "));
+    setMentionIds((current) =>
+      current.includes(String(author.id))
+        ? current
+        : [...current, String(author.id)],
+    );
+  };
+
   const roots = useMemo(
     () => comments.filter((comment) => !comment.parent_id),
     [comments],
@@ -1185,12 +1318,43 @@ function CommentsSheet({
     setBusy("comment");
     setError("");
     try {
+      const normalizedBody = body.trim();
+      const lowerBody = normalizedBody.toLocaleLowerCase("pt-BR");
+      const detectedMentionIds = mentionableIdentities
+        .filter((identity) =>
+          lowerBody.includes(
+            "@" +
+              String(identity.name)
+                .trim()
+                .toLocaleLowerCase("pt-BR"),
+          ),
+        )
+        .map((identity) => String(identity.id));
+      const validMentionIds = Array.from(
+        new Set([...mentionIds, ...detectedMentionIds]),
+      ).filter((identityId) => {
+        const identity = mentionableIdentities.find(
+          (candidate) => String(candidate.id) === identityId,
+        );
+        return Boolean(
+          identity &&
+            lowerBody.includes(
+              "@" +
+                String(identity.name)
+                  .trim()
+                  .toLocaleLowerCase("pt-BR"),
+            ),
+        );
+      });
+
       await act("comment", {
         post_id: post.id,
         parent_id: replyingTo?.id || null,
-        body: body.trim(),
+        body: normalizedBody,
+        mention_ids: validMentionIds,
       });
       setBody("");
+      setMentionIds([]);
       setReplyingTo(null);
       const commentCount = await loadComments();
       if (commentCount != null) changed(post.id, commentCount);
@@ -1278,12 +1442,13 @@ function CommentsSheet({
         </button>
         <div className={styles.commentBody}>
           <p>
-            <strong>{author.name}</strong> {comment.body}
+            <strong>{author.name}</strong>{" "}
+            {renderMentionBody(comment.body, identities, openProfile, close)}
           </p>
           <div>
             <span>{comment.like_count} curtidas</span>
             {!reply && (
-              <button type="button" onClick={() => setReplyingTo(comment)}>
+              <button type="button" onClick={() => beginReply(comment)}>
                 Responder
               </button>
             )}
@@ -1357,7 +1522,10 @@ function CommentsSheet({
           <button
             type="button"
             aria-label="Cancelar resposta"
-            onClick={() => setReplyingTo(null)}
+            onClick={() => {
+              setReplyingTo(null);
+              setMentionIds([]);
+            }}
           >
             <X aria-hidden="true" />
           </button>
@@ -1368,7 +1536,40 @@ function CommentsSheet({
           {error}
         </p>
       )}
-      <div className={styles.commentComposer}>
+      <div className={styles.commentComposerWrap}>
+        {mentionSuggestions.length > 0 && (
+          <div
+            className={styles.mentionSuggestions}
+            role="listbox"
+            aria-label="Mencionar jogador"
+          >
+            <div className={styles.mentionSuggestionsTitle}>
+              <AtSign aria-hidden="true" size={15} />
+              Mencionar jogador
+            </div>
+            {mentionSuggestions.map((identity) => (
+              <button
+                type="button"
+                role="option"
+                key={String(identity.id)}
+                onClick={() => insertMention(identity)}
+              >
+                <IdentityAvatar
+                  identity={identity}
+                  cosmetics={cosmetics}
+                  equipment={equipment}
+                  urls={urls}
+                  size={32}
+                />
+                <span>
+                  <strong>{String(identity.name)}</strong>
+                  <small>{identity.subtitle || "Jogador"}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className={styles.commentComposer}>
         <textarea
           value={body}
           maxLength={1000}
@@ -1386,6 +1587,7 @@ function CommentsSheet({
         >
           <Send aria-hidden="true" />
         </button>
+        </div>
       </div>
     </dialog>
   );
