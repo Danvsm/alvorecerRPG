@@ -96,10 +96,36 @@ class MainActivity : ComponentActivity() {
         configureWebView()
         configureBackNavigation()
         SyncScheduler.resumeNow(this, "app_opened")
-        webView.loadUrl(BuildConfig.APP_URL)
+        webView.loadUrl(notificationStartUrl(intent))
         Handler(Looper.getMainLooper()).post {
             requestInitialPermissions()
         }
+    }
+
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (::webView.isInitialized) {
+            webView.loadUrl(notificationStartUrl(intent))
+        }
+    }
+
+    private fun notificationStartUrl(sourceIntent: Intent?): String {
+        val conversationId = sourceIntent?.getStringExtra("open_chat").orEmpty()
+        if (conversationId.isNotBlank()) {
+            return BuildConfig.APP_URL + "/?chat=" + Uri.encode(conversationId)
+        }
+
+        val requested = sourceIntent?.getStringExtra("notification_url").orEmpty()
+        val safePath =
+            requested.takeIf {
+                it.startsWith("/") &&
+                    !it.startsWith("//") &&
+                    !it.contains("\\") &&
+                    !it.contains("://")
+            } ?: "/"
+        return BuildConfig.APP_URL + safePath
     }
 
     fun setWebSessionUser(userId: String?) {
