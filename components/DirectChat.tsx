@@ -715,6 +715,29 @@ export default function DirectChat({
   );
 
   useEffect(() => {
+    const openNotificationChat = (event: Event) => {
+      const detail = (event as CustomEvent<{ conversationId?: string }>).detail;
+      const conversationId = String(detail?.conversationId || "");
+      if (
+        !conversationId ||
+        !conversations.some(
+          (conversation) => String(conversation.id) === conversationId,
+        )
+      ) {
+        return;
+      }
+      setOpen(true);
+      setSelected(conversationId);
+      setLimit(50);
+    };
+
+    window.addEventListener("alvorecer:open-chat", openNotificationChat);
+    return () => {
+      window.removeEventListener("alvorecer:open-chat", openNotificationChat);
+    };
+  }, [conversations]);
+
+  useEffect(() => {
     const refreshChat = (event: Event) => {
       const detail = (event as CustomEvent<{ campaign?: string }>).detail;
       if (!detail?.campaign || detail.campaign === campaign) {
