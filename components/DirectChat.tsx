@@ -612,6 +612,22 @@ export default function DirectChat({
     }
 
     const url = new URL(window.location.href);
+    const openGroup = url.searchParams.get("group") === "1";
+    if (openGroup) {
+      if (!group) return;
+      notificationDeepLinkHandled.current = true;
+      setOpen(true);
+      setSelected(CAMPAIGN_GROUP_SELECTION);
+      setLimit(50);
+      url.searchParams.delete("group");
+      window.history.replaceState(
+        window.history.state,
+        "",
+        url.pathname + url.search + url.hash,
+      );
+      return;
+    }
+
     const target = url.searchParams.get("chat") || "";
     if (!target) {
       notificationDeepLinkHandled.current = true;
