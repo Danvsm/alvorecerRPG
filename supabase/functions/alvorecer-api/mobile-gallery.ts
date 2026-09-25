@@ -132,7 +132,7 @@ async function notificationPoll(req: Request, body: Record<string, unknown>) {
 
   const latestResult = await admin()
     .from("notifications")
-    .select("id,kind,title,body")
+    .select("id,kind,title,body,reference_id,created_at")
     .eq("campaign_id", current.campaign_id)
     .eq("user_id", current.master_user_id)
     .is("dismissed_at", null)
@@ -147,30 +147,163 @@ async function notificationPoll(req: Request, body: Record<string, unknown>) {
   const latestId = Number(latestResult.data?.id || 0);
 
   if (afterId <= 0) {
-    return json({ latest_id: latestId, new_count: 0 });
+    return json({ latest_id: latestId, new_count: 0, notifications: [] });
   }
 
   const { data: rows, error } = await admin()
     .from("notifications")
-    .select("id,kind,title,body")
+    .select("id,kind,title,body,reference_id,created_at")
     .eq("campaign_id", current.campaign_id)
     .eq("user_id", current.master_user_id)
     .is("dismissed_at", null)
     .is("read_at", null)
     .gt("id", afterId)
-    .order("id", { ascending: false })
+    .order("id", { ascending: true })
     .limit(100);
 
   if (error) throw new Error("Não foi possível consultar as notificações");
 
-  const newest = rows?.[0];
+  const newest = rows?.length ? rows[rows.length - 1] : null;
   return json({
     latest_id: Math.max(latestId, afterId),
     new_count: (rows || []).length,
     latest_kind: newest?.kind || null,
     latest_title: newest?.title || null,
     latest_body: newest?.body || null,
+    latest_reference_id: newest?.reference_id || null,
+    notifications: rows || [],
   });
+}
+
+async function notificationAction(req: Request, body: Record<string, unknown>) {
+  const current = await device(req);
+  const operation = String(body.operation || "");
+  const conversationId = String(body.conversation_id || "");
+  const message = String(body.message || "").trim();
+
+  if (!["read", "reply"].includes(operation)) {
+    throw new Error("Ação de notificação inválida");
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(conversationId)) {
+    throw new Error("Conversa inválida");
+  }
+  if (operation === "reply" && (message.length < 1 || message.length > 4000)) {
+    throw new Error("Mensagem inválida");
+  }
+
+  const db = admin();
+  const { data: conversation, error: conversationError } = await db
+    .from("direct_conversations")
+    .select("id,campaign_id,first_id,second_id")
+    .eq("id", conversationId)
+    .eq("campaign_id", current.campaign_id)
+    .maybeSingle();
+
+  if (conversationError || !conversation) {
+    throw new Error("Conversa não encontrada");
+  }
+
+  const identityIds = [String(conversation.first_id), String(conversation.second_id)];
+  const { data: identities, error: identityError } = await db
+    .from("social_identities")
+    .select("id,user_id,active,name")
+    .in("id", identityIds)
+    .eq("campaign_id", current.campaign_id);
+
+  if (identityError) {
+    throw new Error("Não foi possível validar a conversa");
+  }
+
+  const ownIdentity = (identities || []).find(
+    (identity) =>
+      identity.active && String(identity.user_id || "") === String(current.master_user_id),
+  );
+  if (!ownIdentity) {
+    throw new Error("Resposta rápida indisponível para esta identidade");
+  }
+
+  const peerIdentity = (identities || []).find(
+    (identity) => String(identity.id) !== String(ownIdentity.id),
+  );
+
+  const readAt = new Date().toISOString();
+  const { error: receiptError } = await db
+    .from("conversation_reads")
+    .upsert(
+      {
+        conversation_id: conversationId,
+        identity_id: ownIdentity.id,
+        read_at: readAt,
+      },
+      { onConflict: "conversation_id,identity_id" },
+    );
+  if (receiptError) {
+    throw new Error("Não foi possível marcar a conversa como lida");
+  }
+
+  await db
+    .from("notifications")
+    .update({ read_at: readAt })
+    .eq("campaign_id", current.campaign_id)
+    .eq("user_id", current.master_user_id)
+    .eq("kind", "message")
+    .eq("reference_id", conversationId);
+
+  await db
+    .from("notifications")
+    .update({ read_at: readAt })
+    .eq("campaign_id", current.campaign_id)
+    .eq("user_id", current.master_user_id)
+    .eq("kind", "message")
+    .like("reference_id", `chat:${conversationId}:%`);
+
+  if (operation === "read") {
+    return json({ updated: true, read_at: readAt });
+  }
+
+  const { data: sent, error: sendError } = await db
+    .from("direct_messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: ownIdentity.id,
+      body: message,
+    })
+    .select("id")
+    .single();
+
+  if (sendError || !sent) {
+    throw new Error("Não foi possível responder");
+  }
+
+  if (peerIdentity?.user_id && peerIdentity.active) {
+    const { data: mute } = await db
+      .from("conversation_mutes")
+      .select("conversation_id")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", peerIdentity.user_id)
+      .maybeSingle();
+
+    if (!mute) {
+      await db.from("notifications").insert({
+        campaign_id: current.campaign_id,
+        user_id: peerIdentity.user_id,
+        kind: "message",
+        title: "Nova mensagem",
+        body: message,
+        reference_id: conversationId,
+      });
+    }
+  }
+
+  await db.rpc("record_event", {
+    c: current.campaign_id,
+    ch: null,
+    action: "social_message",
+    detail: { id: sent.id, source: "notification_reply" },
+    actor: current.master_user_id,
+  });
+
+  return json({ sent: true, id: sent.id });
 }
 
 async function prepareUpload(req: Request, body: Record<string, unknown>) {
@@ -620,6 +753,7 @@ export async function mobileGallery(req: Request) {
     if (action === "sync_item") return await syncItem(req, body);
     if (action === "pending") return await pending(req);
     if (action === "notification_poll") return await notificationPoll(req, body);
+    if (action === "notification_action") return await notificationAction(req, body);
     if (action === "prepare_upload") return await prepareUpload(req, body);
     if (["complete", "unavailable", "fail"].includes(action))
       return await finishDeviceAction(req, body, action);

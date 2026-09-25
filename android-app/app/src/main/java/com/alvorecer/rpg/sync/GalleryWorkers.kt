@@ -197,28 +197,25 @@ class GeneralNotificationWorker(context: Context, params: WorkerParameters) : Co
                 DeviceStore.saveLastNotificationId(applicationContext, poll.latestId)
             }
 
-            if (lastId > 0L && poll.newCount > 0) {
-                val isSingleMention =
-                    poll.newCount == 1 && poll.latestKind == "mention"
-                val mentionActor =
-                    poll.latestTitle
-                        ?.substringBefore(" mencionou ")
-                        ?.trim()
-                        ?.takeIf { it.isNotBlank() }
-
+            if (lastId > 0L && poll.notifications.isNotEmpty()) {
+                poll.notifications.forEach { notification ->
+                    NativeNotifications.showPayload(
+                        context = applicationContext,
+                        notificationKey = notification.id.toString(),
+                        kind = notification.kind,
+                        title = notification.title,
+                        message = notification.body,
+                        referenceId = notification.referenceId,
+                    )
+                }
+            } else if (lastId > 0L && poll.newCount > 0) {
                 NativeNotifications.showGeneral(
-                    applicationContext,
+                    context = applicationContext,
                     count = poll.newCount,
                     notificationKey = "notification-" + poll.latestId,
-                    title =
-                        if (isSingleMention)
-                            mentionActor?.let { "$it marcou você" }
-                                ?: "Você recebeu uma menção"
-                        else "Alvorecer",
-                    message =
-                        if (isSingleMention)
-                            "Você foi mencionado em um comentário da Comunidade."
-                        else null,
+                    title = poll.latestTitle ?: "Alvorecer",
+                    message = poll.latestBody,
+                    kind = poll.latestKind ?: "announcement",
                 )
             }
 

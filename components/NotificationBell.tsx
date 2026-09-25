@@ -158,6 +158,44 @@ export default function NotificationBell({
     setLimit(20);
   };
 
+  const openNotification = async (notification: Row) => {
+    if (!notification.read_at) {
+      await run("notification_read", { id: notification.id });
+    }
+
+    const reference = String(notification.reference_id || "");
+    setOpen(false);
+
+    if (reference.startsWith("chat:")) {
+      const [, , senderId = ""] = reference.split(":");
+      if (senderId) {
+        window.dispatchEvent(
+          new CustomEvent("alvorecer:notification-open", {
+            detail: { type: "chat", id: senderId },
+          }),
+        );
+      }
+      return;
+    }
+
+    if (reference.startsWith("group:")) {
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:notification-open", {
+          detail: { type: "group" },
+        }),
+      );
+      return;
+    }
+
+    if (String(notification.kind) === "mention") {
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:notification-open", {
+          detail: { type: "community", referenceId: reference },
+        }),
+      );
+    }
+  };
+
   return (
     <div className="notification-container">
       <button
@@ -284,12 +322,7 @@ export default function NotificationBell({
                               data-unread={unread || undefined}
                               disabled={busy}
                               key={String(notification.id)}
-                              onClick={() =>
-                                unread &&
-                                run("notification_read", {
-                                  id: notification.id,
-                                })
-                              }
+                              onClick={() => void openNotification(notification)}
                             >
                               <span className="notification-symbol">
                                 <Icon aria-hidden size={25} />
@@ -307,9 +340,7 @@ export default function NotificationBell({
                                   )}
                                 </strong>
                                 <span>
-                                  {String(notification.kind) === "message"
-                    ? "Entre no Alvorecer para ver quem foi."
-                    : String(notification.body || style.subtitle)}
+                                  {String(notification.body || style.subtitle)}
                                 </span>
                               </span>
                               <time dateTime={String(notification.created_at)}>

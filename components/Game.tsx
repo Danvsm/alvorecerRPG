@@ -259,6 +259,7 @@ const playerMenu = [
 ] as const;
 
 const PAGE_QUERY_KEY = "view";
+const CHAT_GROUP_DEEP_LINK_ID = "__bar-do-pink__";
 
 function pageFromLocation() {
   if (typeof window === "undefined") return "Comunidade";
@@ -423,6 +424,81 @@ export default function Game({ invite }: { invite?: string }) {
       : ownIdentity?.id) || "";
   const displayName =
     ownProfile?.display_name || ownProfile?.username || "Conta";
+
+  useEffect(() => {
+    if (!campaign || !socialActor || typeof window === "undefined") return;
+
+    const openTarget = (
+      detail: { type?: string; id?: string; referenceId?: string },
+    ) => {
+      if (detail.type === "chat" && detail.id) {
+        setSpeakingAs("");
+        setChatPeer({ id: detail.id, nonce: Date.now() });
+        return;
+      }
+      if (detail.type === "group") {
+        setSpeakingAs("");
+        setChatPeer({ id: CHAT_GROUP_DEEP_LINK_ID, nonce: Date.now() });
+        return;
+      }
+      if (detail.type === "community") {
+        setPage("Comunidade");
+        syncPageLocation("Comunidade", "push");
+      }
+    };
+
+    const handleNotificationOpen = (event: Event) => {
+      openTarget(
+        (event as CustomEvent<{
+          type?: string;
+          id?: string;
+          referenceId?: string;
+        }>).detail || {},
+      );
+    };
+
+    window.addEventListener(
+      "alvorecer:notification-open",
+      handleNotificationOpen,
+    );
+
+    const url = new URL(window.location.href);
+    const chat = url.searchParams.get("chat");
+    const group = url.searchParams.get("group");
+    const community = url.searchParams.get("community");
+    const notifications = url.searchParams.get("notifications");
+
+    if (chat) {
+      openTarget({ type: "chat", id: chat });
+    } else if (group === "1") {
+      openTarget({ type: "group" });
+    } else if (community === "1") {
+      openTarget({
+        type: "community",
+        referenceId: url.searchParams.get("ref") || "",
+      });
+    }
+
+    if (chat || group || community || notifications) {
+      url.searchParams.delete("chat");
+      url.searchParams.delete("group");
+      url.searchParams.delete("community");
+      url.searchParams.delete("notifications");
+      url.searchParams.delete("ref");
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }
+
+    return () => {
+      window.removeEventListener(
+        "alvorecer:notification-open",
+        handleNotificationOpen,
+      );
+    };
+  }, [campaign, socialActor]);
   const ownMember = rows("campaign_members").find(
     (member) => member.user_id === session?.user.id,
   );

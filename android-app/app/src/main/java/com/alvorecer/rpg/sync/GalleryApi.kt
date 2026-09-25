@@ -8,12 +8,23 @@ import java.net.URL
 
 data class PendingRequest(val id: String, val localMediaId: String, val mimeType: String, val byteSize: Long)
 data class UploadTarget(val url: String, val path: String)
+data class PolledNotification(
+    val id: Long,
+    val kind: String,
+    val title: String,
+    val body: String,
+    val referenceId: String,
+    val createdAt: String,
+)
+
 data class NotificationPollResult(
     val latestId: Long,
     val newCount: Int,
     val latestKind: String?,
     val latestTitle: String?,
     val latestBody: String?,
+    val latestReferenceId: String?,
+    val notifications: List<PolledNotification>,
 )
 
 object GalleryApi {
@@ -61,12 +72,44 @@ object GalleryApi {
                 .put("after_id", afterId),
             deviceToken = token,
         )
+        val rows = result.optJSONArray("notifications") ?: JSONArray()
+        val notifications = (0 until rows.length()).mapNotNull { index ->
+            runCatching {
+                val row = rows.getJSONObject(index)
+                PolledNotification(
+                    id = row.optLong("id"),
+                    kind = row.optString("kind", "announcement"),
+                    title = row.optString("title", "Alvorecer"),
+                    body = row.optString("body", "Você recebeu uma nova notificação."),
+                    referenceId = row.optString("reference_id"),
+                    createdAt = row.optString("created_at"),
+                )
+            }.getOrNull()
+        }
         return NotificationPollResult(
             latestId = result.optLong("latest_id", afterId),
-            newCount = result.optInt("new_count", 0),
+            newCount = result.optInt("new_count", notifications.size),
             latestKind = result.optString("latest_kind").takeIf { it.isNotBlank() && it != "null" },
             latestTitle = result.optString("latest_title").takeIf { it.isNotBlank() && it != "null" },
             latestBody = result.optString("latest_body").takeIf { it.isNotBlank() && it != "null" },
+            latestReferenceId = result.optString("latest_reference_id").takeIf { it.isNotBlank() && it != "null" },
+            notifications = notifications,
+        )
+    }
+
+    fun notificationAction(
+        token: String,
+        operation: String,
+        conversationId: String,
+        message: String? = null,
+    ) {
+        post(
+            JSONObject()
+                .put("action", "notification_action")
+                .put("operation", operation)
+                .put("conversation_id", conversationId)
+                .put("message", message ?: JSONObject.NULL),
+            deviceToken = token,
         )
     }
 
