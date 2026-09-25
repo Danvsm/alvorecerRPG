@@ -158,6 +158,44 @@ export default function NotificationBell({
     setLimit(20);
   };
 
+  const openNotification = async (notification: Row) => {
+    if (!notification.read_at) {
+      await run("notification_read", { id: notification.id });
+    }
+
+    const reference = String(notification.reference_id || "");
+    setOpen(false);
+
+    if (reference.startsWith("chat:")) {
+      const [, , senderId = ""] = reference.split(":");
+      if (senderId) {
+        window.dispatchEvent(
+          new CustomEvent("alvorecer:notification-open", {
+            detail: { type: "chat", id: senderId },
+          }),
+        );
+      }
+      return;
+    }
+
+    if (reference.startsWith("group:")) {
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:notification-open", {
+          detail: { type: "group" },
+        }),
+      );
+      return;
+    }
+
+    if (String(notification.kind) === "mention") {
+      window.dispatchEvent(
+        new CustomEvent("alvorecer:notification-open", {
+          detail: { type: "community", referenceId: reference },
+        }),
+      );
+    }
+  };
+
   return (
     <div className="notification-container">
       <button
@@ -284,38 +322,7 @@ export default function NotificationBell({
                               data-unread={unread || undefined}
                               disabled={busy}
                               key={String(notification.id)}
-                              onClick={() => {
-                                if (unread) {
-                                  void run("notification_read", {
-                                    id: notification.id,
-                                  });
-                                }
-                                if (
-                                  kind === "message" &&
-                                  notification.reference_id
-                                ) {
-                                  const referenceId = String(
-                                    notification.reference_id,
-                                  );
-                                  setOpen(false);
-                                  if (referenceId.startsWith("group:")) {
-                                    window.dispatchEvent(
-                                      new CustomEvent("alvorecer:open-group"),
-                                    );
-                                  } else {
-                                    window.dispatchEvent(
-                                      new CustomEvent("alvorecer:open-chat", {
-                                        detail: {
-                                          conversationId:
-                                            referenceId.startsWith("chat:")
-                                              ? referenceId.split(":")[1] || ""
-                                              : referenceId,
-                                        },
-                                      }),
-                                    );
-                                  }
-                                }
-                              }}
+                              onClick={() => void openNotification(notification)}
                             >
                               <span className="notification-symbol">
                                 <Icon aria-hidden size={25} />
