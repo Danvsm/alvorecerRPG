@@ -123,6 +123,159 @@ async function conversationContext(
   };
 }
 
+
+async function firebaseAccessToken() {
+  const project = Deno.env.get("FIREBASE_PROJECT_ID");
+  const email = Deno.env.get("FIREBASE_CLIENT_EMAIL");
+  const pem = Deno.env.get("FIREBASE_PRIVATE_KEY")?.replaceAll("\\n", "\n");
+  if (!project || !email || !pem) return null;
+
+  const encode = (value: string | Uint8Array) => {
+    const raw =
+      typeof value === "string" ? new TextEncoder().encode(value) : value;
+    return btoa(String.fromCharCode(...raw))
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "");
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = encode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = encode(
+    JSON.stringify({
+      iss: email,
+      scope: "https://www.googleapis.com/auth/firebase.messaging",
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+    }),
+  );
+  const keyData = Uint8Array.from(
+    atob(pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, "")),
+    (value) => value.charCodeAt(0),
+  );
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    keyData,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    new TextEncoder().encode(`${header}.${claim}`),
+  );
+  const assertion = `${header}.${claim}.${encode(new Uint8Array(signature))}`;
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload.access_token) return null;
+  return { project, accessToken: String(payload.access_token) };
+}
+
+async function pushNativeToUsers(
+  db: ServiceDb,
+  campaign: string,
+  userIds: string[],
+  payload: {
+    title: string;
+    body: string;
+    tag: string;
+    url?: string;
+    kind?: string;
+    conversationId?: string;
+    senderName?: string;
+  },
+) {
+  const uniqueIds = [...new Set(userIds)].filter(Boolean);
+  if (!uniqueIds.length) {
+    return { nativeDelivered: 0, nativeFailed: 0, nativeDevices: 0 };
+  }
+
+  const { data: devices, error } = await db.rpc("notification_android_devices", {
+    p_campaign_id: campaign,
+    p_user_ids: uniqueIds,
+  });
+  if (error || !devices?.length) {
+    return { nativeDelivered: 0, nativeFailed: 0, nativeDevices: 0 };
+  }
+
+  const firebase = await firebaseAccessToken();
+  if (!firebase) {
+    return {
+      nativeDelivered: 0,
+      nativeFailed: 0,
+      nativeDevices: devices.length,
+    };
+  }
+
+  let nativeDelivered = 0;
+  let nativeFailed = 0;
+
+  await Promise.all(
+    devices.map(async (device: { fcm_token?: string }) => {
+      const token = cleanText(device.fcm_token, 4096);
+      if (!token) return;
+      try {
+        const response = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${firebase.project}/messages:send`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${firebase.accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                token,
+                data: {
+                  kind: "app_notification",
+                  notification_kind: payload.kind || "announcement",
+                  title: payload.title,
+                  body: payload.body,
+                  notification_id: payload.tag,
+                  url: payload.url || "/",
+                  conversation_id: payload.conversationId || "",
+                  sender_name: payload.senderName || "",
+                },
+                android: {
+                  priority:
+                    payload.kind === "message" || payload.kind === "call"
+                      ? "high"
+                      : "normal",
+                  ttl:
+                    payload.kind === "call"
+                      ? "60s"
+                      : payload.kind === "message"
+                        ? "86400s"
+                        : "259200s",
+                },
+              },
+            }),
+          },
+        );
+        if (response.ok) nativeDelivered += 1;
+        else nativeFailed += 1;
+      } catch {
+        nativeFailed += 1;
+      }
+    }),
+  );
+
+  return {
+    nativeDelivered,
+    nativeFailed,
+    nativeDevices: devices.length,
+  };
+}
+
 async function pushToUsers(
   db: ServiceDb,
   campaign: string,
@@ -600,30 +753,90 @@ Deno.serve(async (req: Request) => {
 
       const isCall = action === "chat_call";
       const callId = isCall ? cleanText(body?.callId, 80) : "";
+      const recipientUserId = String(context.recipient.user_id);
+      const senderName = cleanText(context.actor.name || "Alguém", 100);
+      const conversationUrl = `/?chat=${encodeURIComponent(String(context.conversation.id))}`;
 
-      const delivery = await pushToUsers(
-        db,
-        campaign,
-        [String(context.recipient.user_id)],
-        isCall
-          ? {
-              title: `${String(context.actor.name || "Alguém")} está ligando`,
-              body: "Toque para abrir a chamada de voz.",
-              tag: `alvorecer-call-${callId}`,
-              url: "/",
-              kind: "call",
-            }
-          : {
-              title: "Olha quem te mandou mensagem 👀",
-              body: "Entre no Alvorecer para ver quem foi.",
-              tag: `alvorecer-chat-${context.conversation.id}`,
-              url: "/",
-              kind: "message",
-            },
-      );
+      let notificationPayload = isCall
+        ? {
+            title: `Ligação Arcana de ${senderName}`,
+            body: "Chamada de voz recebida.",
+            tag: `alvorecer-call-${callId}`,
+            url: conversationUrl,
+            kind: "call",
+            conversationId: String(context.conversation.id),
+            senderName,
+          }
+        : {
+            title: senderName,
+            body: "Nova mensagem.",
+            tag: `alvorecer-chat-${context.conversation.id}`,
+            url: conversationUrl,
+            kind: "message",
+            conversationId: String(context.conversation.id),
+            senderName,
+          };
+
+      if (!isCall) {
+        const { data: latestMessage } = await db
+          .from("direct_messages")
+          .select("id,body,media_id,created_at")
+          .eq("conversation_id", conversationId)
+          .eq("sender_id", actorId)
+          .is("deleted_at", null)
+          .is("cleared_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let preview = cleanText(latestMessage?.body, 180);
+        if (!preview && latestMessage?.media_id) {
+          const { data: media } = await db
+            .from("chat_media")
+            .select("media_type,view_once")
+            .eq("id", latestMessage.media_id)
+            .maybeSingle();
+          preview =
+            String(media?.media_type || "") === "audio"
+              ? "🎙️ Áudio"
+              : media?.view_once
+                ? "📸 Foto de visualização única"
+                : "📷 Foto";
+        }
+        notificationPayload = {
+          ...notificationPayload,
+          body: preview || "Nova mensagem.",
+        };
+
+        const { data: storedNotification } = await db
+          .from("notifications")
+          .select("id")
+          .eq("campaign_id", campaign)
+          .eq("user_id", recipientUserId)
+          .eq("kind", "message")
+          .eq("reference_id", conversationId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (storedNotification?.id) {
+          await db
+            .from("notifications")
+            .update({
+              title: senderName,
+              body: notificationPayload.body,
+            })
+            .eq("id", storedNotification.id);
+        }
+      }
+
+      const [webDelivery, nativeDelivery] = await Promise.all([
+        pushToUsers(db, campaign, [recipientUserId], notificationPayload),
+        pushNativeToUsers(db, campaign, [recipientUserId], notificationPayload),
+      ]);
 
       return Response.json(
-        { ok: true, ...delivery },
+        { ok: true, ...webDelivery, ...nativeDelivery },
         { headers: { "Cache-Control": "no-store" } },
       );
     }
