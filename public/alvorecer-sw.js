@@ -278,7 +278,7 @@ self.addEventListener("push", (event) => {
 
   const notificationTitle = String(payload.title || "Notificação");
   const highPriorityAlert =
-    ["message", "chat_message", "group_message", "call"].includes(payload.kind);
+    payload.kind === "message" || payload.kind === "call";
 
   event.waitUntil(
     (async () => {
@@ -295,7 +295,19 @@ self.addEventListener("push", (event) => {
         icon: "/alvorecer-mark.svg",
         tag: payload.tag,
         renotify: highPriorityAlert || Boolean(payload.tag),
-        data: {\n          url: payload.url || "/",\n          kind: payload.kind || "announcement",\n          conversationId: payload.conversation_id || "",\n          senderId: payload.sender_id || "",\n        },
+        data: {
+          url: payload.url || "/",
+          kind: payload.kind || "announcement",
+          referenceId: payload.reference_id || "",
+          conversationId: payload.conversation_id || "",
+          senderId: payload.sender_id || "",
+        },
+        actions:
+          payload.kind === "chat_message" || payload.kind === "group_message"
+            ? [{ action: "open", title: "Abrir conversa" }]
+            : payload.kind === "call"
+              ? [{ action: "open", title: "Abrir ligação" }]
+              : [{ action: "open", title: "Abrir" }],
         silent: highPriorityAlert ? false : hasVisibleWindow,
         vibrate: highPriorityAlert
           ? [180, 70, 180, 70, 260]
