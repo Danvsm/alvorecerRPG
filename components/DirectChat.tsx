@@ -163,8 +163,7 @@ export default function DirectChat({
   const voiceCallRef = useRef<VoiceCallHandle>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
-  const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
-  const notificationDeepLinkHandled = useRef(false);
+  const handledRequestNonce = useRef(0);
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
   const contactUnlockTimer = useRef<number | null>(null);
@@ -184,31 +183,6 @@ export default function DirectChat({
     });
     if (r.error) throw new Error(r.error.message);
     return r.data;
-  };
-
-  const pushReceivedMessage = async (conversationId: string) => {
-    try {
-      const sessionResult = await browserDb().auth.getSession();
-      const token = sessionResult.data.session?.access_token;
-      if (!token) return;
-
-      await fetch("/api/push", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          action: "chat_message",
-          campaign,
-          conversationId,
-          actorId: actor,
-        }),
-        keepalive: true,
-      });
-    } catch {
-      // A mensagem continua enviada mesmo se o aviso push falhar.
-    }
   };
 
   const sendImage = async (file: File, viewOnce = false) => {
@@ -243,7 +217,6 @@ export default function DirectChat({
       });
       if (sent.error) throw sent.error;
 
-      void pushReceivedMessage(selected);
       setRefresh((value) => value + 1);
       window.dispatchEvent(
         new CustomEvent("alvorecer:chat-updated", {
@@ -314,7 +287,6 @@ export default function DirectChat({
         throw new Error(result.error || "Não foi possível enviar o áudio.");
       }
 
-      void pushReceivedMessage(selected);
       setRefresh((value) => value + 1);
       window.dispatchEvent(
         new CustomEvent("alvorecer:chat-updated", { detail: { campaign } }),
@@ -601,62 +573,6 @@ export default function DirectChat({
       setMessages([]);
     }
   }, [hideBubble]);
-
-  useEffect(() => {
-    if (
-      notificationDeepLinkHandled.current ||
-      typeof window === "undefined" ||
-      !conversations.length
-    ) {
-      return;
-    }
-
-    const url = new URL(window.location.href);
-    const openGroup = url.searchParams.get("group") === "1";
-    if (openGroup) {
-      if (!group) return;
-      notificationDeepLinkHandled.current = true;
-      setOpen(true);
-      setSelected(CAMPAIGN_GROUP_SELECTION);
-      setLimit(50);
-      url.searchParams.delete("group");
-      window.history.replaceState(
-        window.history.state,
-        "",
-        url.pathname + url.search + url.hash,
-      );
-      return;
-    }
-
-    const target = url.searchParams.get("chat") || "";
-    if (!target) {
-      notificationDeepLinkHandled.current = true;
-      return;
-    }
-
-    const matchedConversation = conversations.find((conversation) => {
-      if (String(conversation.id) === target) return true;
-      const firstId = String(conversation.first_id || "");
-      const secondId = String(conversation.second_id || "");
-      return (
-        (firstId === String(actor) && secondId === target) ||
-        (secondId === String(actor) && firstId === target)
-      );
-    });
-    if (!matchedConversation) return;
-
-    notificationDeepLinkHandled.current = true;
-    setOpen(true);
-    setSelected(String(matchedConversation.id));
-    setLimit(50);
-    url.searchParams.delete("chat");
-    window.history.replaceState(
-      window.history.state,
-      "",
-      url.pathname + url.search + url.hash,
-    );
-  }, [conversations]);
-
   useEffect(() => {
     const path = String(group?.avatar_storage_path || "");
     if (!path) {
@@ -735,38 +651,6 @@ export default function DirectChat({
     },
     [actor, campaign, groupAvatarBusy, master],
   );
-
-  useEffect(() => {
-    const openNotificationChat = (event: Event) => {
-      const detail = (event as CustomEvent<{ conversationId?: string }>).detail;
-      const conversationId = String(detail?.conversationId || "");
-      if (
-        !conversationId ||
-        !conversations.some(
-          (conversation) => String(conversation.id) === conversationId,
-        )
-      ) {
-        return;
-      }
-      setOpen(true);
-      setSelected(conversationId);
-      setLimit(50);
-    };
-
-    const openNotificationGroup = () => {
-      if (!group) return;
-      setOpen(true);
-      setSelected(CAMPAIGN_GROUP_SELECTION);
-      setLimit(50);
-    };
-
-    window.addEventListener("alvorecer:open-chat", openNotificationChat);
-    window.addEventListener("alvorecer:open-group", openNotificationGroup);
-    return () => {
-      window.removeEventListener("alvorecer:open-chat", openNotificationChat);
-      window.removeEventListener("alvorecer:open-group", openNotificationGroup);
-    };
-  }, [conversations, group]);
 
   useEffect(() => {
     const refreshChat = (event: Event) => {
@@ -2171,8 +2055,7 @@ export default function DirectChat({
                       conversation_id: selected,
                       body: body.trim(),
                     });
-                    void pushReceivedMessage(selected);
-                  }
+                                }
                   setBody("");
                   setEmojiOpen(false);
                   setRefresh((v) => v + 1);
