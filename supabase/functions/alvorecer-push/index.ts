@@ -902,7 +902,7 @@ Deno.serve(async (req: Request) => {
       throw new Error("Não foi possível criar as notificações.");
     }
 
-    const delivery = await pushToUsers(db, campaign, activeIds, {
+    const deliveryPayload = {
       title,
       body: message,
       tag:
@@ -911,12 +911,17 @@ Deno.serve(async (req: Request) => {
           : `alvorecer-${crypto.randomUUID()}`,
       url: "/",
       kind,
-    });
+    };
+    const [webDelivery, nativeDelivery] = await Promise.all([
+      pushToUsers(db, campaign, activeIds, deliveryPayload),
+      pushNativeToUsers(db, campaign, activeIds, deliveryPayload),
+    ]);
 
     return Response.json(
       {
         sent: activeIds.length,
-        ...delivery,
+        ...webDelivery,
+        ...nativeDelivery,
       },
       { headers: { "Cache-Control": "no-store" } },
     );
