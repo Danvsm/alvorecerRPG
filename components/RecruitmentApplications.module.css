@@ -33,7 +33,7 @@
 .intro button,
 .management button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -79,8 +79,8 @@
 .stats span {
   overflow: hidden;
   margin-top: 3px;
-  color: #968f8b;
-  font-size: 0.7rem;
+  color: #b6b1ae;
+  font-size: 0.78rem;
   text-overflow: ellipsis;
 }
 
@@ -152,8 +152,8 @@
 
 .cardTop p {
   margin-top: 3px;
-  color: #99918d;
-  font-size: 0.74rem;
+  color: #b8b0aa;
+  font-size: 0.82rem;
 }
 
 .status {
@@ -164,7 +164,7 @@
   border-radius: 99px;
   color: #d8cfca;
   background: #ffffff08;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -203,11 +203,12 @@
   gap: 8px;
   overflow-wrap: anywhere;
   color: #c7bfba;
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   text-decoration: none;
 }
 
 .quickInfo a {
+  min-height: 44px;
   color: #e5b77c;
 }
 
@@ -223,10 +224,11 @@
 }
 
 .answers summary {
+  min-height: 48px;
   padding: 13px 0;
   color: #ddd3cd;
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 750;
 }
 
@@ -243,8 +245,8 @@
 }
 
 .answers dt {
-  color: #8f8783;
-  font-size: 0.66rem;
+  color: #b6aba5;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -253,7 +255,7 @@
 .answers dd {
   margin: 0;
   color: #d4cbc5;
-  font-size: 0.79rem;
+  font-size: 0.9rem;
   line-height: 1.55;
   white-space: pre-wrap;
 }

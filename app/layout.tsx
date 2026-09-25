@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./design-system.css";
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Lora } from "next/font/google";
 import ImageCache from "@/components/ImageCache";

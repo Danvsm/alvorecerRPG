@@ -17,7 +17,7 @@ import {
   Swords,
   Users,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { RECRUITMENT_CAMPAIGN, TABLE_CONTACT_URL } from "@/lib/recruitment";
 import styles from "./jogar.module.css";
 
@@ -113,6 +113,18 @@ export default function JogarLanding() {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const progress = step * 25;
+  const formHeading = useRef<HTMLDivElement>(null);
+  const previousStep = useRef(step);
+
+  useEffect(() => {
+    if (previousStep.current === step) return;
+    previousStep.current = step;
+    formHeading.current?.focus({ preventScroll: true });
+    formHeading.current?.scrollIntoView({
+      block: "start",
+      behavior: "instant",
+    });
+  }, [step]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -233,6 +245,10 @@ export default function JogarLanding() {
             <small>VSM PRODUÇÃO</small>
           </span>
         </a>
+        <nav className={styles.headerNav} aria-label="Conheça a campanha">
+          <a href="#campanha">A campanha</a>
+          <a href="#participar">Como participar</a>
+        </nav>
         <a className={styles.headerCta} href="#inscricao">
           Inscreva-se
         </a>
@@ -386,9 +402,28 @@ export default function JogarLanding() {
           <h3>UMA EXPERIÊNCIA PREPARADA PARA VOCÊ</h3>
           <div className={styles.benefitGrid}>
             <article>
-              <span className={styles.d20Icon} aria-hidden="true">
-                <strong>20</strong>
-              </span>
+              <svg
+                className={styles.d20Icon}
+                viewBox="0 0 32 32"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M16 2 29 9v14L16 30 3 23V9Z M16 2 8 10h16ZM3 9l5 1-5 13m26-14-5 1 5 13M8 10l-2 12h20l-2-12M6 22l10 8 10-8" />
+                <text
+                  x="16"
+                  y="20"
+                  fill="currentColor"
+                  stroke="none"
+                  textAnchor="middle"
+                  fontSize="9"
+                  fontFamily="sans-serif"
+                >
+                  20
+                </text>
+              </svg>
               <h4>Mestre com +10 anos narrando</h4>
               <p>
                 Histórias envolventes e uma mesa preparada também para novos
@@ -512,7 +547,13 @@ export default function JogarLanding() {
             </div>
           ) : (
             <form onSubmit={submit} noValidate>
-              <div className={styles.formTop}>
+              <div
+                className={styles.formTop}
+                ref={formHeading}
+                tabIndex={-1}
+                role="group"
+                aria-label={`Etapa ${step} de 4: ${stepTitles[step - 1]}`}
+              >
                 <div>
                   <span>ETAPA {step} DE 4</span>
                   <strong>{stepTitles[step - 1]}</strong>

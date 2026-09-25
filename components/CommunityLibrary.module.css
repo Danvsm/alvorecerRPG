@@ -118,9 +118,11 @@
     border-color 180ms ease;
 }
 
-.storyCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(224, 183, 101, 0.48);
+@media (hover: hover) and (pointer: fine) {
+  .storyCard:hover {
+    transform: translateY(-3px);
+    border-color: rgba(224, 183, 101, 0.48);
+  }
 }
 
 .storyCard > button {
@@ -372,8 +374,8 @@
 }
 
 .articleHeader time {
-  color: #827c79;
-  font-size: 0.77rem;
+  color: #b2aaa3;
+  font-size: 0.82rem;
 }
 
 .articleBody {

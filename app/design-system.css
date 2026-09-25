@@ -1,0 +1,329 @@
+/* Shared finish for the application shell. Narrative screens keep their art,
+   resource colours and module-specific layouts; /jogar owns its own palette. */
+:root {
+  --background: #0b0e14;
+  --panel: #131820;
+  --raised: #1c2330;
+  --border: #2c3442;
+  --text: #f5f2ec;
+  --muted: #adb6c5;
+  --ui-gold: #e3c184;
+  --ui-radius: 14px;
+  --ui-shadow: 0 12px 32px #00000024, inset 0 1px #ffffff05;
+  --ui-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::selection {
+  background: #e3c18440;
+  color: inherit;
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--ui-gold);
+  outline-offset: 4px;
+}
+
+:where(button, a, input, select, textarea) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app :where(button, .button-label),
+.auth :where(button, .button-label) {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.app :where(input, select, textarea),
+.auth :where(input, select, textarea) {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.auth {
+  background:
+    radial-gradient(ellipse at 15% 10%, #334d6e35, transparent 58%),
+    radial-gradient(ellipse at 95% 90%, #a5702720, transparent 50%), #0b0e14;
+  padding: max(28px, env(safe-area-inset-top)) 20px
+    max(28px, env(safe-area-inset-bottom));
+}
+
+.auth-panel {
+  max-width: 470px;
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid #c4d3eb1c;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #18202dd9, #10151fe8);
+  box-shadow:
+    0 30px 100px #0005,
+    inset 0 1px #ffffff08;
+}
+
+.auth-panel.invite-auth {
+  max-width: 680px;
+}
+.auth-panel .brand {
+  margin-bottom: 38px;
+}
+.auth-panel .auth-symbol {
+  color: var(--ui-gold);
+}
+.auth-panel .eyebrow {
+  color: var(--ui-gold);
+}
+.auth-panel form {
+  gap: 22px;
+}
+.auth-panel input {
+  min-height: 48px;
+  border-radius: 10px;
+}
+.auth-panel button.primary {
+  min-height: 48px;
+  border-radius: 10px;
+}
+.auth-panel h1 {
+  font-size: clamp(1.8rem, 6vw, 2.3rem);
+}
+
+.app .sidebar {
+  background: linear-gradient(180deg, #151b26, #0f141e 70%);
+  border-right-color: #c4d3eb17;
+  padding: 24px 14px max(18px, env(safe-area-inset-bottom));
+}
+
+.app .sidebar .brand {
+  padding-inline: 8px;
+  color: #f7e7c9;
+}
+.app .campaign-switch {
+  margin: 24px 0 16px;
+}
+.app .campaign-switch select {
+  min-height: 44px;
+  border-radius: 10px;
+}
+.app .sidebar nav {
+  gap: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #495368 transparent;
+}
+.app .sidebar nav button {
+  position: relative;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.app .sidebar nav button.active {
+  color: #ffe4b0;
+  border-color: #dfbb7830;
+  background: linear-gradient(100deg, #d9ae6320, #d9ae6308);
+  box-shadow: inset 3px 0 #dfbb78;
+}
+
+.app .sidebar nav button.active svg {
+  color: var(--ui-gold);
+}
+.app .sidebar-foot {
+  margin-top: auto;
+  border-top: 1px solid #ffffff0d;
+  padding-top: 14px;
+}
+.app .sidebar-account {
+  min-height: 48px;
+}
+.app .sidebar-foot > button:last-child {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.app:not(.player-profile-mode):not(.player-sheet-mode) .workspace {
+  background:
+    radial-gradient(ellipse at 75% 0%, #293c541a, transparent 55%),
+    var(--background);
+}
+
+.app:not(.player-profile-mode):not(.player-sheet-mode) .topbar {
+  min-height: 64px;
+  height: auto;
+  padding-block: 10px;
+  background: #10151ce8;
+  border-bottom-color: #ffffff0c;
+}
+
+.app .page-heading {
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.app .page-heading h1 {
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  letter-spacing: -0.04em;
+}
+.app .page-heading .eyebrow {
+  margin-bottom: 8px;
+  color: var(--ui-gold);
+}
+.app .overview-title {
+  padding: clamp(22px, 3vw, 36px);
+  border-color: #d9ba7e32;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 95% 10%, #b78a3820, transparent 65%),
+    linear-gradient(120deg, #1b293b, #121a27);
+}
+.app .overview-title > svg {
+  color: var(--ui-gold);
+  opacity: 0.8;
+}
+.app .overview-title h2 {
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
+}
+.app .overview-title .eyebrow {
+  color: var(--ui-gold);
+}
+.app .stat {
+  min-width: 0;
+  border-color: #c4d3eb1a;
+  border-radius: var(--ui-radius);
+  background: linear-gradient(145deg, #1b2331, #121820);
+  box-shadow: var(--ui-shadow);
+}
+.app .stat > svg {
+  color: var(--ui-gold);
+}
+.app .stat strong {
+  font-weight: 600;
+  letter-spacing: -0.045em;
+}
+.app .panel,
+.app .character-card {
+  border-radius: var(--ui-radius);
+  border-color: #c4d3eb20;
+  box-shadow: var(--ui-shadow);
+}
+.app .character-card {
+  padding: 24px;
+}
+.app .toolbar {
+  row-gap: 14px;
+}
+.app .toolbar > input {
+  min-width: 0;
+}
+.app .list-row {
+  gap: 14px;
+}
+.app .character-heading h2 {
+  letter-spacing: -0.025em;
+}
+
+/* Feedback only on actionable cards, never on static information panels. */
+@media (hover: hover) and (pointer: fine) {
+  .app .sidebar nav button:not(.active):hover {
+    color: #fff6e5;
+    background: #ffffff08;
+  }
+  .app button.character-card {
+    transition:
+      transform 220ms var(--ui-ease),
+      border-color 220ms ease,
+      box-shadow 220ms ease;
+  }
+  .app button.character-card:hover {
+    transform: translateY(-3px);
+    border-color: #d9bb7d66;
+    box-shadow:
+      0 16px 36px #0004,
+      inset 0 1px #ffffff0a;
+  }
+}
+
+@media (max-width: 760px) {
+  .app .sidebar {
+    width: min(290px, 86vw);
+  }
+  .app .page-heading {
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .app .page-heading-meta {
+    padding-top: 0;
+  }
+  .app .topbar {
+    padding-inline: 16px;
+    gap: 10px;
+  }
+  .app .mobile-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .app
+    .content:not(.community-content):not(.combat-content):not(
+      .player-profile-content
+    ) {
+    padding-inline: 18px;
+  }
+  .app .stats {
+    gap: 10px;
+  }
+  .app .stat {
+    padding: 16px;
+    gap: 10px;
+  }
+  .app .stat strong {
+    font-size: 1.8rem;
+  }
+  .app .panel {
+    padding: 18px;
+  }
+  .app .toolbar > select {
+    min-width: 0;
+  }
+  .app .toolbar > :where(input, select) {
+    flex: 1 1 180px;
+  }
+  .app :where(input, select, textarea) {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 390px) {
+  .auth-panel {
+    padding: 24px 20px;
+  }
+  .app .stat {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .app .stat strong {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .app .stat > span {
+    grid-row: 3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app *,
+  .app *::before,
+  .app *::after,
+  .auth *,
+  .auth *::before,
+  .auth *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .app button.character-card:hover {
+    transform: none;
+  }
+}
