@@ -7,7 +7,7 @@ import com.alvorecer.rpg.sync.SyncScheduler
 class AlvorecerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        NativeNotifications.createChannel(this)
+        NativeNotifications.createChannels(this)
         SyncScheduler.schedulePeriodic(this)
     }
 }
