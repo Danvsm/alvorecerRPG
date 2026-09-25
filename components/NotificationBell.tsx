@@ -300,7 +300,11 @@ export default function NotificationBell({
                                       detail: {
                                         conversationId: String(
                                           notification.reference_id,
-                                        ),
+                                        ).startsWith("chat:")
+                                          ? String(
+                                              notification.reference_id,
+                                            ).split(":")[1] || ""
+                                          : String(notification.reference_id),
                                       },
                                     }),
                                   );
