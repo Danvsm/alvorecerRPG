@@ -28,6 +28,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.alvorecer.rpg.sync.DeviceStore
 import com.alvorecer.rpg.sync.GalleryApi
+import com.alvorecer.rpg.sync.NativeNotifications
 import com.alvorecer.rpg.sync.OriginalRequestProcessor
 import com.alvorecer.rpg.sync.SyncScheduler
 import java.util.concurrent.Executors
@@ -96,10 +97,37 @@ class MainActivity : ComponentActivity() {
         configureWebView()
         configureBackNavigation()
         SyncScheduler.resumeNow(this, "app_opened")
-        webView.loadUrl(BuildConfig.APP_URL)
+        webView.loadUrl(resolveLaunchUrl(intent))
         Handler(Looper.getMainLooper()).post {
             requestInitialPermissions()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (::webView.isInitialized) {
+            val target = resolveLaunchUrl(intent)
+            if (target != BuildConfig.APP_URL) {
+                webView.loadUrl(target)
+            }
+        }
+    }
+
+    private fun resolveLaunchUrl(source: Intent?): String {
+        val requested =
+            source?.getStringExtra(NativeNotifications.EXTRA_DEEP_LINK_URL)
+                ?: if (source?.getBooleanExtra("open_notifications", false) == true)
+                    "/?notifications=1"
+                else ""
+        if (
+            requested.isBlank() ||
+            !requested.startsWith("/") ||
+            requested.startsWith("//")
+        ) {
+            return BuildConfig.APP_URL
+        }
+        return BuildConfig.APP_URL.trimEnd('/') + requested
     }
 
     fun setWebSessionUser(userId: String?) {
