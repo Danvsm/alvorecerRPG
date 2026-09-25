@@ -295,7 +295,19 @@ self.addEventListener("push", (event) => {
         icon: "/alvorecer-mark.svg",
         tag: payload.tag,
         renotify: highPriorityAlert || Boolean(payload.tag),
-        data: { url: payload.url || "/" },
+        data: {
+          url: payload.url || "/",
+          kind: payload.kind || "announcement",
+          referenceId: payload.reference_id || "",
+          conversationId: payload.conversation_id || "",
+          senderId: payload.sender_id || "",
+        },
+        actions:
+          payload.kind === "chat_message" || payload.kind === "group_message"
+            ? [{ action: "open", title: "Abrir conversa" }]
+            : payload.kind === "call"
+              ? [{ action: "open", title: "Abrir ligação" }]
+              : [{ action: "open", title: "Abrir" }],
         silent: highPriorityAlert ? false : hasVisibleWindow,
         vibrate: highPriorityAlert
           ? [180, 70, 180, 70, 260]
