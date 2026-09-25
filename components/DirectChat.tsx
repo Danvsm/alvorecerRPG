@@ -612,20 +612,26 @@ export default function DirectChat({
     }
 
     const url = new URL(window.location.href);
-    const conversationId = url.searchParams.get("chat") || "";
-    if (!conversationId) {
+    const target = url.searchParams.get("chat") || "";
+    if (!target) {
       notificationDeepLinkHandled.current = true;
       return;
     }
 
-    const exists = conversations.some(
-      (conversation) => String(conversation.id) === conversationId,
-    );
-    if (!exists) return;
+    const matchedConversation = conversations.find((conversation) => {
+      if (String(conversation.id) === target) return true;
+      const firstId = String(conversation.first_id || "");
+      const secondId = String(conversation.second_id || "");
+      return (
+        (firstId === String(actor) && secondId === target) ||
+        (secondId === String(actor) && firstId === target)
+      );
+    });
+    if (!matchedConversation) return;
 
     notificationDeepLinkHandled.current = true;
     setOpen(true);
-    setSelected(conversationId);
+    setSelected(String(matchedConversation.id));
     setLimit(50);
     url.searchParams.delete("chat");
     window.history.replaceState(
