@@ -26,6 +26,9 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android-app/app/google-services.json
+            echo "Firebase Android configurado para este build."
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 não está configurado. O APK usará o fallback de notificações do Alvorecer, sem FCM instantâneo em segundo plano."
           fi
       - name: Build debug APK
         working-directory: android-app
