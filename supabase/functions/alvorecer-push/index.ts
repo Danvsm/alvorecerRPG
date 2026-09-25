@@ -124,7 +124,30 @@ async function conversationContext(
 }
 
 
+type DeliveryPayload = {
+  title: string;
+  body: string;
+  tag: string;
+  url?: string;
+  kind?: string;
+  notificationId?: string;
+  referenceId?: string;
+  conversationId?: string;
+  senderId?: string;
+};
+
+let firebaseTokenCache:
+  | { token: string; expiresAt: number }
+  | undefined;
+
 async function firebaseAccessToken() {
+  if (
+    firebaseTokenCache &&
+    firebaseTokenCache.expiresAt > Date.now() + 60_000
+  ) {
+    return firebaseTokenCache.token;
+  }
+
   const project = Deno.env.get("FIREBASE_PROJECT_ID");
   const email = Deno.env.get("FIREBASE_CLIENT_EMAIL");
   const pem = Deno.env.get("FIREBASE_PRIVATE_KEY")?.replaceAll("\\n", "\n");
@@ -150,6 +173,7 @@ async function firebaseAccessToken() {
       exp: now + 3600,
     }),
   );
+
   const keyData = Uint8Array.from(
     atob(pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, "")),
     (value) => value.charCodeAt(0),
@@ -166,7 +190,9 @@ async function firebaseAccessToken() {
     key,
     new TextEncoder().encode(`${header}.${claim}`),
   );
-  const assertion = `${header}.${claim}.${encode(new Uint8Array(signature))}`;
+  const assertion =
+    `${header}.${claim}.${encode(new Uint8Array(signature))}`;
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -175,45 +201,86 @@ async function firebaseAccessToken() {
       assertion,
     }),
   });
-  const payload = await response.json();
-  if (!response.ok || !payload.access_token) return null;
-  return { project, accessToken: String(payload.access_token) };
+  const body = await response.json();
+  if (!response.ok || !body.access_token) return null;
+
+  firebaseTokenCache = {
+    token: String(body.access_token),
+    expiresAt: Date.now() + Math.max(60, Number(body.expires_in || 3600) - 120) * 1000,
+  };
+  return firebaseTokenCache.token;
+}
+
+function notificationRoute(kind: string, referenceId: string) {
+  if (referenceId.startsWith("chat:")) {
+    const [, conversationId = "", senderId = ""] = referenceId.split(":");
+    return {
+      url: senderId ? `/?chat=${encodeURIComponent(senderId)}` : "/",
+      conversationId,
+      senderId,
+      nativeKind: "chat_message",
+      tag: `alvorecer-chat-${conversationId || referenceId}`,
+    };
+  }
+
+  if (referenceId.startsWith("group:")) {
+    const [, conversationId = "", senderId = ""] = referenceId.split(":");
+    return {
+      url: "/?group=1",
+      conversationId,
+      senderId,
+      nativeKind: "group_message",
+      tag: `alvorecer-group-${conversationId || referenceId}`,
+    };
+  }
+
+  if (kind === "mention") {
+    return {
+      url: referenceId
+        ? `/?community=1&ref=${encodeURIComponent(referenceId)}`
+        : "/?community=1",
+      conversationId: "",
+      senderId: "",
+      nativeKind: "mention",
+      tag: `alvorecer-mention-${referenceId || crypto.randomUUID()}`,
+    };
+  }
+
+  return {
+    url: "/?notifications=1",
+    conversationId: "",
+    senderId: "",
+    nativeKind: kind || "announcement",
+    tag: `alvorecer-${referenceId || crypto.randomUUID()}`,
+  };
 }
 
 async function pushNativeToUsers(
   db: ServiceDb,
   campaign: string,
   userIds: string[],
-  payload: {
-    title: string;
-    body: string;
-    tag: string;
-    url?: string;
-    kind?: string;
-    conversationId?: string;
-    senderName?: string;
-  },
+  payload: DeliveryPayload,
 ) {
   const uniqueIds = [...new Set(userIds)].filter(Boolean);
   if (!uniqueIds.length) {
     return { nativeDelivered: 0, nativeFailed: 0, nativeDevices: 0 };
   }
 
-  const { data: devices, error } = await db.rpc("notification_android_devices", {
-    p_campaign_id: campaign,
-    p_user_ids: uniqueIds,
-  });
-  if (error || !devices?.length) {
+  const project = Deno.env.get("FIREBASE_PROJECT_ID");
+  const accessToken = await firebaseAccessToken().catch(() => null);
+  if (!project || !accessToken) {
     return { nativeDelivered: 0, nativeFailed: 0, nativeDevices: 0 };
   }
 
-  const firebase = await firebaseAccessToken();
-  if (!firebase) {
-    return {
-      nativeDelivered: 0,
-      nativeFailed: 0,
-      nativeDevices: devices.length,
-    };
+  const { data: devices, error } = await db.rpc(
+    "notification_android_devices",
+    {
+      p_campaign_id: campaign,
+      p_user_ids: uniqueIds,
+    },
+  );
+  if (error || !devices?.length) {
+    return { nativeDelivered: 0, nativeFailed: 0, nativeDevices: 0 };
   }
 
   let nativeDelivered = 0;
@@ -221,39 +288,44 @@ async function pushNativeToUsers(
 
   await Promise.all(
     devices.map(async (device: { fcm_token?: string }) => {
-      const token = cleanText(device.fcm_token, 4096);
-      if (!token) return;
+      const fcmToken = String(device.fcm_token || "");
+      if (!fcmToken) return;
+
       try {
         const response = await fetch(
-          `https://fcm.googleapis.com/v1/projects/${firebase.project}/messages:send`,
+          `https://fcm.googleapis.com/v1/projects/${project}/messages:send`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${firebase.accessToken}`,
+              Authorization: `Bearer ${accessToken}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
               message: {
-                token,
+                token: fcmToken,
                 data: {
-                  kind: "app_notification",
-                  notification_kind: payload.kind || "announcement",
+                  kind: String(payload.kind || "announcement"),
                   title: payload.title,
                   body: payload.body,
-                  notification_id: payload.tag,
+                  tag: payload.tag,
                   url: payload.url || "/",
+                  notification_id: payload.notificationId || "",
+                  reference_id: payload.referenceId || "",
                   conversation_id: payload.conversationId || "",
-                  sender_name: payload.senderName || "",
+                  sender_id: payload.senderId || "",
                 },
                 android: {
                   priority:
-                    payload.kind === "message" || payload.kind === "call"
+                    payload.kind === "chat_message" ||
+                    payload.kind === "group_message" ||
+                    payload.kind === "call"
                       ? "high"
                       : "normal",
                   ttl:
                     payload.kind === "call"
                       ? "60s"
-                      : payload.kind === "message"
+                      : payload.kind === "chat_message" ||
+                          payload.kind === "group_message"
                         ? "86400s"
                         : "259200s",
                 },
@@ -261,6 +333,7 @@ async function pushNativeToUsers(
             }),
           },
         );
+
         if (response.ok) nativeDelivered += 1;
         else nativeFailed += 1;
       } catch {
@@ -280,17 +353,18 @@ async function pushToUsers(
   db: ServiceDb,
   campaign: string,
   userIds: string[],
-  payload: {
-    title: string;
-    body: string;
-    tag: string;
-    url?: string;
-    kind?: string;
-  },
+  payload: DeliveryPayload,
 ) {
   const uniqueIds = [...new Set(userIds)].filter(Boolean);
   if (!uniqueIds.length) {
-    return { pushDelivered: 0, pushFailed: 0, subscribedDevices: 0 };
+    return {
+      pushDelivered: 0,
+      pushFailed: 0,
+      subscribedDevices: 0,
+      nativeDelivered: 0,
+      nativeFailed: 0,
+      nativeDevices: 0,
+    };
   }
 
   const { data: subscriptions, error: subscriptionError } = await db
@@ -303,96 +377,111 @@ async function pushToUsers(
     throw new Error("Não foi possível consultar os aparelhos registrados.");
   }
 
-  if (!subscriptions?.length) {
-    return { pushDelivered: 0, pushFailed: 0, subscribedDevices: 0 };
-  }
-
-  const { data: privateKey, error: keyError } = await db.rpc(
-    "server_push_vapid_private",
-  );
-
-  if (keyError || !privateKey) {
-    throw new Error("O servidor de push está sem chave.");
-  }
-
-  webpush.setVapidDetails(
-    VAPID_SUBJECT,
-    VAPID_PUBLIC_KEY,
-    String(privateKey),
-  );
-
   let pushDelivered = 0;
   let pushFailed = 0;
 
-  await Promise.all(
-    subscriptions.map(async (subscription) => {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: String(subscription.endpoint),
-            keys: {
-              p256dh: String(subscription.p256dh),
-              auth: String(subscription.auth_secret),
+  if (subscriptions?.length) {
+    const { data: privateKey, error: keyError } = await db.rpc(
+      "server_push_vapid_private",
+    );
+
+    if (keyError || !privateKey) {
+      throw new Error("O servidor de push está sem chave.");
+    }
+
+    webpush.setVapidDetails(
+      VAPID_SUBJECT,
+      VAPID_PUBLIC_KEY,
+      String(privateKey),
+    );
+
+    await Promise.all(
+      subscriptions.map(async (subscription) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: String(subscription.endpoint),
+              keys: {
+                p256dh: String(subscription.p256dh),
+                auth: String(subscription.auth_secret),
+              },
             },
-          },
-          JSON.stringify({
-            title: payload.title,
-            body: payload.body,
-            tag: payload.tag,
-            url: payload.url || "/",
-            kind: payload.kind || "announcement",
-          }),
-          {
-            TTL:
-              payload.kind === "call"
-                ? 60
-                : payload.kind === "message"
-                  ? 86400
-                  : 259200,
-            urgency:
-              payload.kind === "message" || payload.kind === "call"
-                ? "high"
-                : "normal",
-          },
-        );
+            JSON.stringify({
+              title: payload.title,
+              body: payload.body,
+              tag: payload.tag,
+              url: payload.url || "/",
+              kind: payload.kind || "announcement",
+              notification_id: payload.notificationId || "",
+              reference_id: payload.referenceId || "",
+              conversation_id: payload.conversationId || "",
+              sender_id: payload.senderId || "",
+            }),
+            {
+              TTL:
+                payload.kind === "call"
+                  ? 60
+                  : payload.kind === "chat_message" ||
+                      payload.kind === "group_message" ||
+                      payload.kind === "message"
+                    ? 86400
+                    : 259200,
+              urgency:
+                payload.kind === "chat_message" ||
+                payload.kind === "group_message" ||
+                payload.kind === "message" ||
+                payload.kind === "call"
+                  ? "high"
+                  : "normal",
+            },
+          );
 
-        pushDelivered += 1;
-        await db
-          .from("push_subscriptions")
-          .update({
-            last_success_at: new Date().toISOString(),
-            failure_count: 0,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", subscription.id);
-      } catch (caught) {
-        pushFailed += 1;
-        const statusCode = Number(
-          (caught as { statusCode?: number })?.statusCode || 0,
-        );
-
-        if (statusCode === 404 || statusCode === 410) {
-          await db
-            .from("push_subscriptions")
-            .delete()
-            .eq("id", subscription.id);
-        } else {
+          pushDelivered += 1;
           await db
             .from("push_subscriptions")
             .update({
-              failure_count: Number(subscription.failure_count || 0) + 1,
+              last_success_at: new Date().toISOString(),
+              failure_count: 0,
               updated_at: new Date().toISOString(),
             })
             .eq("id", subscription.id);
+        } catch (caught) {
+          pushFailed += 1;
+          const statusCode = Number(
+            (caught as { statusCode?: number })?.statusCode || 0,
+          );
+
+          if (statusCode === 404 || statusCode === 410) {
+            await db
+              .from("push_subscriptions")
+              .delete()
+              .eq("id", subscription.id);
+          } else {
+            await db
+              .from("push_subscriptions")
+              .update({
+                failure_count: Number(subscription.failure_count || 0) + 1,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", subscription.id);
+          }
         }
-      }
-    }),
+      }),
+    );
+  }
+
+  const native = await pushNativeToUsers(
+    db,
+    campaign,
+    uniqueIds,
+    payload,
   );
 
   return {
     pushDelivered,
     pushFailed,
-    subscribedDevices: subscriptions.length,
+    subscribedDevices: subscriptions?.length || 0,
+    ...native,
   };
 }
 
@@ -403,9 +492,70 @@ Deno.serve(async (req: Request) => {
     }
 
     const db = serviceClient();
-    const user = await currentUser(req, db);
     const body = await req.json();
     const action = String(body?.action || "");
+
+    if (action === "notifications_created") {
+      const hookToken = req.headers.get("x-notification-hook-token") || "";
+      const { data: allowed, error: hookError } = await db.rpc(
+        "verify_notification_push_hook",
+        { token: hookToken },
+      );
+      if (hookError || allowed !== true) {
+        return Response.json({ error: "Webhook não autorizado" }, { status: 403 });
+      }
+
+      const rows = Array.isArray(body?.notifications)
+        ? body.notifications.slice(0, 100)
+        : [];
+      let delivered = 0;
+      let failed = 0;
+      let nativeDelivered = 0;
+      let nativeFailed = 0;
+
+      for (const row of rows) {
+        const campaign = cleanText(row?.campaign_id, 80);
+        const userId = cleanText(row?.user_id, 80);
+        const kind = cleanText(row?.kind, 40) || "announcement";
+        const title = cleanText(row?.title, 100) || "Alvorecer";
+        const message = cleanText(row?.body, 500) || "Você recebeu uma nova notificação.";
+        const referenceId = cleanText(row?.reference_id, 220);
+        const notificationId = cleanText(row?.id, 40);
+        if (!campaign || !userId) continue;
+
+        const route = notificationRoute(kind, referenceId);
+        const result = await pushToUsers(db, campaign, [userId], {
+          title,
+          body: message,
+          tag: route.tag,
+          url: route.url,
+          kind: route.nativeKind,
+          notificationId,
+          referenceId,
+          conversationId: route.conversationId,
+          senderId: route.senderId,
+        });
+
+        delivered += result.pushDelivered;
+        failed += result.pushFailed;
+        nativeDelivered += result.nativeDelivered;
+        nativeFailed += result.nativeFailed;
+      }
+
+      return Response.json(
+        {
+          ok: true,
+          notifications: rows.length,
+          pushDelivered: delivered,
+          pushFailed: failed,
+          nativeDelivered,
+          nativeFailed,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    const user = await currentUser(req, db);
     const campaign = String(body?.campaign || "");
 
     if (!campaign) throw new Error("Campanha inválida.");
@@ -544,8 +694,18 @@ Deno.serve(async (req: Request) => {
         await db
           .from("notifications")
           .delete()
+          .eq("campaign_id", campaign)
+          .eq("user_id", user.id)
           .eq("kind", "message")
           .eq("reference_id", conversationId);
+
+        await db
+          .from("notifications")
+          .delete()
+          .eq("campaign_id", campaign)
+          .eq("user_id", user.id)
+          .eq("kind", "message")
+          .like("reference_id", `chat:${conversationId}:%`);
 
         await db.rpc("record_event", {
           c: campaign,
@@ -752,91 +912,32 @@ Deno.serve(async (req: Request) => {
       }
 
       const isCall = action === "chat_call";
-      const callId = isCall ? cleanText(body?.callId, 80) : "";
-      const recipientUserId = String(context.recipient.user_id);
-      const senderName = cleanText(context.actor.name || "Alguém", 100);
-      const conversationUrl = `/?chat=${encodeURIComponent(String(context.conversation.id))}`;
-
-      let notificationPayload = isCall
-        ? {
-            title: `Ligação Arcana de ${senderName}`,
-            body: "Chamada de voz recebida.",
-            tag: `alvorecer-call-${callId}`,
-            url: conversationUrl,
-            kind: "call",
-            conversationId: String(context.conversation.id),
-            senderName,
-          }
-        : {
-            title: senderName,
-            body: "Nova mensagem.",
-            tag: `alvorecer-chat-${context.conversation.id}`,
-            url: conversationUrl,
-            kind: "message",
-            conversationId: String(context.conversation.id),
-            senderName,
-          };
-
       if (!isCall) {
-        const { data: latestMessage } = await db
-          .from("direct_messages")
-          .select("id,body,media_id,created_at")
-          .eq("conversation_id", conversationId)
-          .eq("sender_id", actorId)
-          .is("deleted_at", null)
-          .is("cleared_at", null)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let preview = cleanText(latestMessage?.body, 180);
-        if (!preview && latestMessage?.media_id) {
-          const { data: media } = await db
-            .from("chat_media")
-            .select("media_type,view_once")
-            .eq("id", latestMessage.media_id)
-            .maybeSingle();
-          preview =
-            String(media?.media_type || "") === "audio"
-              ? "🎙️ Áudio"
-              : media?.view_once
-                ? "📸 Foto de visualização única"
-                : "📷 Foto";
-        }
-        notificationPayload = {
-          ...notificationPayload,
-          body: preview || "Nova mensagem.",
-        };
-
-        const { data: storedNotification } = await db
-          .from("notifications")
-          .select("id")
-          .eq("campaign_id", campaign)
-          .eq("user_id", recipientUserId)
-          .eq("kind", "message")
-          .eq("reference_id", conversationId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (storedNotification?.id) {
-          await db
-            .from("notifications")
-            .update({
-              title: senderName,
-              body: notificationPayload.body,
-            })
-            .eq("id", storedNotification.id);
-        }
+        return Response.json(
+          { ok: true, delivery: "notification_hook" },
+          { headers: { "Cache-Control": "no-store" } },
+        );
       }
 
-      const [webDelivery, nativeDelivery] = await Promise.all([
-        pushToUsers(db, campaign, [recipientUserId], notificationPayload),
-        pushNativeToUsers(db, campaign, [recipientUserId], notificationPayload),
-      ]);
+      const callId = cleanText(body?.callId, 80);
+      const delivery = await pushToUsers(
+        db,
+        campaign,
+        [String(context.recipient.user_id)],
+        {
+          title: `Ligação Arcana de ${String(context.actor.name || "Alguém")}`,
+          body: "Chamada de voz recebida",
+          tag: `alvorecer-call-${callId}`,
+          url: `/?chat=${encodeURIComponent(String(context.actor.id))}`,
+          kind: "call",
+          referenceId: `chat:${context.conversation.id}:${context.actor.id}`,
+          conversationId: String(context.conversation.id),
+          senderId: String(context.actor.id),
+        },
+      );
 
       return Response.json(
-        { ok: true, ...webDelivery, ...nativeDelivery },
+        { ok: true, ...delivery },
         { headers: { "Cache-Control": "no-store" } },
       );
     }
@@ -902,26 +1003,11 @@ Deno.serve(async (req: Request) => {
       throw new Error("Não foi possível criar as notificações.");
     }
 
-    const deliveryPayload = {
-      title,
-      body: message,
-      tag:
-        inserted?.length === 1
-          ? `alvorecer-${String(inserted[0].id)}`
-          : `alvorecer-${crypto.randomUUID()}`,
-      url: "/",
-      kind,
-    };
-    const [webDelivery, nativeDelivery] = await Promise.all([
-      pushToUsers(db, campaign, activeIds, deliveryPayload),
-      pushNativeToUsers(db, campaign, activeIds, deliveryPayload),
-    ]);
-
     return Response.json(
       {
         sent: activeIds.length,
-        ...webDelivery,
-        ...nativeDelivery,
+        queued: inserted?.length || 0,
+        delivery: "notification_hook",
       },
       { headers: { "Cache-Control": "no-store" } },
     );
