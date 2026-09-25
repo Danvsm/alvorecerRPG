@@ -164,6 +164,7 @@ export default function DirectChat({
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
+  const notificationDeepLinkHandled = useRef(false);
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
   const contactUnlockTimer = useRef<number | null>(null);
@@ -600,6 +601,40 @@ export default function DirectChat({
       setMessages([]);
     }
   }, [hideBubble]);
+
+  useEffect(() => {
+    if (
+      notificationDeepLinkHandled.current ||
+      typeof window === "undefined" ||
+      !conversations.length
+    ) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    const conversationId = url.searchParams.get("chat") || "";
+    if (!conversationId) {
+      notificationDeepLinkHandled.current = true;
+      return;
+    }
+
+    const exists = conversations.some(
+      (conversation) => String(conversation.id) === conversationId,
+    );
+    if (!exists) return;
+
+    notificationDeepLinkHandled.current = true;
+    setOpen(true);
+    setSelected(conversationId);
+    setLimit(50);
+    url.searchParams.delete("chat");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      url.pathname + url.search + url.hash,
+    );
+  }, [conversations]);
+
   useEffect(() => {
     const path = String(group?.avatar_storage_path || "");
     if (!path) {
