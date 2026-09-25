@@ -25,7 +25,7 @@
         android:theme="@style/Theme.Alvorecer">
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="alvorecer_general" />
+            android:value="alvorecer_general_v2" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_alvorecer" />
