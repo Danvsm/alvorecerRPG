@@ -753,11 +753,20 @@ export default function DirectChat({
       setLimit(50);
     };
 
+    const openNotificationGroup = () => {
+      if (!group) return;
+      setOpen(true);
+      setSelected(CAMPAIGN_GROUP_SELECTION);
+      setLimit(50);
+    };
+
     window.addEventListener("alvorecer:open-chat", openNotificationChat);
+    window.addEventListener("alvorecer:open-group", openNotificationGroup);
     return () => {
       window.removeEventListener("alvorecer:open-chat", openNotificationChat);
+      window.removeEventListener("alvorecer:open-group", openNotificationGroup);
     };
-  }, [conversations]);
+  }, [conversations, group]);
 
   useEffect(() => {
     const refreshChat = (event: Event) => {
