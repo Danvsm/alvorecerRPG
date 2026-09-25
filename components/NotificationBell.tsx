@@ -284,12 +284,28 @@ export default function NotificationBell({
                               data-unread={unread || undefined}
                               disabled={busy}
                               key={String(notification.id)}
-                              onClick={() =>
-                                unread &&
-                                run("notification_read", {
-                                  id: notification.id,
-                                })
-                              }
+                              onClick={() => {
+                                if (unread) {
+                                  void run("notification_read", {
+                                    id: notification.id,
+                                  });
+                                }
+                                if (
+                                  kind === "message" &&
+                                  notification.reference_id
+                                ) {
+                                  setOpen(false);
+                                  window.dispatchEvent(
+                                    new CustomEvent("alvorecer:open-chat", {
+                                      detail: {
+                                        conversationId: String(
+                                          notification.reference_id,
+                                        ),
+                                      },
+                                    }),
+                                  );
+                                }
+                              }}
                             >
                               <span className="notification-symbol">
                                 <Icon aria-hidden size={25} />
@@ -307,9 +323,7 @@ export default function NotificationBell({
                                   )}
                                 </strong>
                                 <span>
-                                  {String(notification.kind) === "message"
-                    ? "Entre no Alvorecer para ver quem foi."
-                    : String(notification.body || style.subtitle)}
+                                  {String(notification.body || style.subtitle)}
                                 </span>
                               </span>
                               <time dateTime={String(notification.created_at)}>
