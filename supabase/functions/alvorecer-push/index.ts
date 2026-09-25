@@ -694,8 +694,18 @@ Deno.serve(async (req: Request) => {
         await db
           .from("notifications")
           .delete()
+          .eq("campaign_id", campaign)
+          .eq("user_id", user.id)
           .eq("kind", "message")
           .eq("reference_id", conversationId);
+
+        await db
+          .from("notifications")
+          .delete()
+          .eq("campaign_id", campaign)
+          .eq("user_id", user.id)
+          .eq("kind", "message")
+          .like("reference_id", `chat:${conversationId}:%`);
 
         await db.rpc("record_event", {
           c: campaign,
