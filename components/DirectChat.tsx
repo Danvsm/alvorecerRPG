@@ -163,7 +163,7 @@ export default function DirectChat({
   const voiceCallRef = useRef<VoiceCallHandle>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
-  const handledRequestNonce = useRef(requestedPeer?.nonce ?? 0);
+  const handledRequestNonce = useRef(0);
   const suppressContactUntil = useRef(0);
   const swallowBubbleClick = useRef(false);
   const contactUnlockTimer = useRef<number | null>(null);
@@ -183,31 +183,6 @@ export default function DirectChat({
     });
     if (r.error) throw new Error(r.error.message);
     return r.data;
-  };
-
-  const pushReceivedMessage = async (conversationId: string) => {
-    try {
-      const sessionResult = await browserDb().auth.getSession();
-      const token = sessionResult.data.session?.access_token;
-      if (!token) return;
-
-      await fetch("/api/push", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          action: "chat_message",
-          campaign,
-          conversationId,
-          actorId: actor,
-        }),
-        keepalive: true,
-      });
-    } catch {
-      // A mensagem continua enviada mesmo se o aviso push falhar.
-    }
   };
 
   const sendImage = async (file: File, viewOnce = false) => {
@@ -242,7 +217,6 @@ export default function DirectChat({
       });
       if (sent.error) throw sent.error;
 
-      void pushReceivedMessage(selected);
       setRefresh((value) => value + 1);
       window.dispatchEvent(
         new CustomEvent("alvorecer:chat-updated", {
@@ -313,7 +287,6 @@ export default function DirectChat({
         throw new Error(result.error || "Não foi possível enviar o áudio.");
       }
 
-      void pushReceivedMessage(selected);
       setRefresh((value) => value + 1);
       window.dispatchEvent(
         new CustomEvent("alvorecer:chat-updated", { detail: { campaign } }),
@@ -2082,8 +2055,7 @@ export default function DirectChat({
                       conversation_id: selected,
                       body: body.trim(),
                     });
-                    void pushReceivedMessage(selected);
-                  }
+                                }
                   setBody("");
                   setEmojiOpen(false);
                   setRefresh((v) => v + 1);
