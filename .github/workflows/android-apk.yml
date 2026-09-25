@@ -3,7 +3,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, android-gallery-apk, codex-android-launcher-icon, notification-2-0]
+    branches: [main, android-gallery-apk, codex-android-launcher-icon, notification-2-0, notification-experience-v2]
     paths:
       - "android-app/**"
       - ".github/workflows/android-apk.yml"
