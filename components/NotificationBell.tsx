@@ -294,20 +294,26 @@ export default function NotificationBell({
                                   kind === "message" &&
                                   notification.reference_id
                                 ) {
-                                  setOpen(false);
-                                  window.dispatchEvent(
-                                    new CustomEvent("alvorecer:open-chat", {
-                                      detail: {
-                                        conversationId: String(
-                                          notification.reference_id,
-                                        ).startsWith("chat:")
-                                          ? String(
-                                              notification.reference_id,
-                                            ).split(":")[1] || ""
-                                          : String(notification.reference_id),
-                                      },
-                                    }),
+                                  const referenceId = String(
+                                    notification.reference_id,
                                   );
+                                  setOpen(false);
+                                  if (referenceId.startsWith("group:")) {
+                                    window.dispatchEvent(
+                                      new CustomEvent("alvorecer:open-group"),
+                                    );
+                                  } else {
+                                    window.dispatchEvent(
+                                      new CustomEvent("alvorecer:open-chat", {
+                                        detail: {
+                                          conversationId:
+                                            referenceId.startsWith("chat:")
+                                              ? referenceId.split(":")[1] || ""
+                                              : referenceId,
+                                        },
+                                      }),
+                                    );
+                                  }
                                 }
                               }}
                             >
