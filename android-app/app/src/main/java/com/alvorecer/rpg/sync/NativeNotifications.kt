@@ -90,11 +90,19 @@ object NativeNotifications {
 
         val safeSender = senderName.ifBlank { "Alguém" }
         val safeMessage = message.ifBlank { "Nova mensagem." }
-        val sender = Person.Builder().setName(safeSender).build()
+        val isGroup = url.contains("group=1")
+        val messageSender =
+            if (isGroup && safeMessage.contains(":")) {
+                safeMessage.substringBefore(":").trim().ifBlank { safeSender }
+            } else {
+                safeSender
+            }
+        val sender = Person.Builder().setName(messageSender).build()
         val style = NotificationCompat.MessagingStyle(
             Person.Builder().setName("Você").build(),
         )
             .setConversationTitle(safeSender)
+            .setGroupConversation(isGroup)
             .addMessage(safeMessage, System.currentTimeMillis(), sender)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
@@ -111,7 +119,7 @@ object NativeNotifications {
                 openIntent(
                     context,
                     notificationKey.hashCode(),
-                    conversationId,
+                    if (isGroup) "" else conversationId,
                     url,
                 ),
             )
