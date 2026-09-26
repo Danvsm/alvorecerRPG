@@ -253,7 +253,7 @@ export default function JogarLanding() {
           <a href="#participar">Como participar</a>
         </nav>
         <a className={styles.headerCta} href="#inscricao">
-          Inscreva-se
+          Pré-inscrição
         </a>
       </header>
 
@@ -289,7 +289,7 @@ export default function JogarLanding() {
             <span>1ª temporada · 5 sessões</span>
           </div>
           <a className={styles.primaryCta} href="#inscricao">
-            INSCREVA-SE <ArrowRight aria-hidden="true" />
+            PRÉ-INSCRIÇÃO <ArrowRight aria-hidden="true" />
           </a>
         </div>
       </section>
@@ -501,7 +501,7 @@ export default function JogarLanding() {
         </p>
         <div className={styles.finalActions}>
           <a className={styles.primaryCta} href="#inscricao">
-            INSCREVA-SE <ArrowRight aria-hidden="true" />
+            PRÉ-INSCRIÇÃO <ArrowRight aria-hidden="true" />
           </a>
           {TABLE_CONTACT_URL ? (
             <a
