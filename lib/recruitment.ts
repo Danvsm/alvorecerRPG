@@ -1,4 +1,7 @@
 export const RECRUITMENT_CAMPAIGN = "A Promessa do Amanhecer";
+// Real participants without accounts, confirmed by the master.
+// Reduce this base if these participants later create accounts.
+export const RECRUITMENT_OFFLINE_PLAYERS = 10;
 
 // Centralized public contact; Vercel can override this URL when needed.
 export const TABLE_CONTACT_URL =
