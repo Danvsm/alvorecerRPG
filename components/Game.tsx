@@ -42,6 +42,7 @@ import {
   type AvatarShape,
 } from "@/lib/avatar-shape";
 import { Brand, Empty } from "./Common";
+import AuditHistory from "./AuditHistory";
 import ResourceConfiguration from "./ResourceConfiguration";
 import ConsumableActions from "./ConsumableActions";
 import ShopPanel from "./ShopPanel";
@@ -143,7 +144,6 @@ const tables = [
   "character_items",
   "creature_templates",
   "combat_rooms",
-  "audit_logs",
   "invites",
   "profiles",
   "campaign_members",
@@ -348,7 +348,6 @@ export default function Game({ invite }: { invite?: string }) {
     [recipients, setRecipients] = useState<Row[]>([]),
     [avatarPickerTarget, setAvatarPickerTarget] =
       useState<AvatarSelectionTarget | null>(null),
-    [historyLimit, setHistoryLimit] = useState(20),
     [catalogFilter, setCatalogFilter] = useState("active"),
     [deleteCharacterPreview, setDeleteCharacterPreview] = useState<{
       character: Row;
@@ -1409,12 +1408,9 @@ export default function Game({ invite }: { invite?: string }) {
     );
   }
   function history(id?: string) {
-    const records = rows("audit_logs")
-      .filter((log) => !id || log.character_id === id)
-      .slice(0, historyLimit);
     return (
-      <div className="list">
-        {records.map((l) => (
+      <AuditHistory key={`${campaign}-${id || "all"}`} campaignId={campaign}
+        characterId={id} refreshToken={data} renderRecord={(l) => (
           <div className="history-row" key={l.id}>
             <time>{new Date(l.created_at).toLocaleString("pt-BR")}</time>
             <div>
@@ -1462,21 +1458,7 @@ export default function Game({ invite }: { invite?: string }) {
               })()}
             </small>
           </div>
-        ))}
-        {!rows("audit_logs").length && (
-          <Empty text="As alterações da sessão aparecerão aqui." />
-        )}
-        {records.length <
-          rows("audit_logs").filter((log) => !id || log.character_id === id)
-            .length && (
-          <button
-            className="load-more"
-            onClick={() => setHistoryLimit((limit) => limit + 20)}
-          >
-            Carregar mais
-          </button>
-        )}
-      </div>
+        )} />
     );
   }
   const activeRooms = rows("combat_rooms").filter((r) => r.active);
@@ -2063,8 +2045,10 @@ export default function Game({ invite }: { invite?: string }) {
                   }
                 />
               )}
-              <h2>Últimas alterações</h2>
-              {history()}
+              {isMaster && <>
+                <h2>Últimas alterações</h2>
+                {history()}
+              </>}
             </>
           )}
           {page === "Personagens" && isMaster && (
