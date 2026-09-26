@@ -8510,12 +8510,18 @@ dialog.combat-sheet {
   margin-top: 15px;
 }
 
-.player-character-sheet .character-skills { margin-top: 24px; }
+.player-character-sheet .character-skill-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 19px; border: 1px solid #ffffff20; border-radius: 11px; background: #0d1015; overflow: hidden; }
+.player-character-sheet .character-skill-tabs button { min-width: 0; min-height: 40px; padding: 8px 5px; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: #b4aeb8; font-size: .84rem; font-weight: 500; }
+.player-character-sheet .character-skill-tabs button + button { border-left: 1px solid #ffffff17; }
+.player-character-sheet .character-skill-tabs button.active { border: 1px solid #ad273a; border-radius: 10px; background: linear-gradient(120deg, #391018, #28131c); color: #f5e4e5; font-weight: 700; }
+.player-character-sheet .character-skill-tabs button:focus-visible { outline: 2px solid #ed7389; outline-offset: -3px; }
+.player-character-sheet .character-skills { margin-top: 17px; }
 .player-character-sheet .character-skills-heading { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
 .player-character-sheet .character-skills-heading h2,
 .player-character-sheet .character-advantages h3 { margin: 0; color: #f4e9e6; font-family: var(--font-display); font-size: 1.08rem; }
 .player-character-sheet .character-skills-heading p { margin: 5px 0 0; color: #a9a2a6; font-size: .83rem; line-height: 1.5; }
-.player-character-sheet .character-skills-heading > span { flex: none; color: #e2b0b9; font-size: .78rem; padding: 5px 9px; border-radius: 20px; background: #922a4030; }
+.player-character-sheet .character-skills-heading > span { flex: none; color: #aeaaba; font-size: .78rem; white-space: nowrap; }
+.player-character-sheet .character-skills-limit { margin: 8px 0 0; color: #9b929b; font-size: .75rem; }
 .player-character-sheet .character-skills-list { display: grid; gap: 11px; margin-top: 18px; }
 .player-character-sheet .character-skill { display: grid; grid-template-columns: 72px minmax(0,1fr) auto; align-items: start; gap: 12px; padding: 11px 0; border-bottom: 1px solid #ffffff14; }
 .player-character-sheet .character-skill-image { width: 72px; aspect-ratio: 1; overflow: hidden; display: grid; place-items: center; border-radius: 10px; color: #c99d73; background: linear-gradient(140deg,#492431,#231e2a 70%); }
@@ -8539,7 +8545,7 @@ dialog.combat-sheet {
 .player-character-sheet .character-skills-add { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 18px; min-height: 47px; border: 1px solid #a8365066; border-radius: 10px; background: linear-gradient(120deg,#631b30,#84273c); color: #fff0ee; font-weight: 700; }
 .player-character-sheet .character-skills-add:hover { background: #98354d; }
 .player-character-sheet .character-skills-error { color: #ffc5c5; background: #7a25342e; border-radius: 8px; padding: 9px 12px; font-size: .82rem; }
-.player-character-sheet .character-advantages { margin-top: 28px; padding-top: 20px; border-top: 1px solid #ffffff18; }
+.player-character-sheet .character-advantages { margin-top: 20px; }
 .player-character-sheet .character-skill-form { display: grid; gap: 15px; margin-top: 18px; padding: 17px; border: 1px solid #ffffff1b; border-radius: 13px; background: #18171d; }
 .player-character-sheet .character-skill-form-heading { display: flex; align-items: center; justify-content: space-between; }
 .player-character-sheet .character-skill-form-heading h3 { margin: 0; font-family: var(--font-display); font-size: 1.05rem; }
