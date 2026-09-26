@@ -59,14 +59,14 @@ export default function RecruitmentCounter({ refreshKey }: { refreshKey: boolean
 
   if (dismissed || nearForm || total === null) return null;
   return (
-    <aside className={styles.notice} aria-label="Jogadores e inscrições">
+    <aside className={styles.notice} aria-label="Jogadores pré-inscritos">
       <span className={styles.icon}><Users size={20} aria-hidden="true" /></span>
       <div className={styles.copy}>
-        <span>A aventura já começou</span>
-        <strong><span key={total} className={styles.number}>{total.toLocaleString("pt-BR")}</span> jogadores e inscrições</strong>
+        <span><i className={styles.liveDot} aria-hidden="true" /> A aventura já começou</span>
+        <strong><span key={total} className={styles.number}>{total.toLocaleString("pt-BR")}</span> Jogadores pré-inscritos</strong>
         <small>Faça parte dessa história.</small>
       </div>
-      <button type="button" onClick={dismiss} aria-label="Fechar aviso de jogadores e inscrições" className={styles.close}>
+      <button type="button" onClick={dismiss} aria-label="Fechar aviso de jogadores pré-inscritos" className={styles.close}>
         <X size={18} aria-hidden="true" />
       </button>
     </aside>

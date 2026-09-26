@@ -1,6 +1,6 @@
 # Contador público de recrutamento
 
-O aviso em `/jogar` soma jogadores ativos cadastrados na campanha, inscrições recebidas e dez participantes reais sem conta confirmados pelo Mestre. A base fica em `RECRUITMENT_OFFLINE_PLAYERS`; deve diminuir se esses participantes criarem contas. O texto distingue jogadores e inscrições: não representa vagas ocupadas ou candidatos aprovados.
+O aviso em `/jogar` soma jogadores ativos cadastrados na campanha, inscrições recebidas e vinte participantes sem conta, conforme a base atualizada pelo Mestre. A base fica em `RECRUITMENT_OFFLINE_PLAYERS`; deve diminuir se esses participantes criarem contas. O texto público é “Jogadores pré-inscritos”: não representa vagas ocupadas ou candidatos aprovados. O indicador verde pulsa suavemente, respeitando movimento reduzido; a consulta continua a cada minuto.
 
 A atualização ocorre a cada 60 segundos enquanto a página está visível, ao voltar à aba e depois de enviar o formulário. Fechar mantém o aviso oculto durante a sessão da aba. O aviso também fica oculto enquanto o formulário está na tela. Falhas de consulta não exibem uma contagem inventada.
 

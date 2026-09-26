@@ -431,6 +431,23 @@
   margin-left: auto;
 }
 
+.limitedPlaces {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 9px;
+  max-width: 560px;
+  margin: 28px auto 0;
+  color: #c7bfae;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  text-align: center;
+  text-wrap: pretty;
+}
+.limitedPlaces svg { flex-shrink: 0; margin-top: 3px; color: var(--gold-light); }
+.limitedPlaces strong { color: var(--gold-light); }
+.limitedPlaces + .finalActions { margin-top: 16px; }
+
 .conversionIntro {
   margin-bottom: 42px;
   text-align: center;
@@ -553,6 +570,22 @@
   color: #aebbc2;
   font-size: 0.8rem;
 }
+
+.campaignFacts .promotionLabel {
+  margin: 0 0 6px;
+  color: var(--gold-light);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.originalPrice {
+  margin-bottom: 4px;
+  color: #aebbc2;
+  font-size: 0.8rem;
+  text-decoration-thickness: 1px;
+}
+.campaignFacts .pricePrefix { margin: 0 0 2px; font-size: 0.7rem; color: #c7bfae; }
 
 .packageNote {
   margin-top: 20px;
