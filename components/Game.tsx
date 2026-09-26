@@ -1400,8 +1400,8 @@ export default function Game({ invite }: { invite?: string }) {
         <div>
           <h2>{ch.name}</h2>
           <p>
-            {ch.class || "Classe não definida"} ·{" "}
-            {ch.race || "Raça não definida"}
+            {String(ch.class || "").trim() || "??"} ·{" "}
+            {String(ch.race || "").trim() || "??"}
           </p>
         </div>
       </div>
