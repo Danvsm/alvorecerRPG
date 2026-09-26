@@ -1466,7 +1466,7 @@ dialog::backdrop {
   gap: 14px;
   margin-top: 8px;
   padding-top: 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 .mobile-gallery-device-heading {
   display: flex;
@@ -9833,10 +9833,26 @@ dialog.combat-sheet {
   overflow-wrap: anywhere;
 }
 
+.character-choice-settings {
+  display: grid;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.character-choice-settings h3 { margin: 0 0 5px; }
+.character-choice-settings p { margin: 0; color: var(--muted); line-height: 1.5; }
+.character-choice-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.character-choice-fields label { display: grid; gap: 7px; min-width: 0; font-size: .86rem; font-weight: 650; }
+.character-choice-fields select { min-width: 0; width: 100%; }
+.character-choice-settings > button { justify-self: start; }
+
 @media (max-width: 760px) {
   .character-slot-columns {
     grid-template-columns: 1fr;
   }
+  .character-choice-fields { grid-template-columns: 1fr; }
+  .character-choice-settings > button { width: 100%; }
 }
 
 

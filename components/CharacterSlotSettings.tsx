@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage } from "@/lib/network";
+import type { Row } from "@/lib/types";
 
 type SlotRow = {
   option_kind: "class" | "race";
@@ -15,14 +16,27 @@ type SlotRow = {
 
 export default function CharacterSlotSettings({
   campaign,
+  characters,
+  saveCharacter,
 }: {
   campaign: string;
+  characters: Row[];
+  saveCharacter: (characterId: string, characterClass: string, characterRace: string) => Promise<void>;
 }) {
   const [rows, setRows] = useState<SlotRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState("");
   const [drafts, setDrafts] = useState({ class: "", race: "" });
   const [error, setError] = useState("");
+  const [selectedCharacterId, setSelectedCharacterId] = useState("");
+  const [draftClass, setDraftClass] = useState<string | null>(null);
+  const [draftRace, setDraftRace] = useState<string | null>(null);
+  const selectedCharacter =
+    characters.find((entry) => entry.id === selectedCharacterId) || characters[0];
+  const currentClass = String(selectedCharacter?.class || "");
+  const currentRace = String(selectedCharacter?.race || "");
+  const chosenClass = draftClass ?? currentClass;
+  const chosenRace = draftRace ?? currentRace;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,6 +97,43 @@ export default function CharacterSlotSettings({
     } finally {
       setBusyKey("");
     }
+  };
+
+  const saveSelection = async () => {
+    if (!selectedCharacter || !chosenClass || !chosenRace || busyKey) return;
+    setBusyKey("character");
+    setError("");
+    try {
+      await saveCharacter(String(selectedCharacter.id), chosenClass, chosenRace);
+      setDraftClass(null);
+      setDraftRace(null);
+      await load();
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const characterOptions = (kind: "class" | "race", currentValue: string) => {
+    const options = rows.filter((row) => row.option_kind === kind);
+    return (
+      <>
+        <option value="" disabled>Selecione {kind === "class" ? "uma classe" : "uma raça"}</option>
+        {currentValue && !options.some((row) => row.option_value === currentValue) && (
+          <option value={currentValue}>{currentValue} (atual)</option>
+        )}
+        {options.map((row) => (
+          <option
+            key={row.option_value}
+            value={row.option_value}
+            disabled={row.remaining_slots <= 0 && row.option_value !== currentValue}
+          >
+            {row.option_value}{row.remaining_slots <= 0 && row.option_value !== currentValue ? " — sem vagas" : ""}
+          </option>
+        ))}
+      </>
+    );
   };
 
   const group = (kind: "class" | "race", title: string) => (
@@ -194,6 +245,50 @@ export default function CharacterSlotSettings({
         <div className="character-slot-columns">
           {group("class", "Classes")}
           {group("race", "Raças")}
+        </div>
+      )}
+      {!loading && characters.length > 0 && (
+        <div className="character-choice-settings">
+          <div>
+            <h3>Classe e raça dos personagens</h3>
+            <p>As escolhas feitas no convite aparecem na ficha do jogador. Altere aqui quando necessário.</p>
+          </div>
+          <div className="character-choice-fields">
+            <label>
+              Personagem
+              <select
+                value={String(selectedCharacter?.id || "")}
+                disabled={Boolean(busyKey)}
+                onChange={(event) => {
+                  setSelectedCharacterId(event.target.value);
+                  setDraftClass(null);
+                  setDraftRace(null);
+                }}
+              >
+                {characters.map((entry) => <option key={entry.id} value={entry.id}>{String(entry.name)}</option>)}
+              </select>
+            </label>
+            <label>
+              Classe
+              <select value={chosenClass} disabled={Boolean(busyKey)} onChange={(event) => setDraftClass(event.target.value)}>
+                {characterOptions("class", currentClass)}
+              </select>
+            </label>
+            <label>
+              Raça
+              <select value={chosenRace} disabled={Boolean(busyKey)} onChange={(event) => setDraftRace(event.target.value)}>
+                {characterOptions("race", currentRace)}
+              </select>
+            </label>
+          </div>
+          <button
+            type="button"
+            className="primary"
+            disabled={Boolean(busyKey) || !chosenClass || !chosenRace || (chosenClass === currentClass && chosenRace === currentRace)}
+            onClick={() => void saveSelection()}
+          >
+            {busyKey === "character" ? "Salvando..." : "Salvar classe e raça"}
+          </button>
         </div>
       )}
     </section>
