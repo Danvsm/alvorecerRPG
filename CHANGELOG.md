@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-26 — Histórico com retenção de 30 dias
+
+- Histórico retirado do início do jogador e disponível no menu Histórico, carregado em páginas de 20 registros dos últimos 30 dias.
+- Registros de auditoria anteriores a 30 dias são excluídos automaticamente todos os dias às 03h de Brasília; transações da carteira são preservadas.
+
 Todas as mudanças relevantes concluídas neste projeto são registradas aqui. Itens que ainda dependem de validação permanecem fora da lista de entregas concluídas.
 
 ## 2026-09-26 — Habilidades personalizadas da ficha
