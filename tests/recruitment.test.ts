@@ -21,11 +21,12 @@ test("public /jogar landing follows the recruitment brief", async () => {
   assert.match(landing, /SEU AMANHECER/);
   assert.match(landing, /Mestre com \+10 anos narrando/);
   assert.match(landing, /Aplicativo da campanha/);
-  assert.match(landing, /IA de apoio ao sistema/);
+  assert.match(landing, /Guelfor — seu guia no Alvorecer/);
   assert.match(landing, /Lanche durante as sessões/);
-  assert.match(landing, /10 sessões/);
-  assert.match(landing, /R\$ 4,90/);
+  assert.match(landing, /com 5 sessões presenciais/);
+  assert.match(landing, /R\$ 9,80/);
   assert.match(landing, /R\$ 49,00/);
+  assert.match(landing, /R\$ 100,00/);
   assert.match(landing, /Figueira/);
   assert.doesNotMatch(landing.toLocaleLowerCase("pt-BR"), /sistema próprio/);
   assert.match(css, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);

@@ -16,6 +16,8 @@
   animation: arrive 420ms cubic-bezier(.2,.8,.2,1) both;
 }
 .icon { color: #dfbc78; flex-shrink: 0; }
+.liveDot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #65d99a; box-shadow: 0 0 0 3px rgb(101 217 154 / 12%); animation: livePulse 2s ease-in-out infinite; }
+@keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 3px rgb(101 217 154 / 12%); } 50% { opacity: .45; box-shadow: 0 0 0 5px rgb(101 217 154 / 0%); } }
 .copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .copy > span { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #dfbc78; }
 .copy strong { font-size: 13px; line-height: 1.4; font-weight: 600; }
@@ -26,4 +28,4 @@
 .close:focus-visible { outline: 2px solid #dfbc78; outline-offset: -3px; }
 @keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 768px) { .notice { left: 24px; bottom: 24px; } }
-@media (prefers-reduced-motion: reduce) { .notice, .number { animation: none; } .close { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .notice, .number, .liveDot { animation: none; } .close { transition: none; } }

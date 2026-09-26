@@ -2,7 +2,7 @@ import { RECRUITMENT_OFFLINE_PLAYERS } from "@/lib/recruitment";
 import { z } from "zod";
 
 const countsSchema = z.object({
-  registeredPlayers: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 10),
+  registeredPlayers: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - RECRUITMENT_OFFLINE_PLAYERS),
   applications: z.number().int().nonnegative(),
 });
 

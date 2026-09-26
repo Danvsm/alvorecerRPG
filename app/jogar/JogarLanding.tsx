@@ -286,7 +286,7 @@ export default function JogarLanding() {
           <div className={styles.heroTags} aria-label="Informações principais">
             <span>Iniciantes bem-vindos</span>
             <span>Nova Iguaçu</span>
-            <span>10 encontros</span>
+            <span>1ª temporada · 5 sessões</span>
           </div>
           <a className={styles.primaryCta} href="#inscricao">
             INSCREVA-SE <ArrowRight aria-hidden="true" />
@@ -443,10 +443,10 @@ export default function JogarLanding() {
             </article>
             <article data-reveal data-reveal-delay="160">
               <Sparkles aria-hidden="true" />
-              <h4>IA de apoio ao sistema</h4>
+              <h4>Guelfor — seu guia no Alvorecer</h4>
               <p>
-                Consulte regras e informações para passar menos tempo procurando
-                e mais tempo jogando.
+                Tire dúvidas sobre regras, ficha, habilidades e o sistema durante
+                a campanha.
               </p>
             </article>
             <article data-reveal data-reveal-delay="240">
@@ -463,16 +463,21 @@ export default function JogarLanding() {
         <div className={styles.campaignFacts} data-reveal>
           <div>
             <Users aria-hidden="true" />
-            <strong>10 sessões</strong>
-            <span>presenciais</span>
+            <strong>1ª temporada</strong>
+            <span>com 5 sessões presenciais</span>
           </div>
           <div>
             <CircleDollarSign aria-hidden="true" />
-            <strong>R$ 4,90</strong>
-            <span>por sessão</span>
+            <del className={styles.originalPrice}>De R$ 20,00</del>
+            <span className={styles.pricePrefix}>por</span>
+            <strong>R$ 9,80</strong>
+            <span>por sessão no pacote promocional</span>
           </div>
           <div>
             <ShieldCheck aria-hidden="true" />
+            <span className={styles.promotionLabel}>Valor promocional</span>
+            <del className={styles.originalPrice}>De R$ 100,00</del>
+            <span className={styles.pricePrefix}>por</span>
             <strong>R$ 49,00</strong>
             <span>pacote completo</span>
           </div>
@@ -485,11 +490,15 @@ export default function JogarLanding() {
 
         <p className={styles.packageNote}>
           As sessões não são vendidas individualmente. A participação é pelo
-          pacote completo de 10 encontros. O endereço exato será informado aos
+          pacote completo de 5 encontros. O endereço exato será informado aos
           participantes apropriados; o espaço é reservado e preparado para as
           sessões.
         </p>
 
+        <p className={styles.limitedPlaces}>
+          <Users size={16} aria-hidden="true" />
+          <span><strong>Vagas limitadas para esta temporada.</strong> Inscreva-se para participar da seleção.</span>
+        </p>
         <div className={styles.finalActions}>
           <a className={styles.primaryCta} href="#inscricao">
             INSCREVA-SE <ArrowRight aria-hidden="true" />

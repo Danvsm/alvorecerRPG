@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { GET } from "../app/api/interesse/contagem/route";
 
-test("public count combines live totals with the ten offline players, without leaking extra fields", async (t) => {
+test("public count combines live totals with the twenty offline players, without leaking extra fields", async (t) => {
   const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const previousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
@@ -16,10 +16,10 @@ test("public count combines live totals with the ten offline players, without le
   const mock = t.mock.method(globalThis, "fetch", async () => Response.json({ registeredPlayers: 7, applications: 3, privateNotes: "never expose" }));
   const response = await GET();
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { players: 17, applications: 3, total: 20 });
+  assert.deepEqual(await response.json(), { players: 27, applications: 3, total: 30 });
 
   mock.mock.mockImplementation(async () => Response.json({ registeredPlayers: 8, applications: 4 }));
-  assert.equal((await (await GET()).json()).total, 22);
+  assert.equal((await (await GET()).json()).total, 32);
 
   mock.mock.mockImplementation(async () => Response.json({ registeredPlayers: -1, applications: 4 }));
   const invalid = await GET();
