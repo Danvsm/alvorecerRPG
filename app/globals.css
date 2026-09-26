@@ -8510,6 +8510,57 @@ dialog.combat-sheet {
   margin-top: 15px;
 }
 
+.player-character-sheet .character-skills { margin-top: 24px; }
+.player-character-sheet .character-skills-heading { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+.player-character-sheet .character-skills-heading h2,
+.player-character-sheet .character-advantages h3 { margin: 0; color: #f4e9e6; font-family: var(--font-display); font-size: 1.08rem; }
+.player-character-sheet .character-skills-heading p { margin: 5px 0 0; color: #a9a2a6; font-size: .83rem; line-height: 1.5; }
+.player-character-sheet .character-skills-heading > span { flex: none; color: #e2b0b9; font-size: .78rem; padding: 5px 9px; border-radius: 20px; background: #922a4030; }
+.player-character-sheet .character-skills-list { display: grid; gap: 11px; margin-top: 18px; }
+.player-character-sheet .character-skill { display: grid; grid-template-columns: 72px minmax(0,1fr) auto; align-items: start; gap: 12px; padding: 11px 0; border-bottom: 1px solid #ffffff14; }
+.player-character-sheet .character-skill-image { width: 72px; aspect-ratio: 1; overflow: hidden; display: grid; place-items: center; border-radius: 10px; color: #c99d73; background: linear-gradient(140deg,#492431,#231e2a 70%); }
+.player-character-sheet .character-skill-image img { width: 100%; height: 100%; object-fit: cover; }
+.player-character-sheet .character-skill-body { min-width: 0; }
+.player-character-sheet .character-skill-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; }
+.player-character-sheet .character-skill-title h3 { margin: 0; font-family: var(--font-display); color: #f7eee9; font-size: .98rem; overflow-wrap: anywhere; }
+.player-character-sheet .character-skill-title > span { font-size: .73rem; color: #b2a2a4; white-space: nowrap; }
+.player-character-sheet .character-skill-body p { margin: 5px 0 8px; color: #b9b1b4; line-height: 1.5; font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.player-character-sheet .character-skill-cost { display: inline-block; padding: 4px 9px; border-radius: 30px; background: #37629431; color: #a8d4ff; font-size: .74rem; font-weight: 650; }
+.player-character-sheet .character-skill-cost.cost-stamina { background: #aa813625; color: #ecc880; }
+.player-character-sheet .character-skill-cost.cost-life { background: #a832422a; color: #f1a6af; }
+.player-character-sheet .character-skill-cost.cost-fury { background: #a9532c2c; color: #eabc96; }
+.player-character-sheet .character-skill-cost.cost-other { background: #8666ac2c; color: #d2b7ed; }
+.player-character-sheet .character-skill-actions { display: grid; gap: 4px; }
+.player-character-sheet .character-skill-actions button,
+.player-character-sheet .character-skill-form-heading button { display: grid; place-items: center; width: 34px; height: 34px; min-height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #aaa1a4; box-shadow: none; }
+.player-character-sheet .character-skill-actions button:hover,
+.player-character-sheet .character-skill-form-heading button:hover { background: #ffffff12; color: #fff; }
+.player-character-sheet .character-skills-empty { margin: 22px 0; color: #aea5a9; font-size: .87rem; }
+.player-character-sheet .character-skills-add { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 18px; min-height: 47px; border: 1px solid #a8365066; border-radius: 10px; background: linear-gradient(120deg,#631b30,#84273c); color: #fff0ee; font-weight: 700; }
+.player-character-sheet .character-skills-add:hover { background: #98354d; }
+.player-character-sheet .character-skills-error { color: #ffc5c5; background: #7a25342e; border-radius: 8px; padding: 9px 12px; font-size: .82rem; }
+.player-character-sheet .character-advantages { margin-top: 28px; padding-top: 20px; border-top: 1px solid #ffffff18; }
+.player-character-sheet .character-skill-form { display: grid; gap: 15px; margin-top: 18px; padding: 17px; border: 1px solid #ffffff1b; border-radius: 13px; background: #18171d; }
+.player-character-sheet .character-skill-form-heading { display: flex; align-items: center; justify-content: space-between; }
+.player-character-sheet .character-skill-form-heading h3 { margin: 0; font-family: var(--font-display); font-size: 1.05rem; }
+.player-character-sheet .character-skill-form label { display: grid; gap: 6px; color: #dbd0d0; font-size: .84rem; }
+.player-character-sheet .character-skill-form input:not([type=file]):not([type=checkbox]),
+.player-character-sheet .character-skill-form textarea,
+.player-character-sheet .character-skill-form select { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #ffffff25; border-radius: 9px; color: #f8f3f1; background: #101014; font: inherit; }
+.player-character-sheet .character-skill-form textarea { resize: vertical; }
+.player-character-sheet .character-skill-form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; }
+.player-character-sheet .character-skill-form .character-skill-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 9px; padding: 13px; border: 1px dashed #bb8d9966; border-radius: 9px; cursor: pointer; }
+.player-character-sheet .character-skill-upload small { color: #aaa0a4; }
+.player-character-sheet .character-skill-upload input { width: 100%; font-size: .77rem; }
+.player-character-sheet .character-skill-form .character-skill-remove-image { display: flex; align-items: center; gap: 8px; }
+.player-character-sheet .character-skill-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.player-character-sheet .character-skill-form-actions button { min-height: 40px; padding: 8px 15px; }
+@media (max-width: 380px) {
+  .player-character-sheet .character-skill { grid-template-columns: 58px minmax(0,1fr) auto; gap: 9px; }
+  .player-character-sheet .character-skill-image { width: 58px; }
+  .player-character-sheet .character-skill-actions button { width: 30px; }
+}
+
 .player-character-sheet .sheet-list-card {
   display: grid;
   gap: 5px;
