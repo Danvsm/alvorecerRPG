@@ -9833,11 +9833,22 @@ dialog.combat-sheet {
   overflow-wrap: anywhere;
 }
 
+.character-slot-controls .character-option-remove {
+  color: #f0a4ab;
+  border-color: #a747554d;
+}
+
+.character-slot-controls .character-option-remove:not(:disabled):hover {
+  color: #fff;
+  border-color: #bb5263;
+  background: #89293c;
+}
+
 .character-choice-settings {
   display: grid;
   gap: 16px;
   padding-top: 20px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 
 .character-choice-settings h3 { margin: 0 0 5px; }
@@ -9878,6 +9889,10 @@ dialog.combat-sheet {
 
   .character-slot-controls button {
     flex: 1;
+  }
+
+  .character-slot-controls .character-option-remove {
+    flex-basis: 100%;
   }
 }
 
