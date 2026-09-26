@@ -9,6 +9,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - A aba Habilidades apresenta as técnicas com imagem e custo, preservando as vantagens adquiridas e os efeitos existentes.
 - As migrations `player_character_skills` e `player_skill_image_cleanup` adicionam RLS, limite transacional e regras de armazenamento.
 - Corrigida a política de upload e exclusão das imagens das skills: a pasta agora é comparada ao ID do personagem, permitindo que o dono salve a imagem.
+- Corrigido o bloqueio usado para impor o limite de 13 habilidades: jogadores agora podem salvar sem permissão de atualização na tabela de personagens.
 
 ## Em desenvolvimento — 2026-09-22
 
