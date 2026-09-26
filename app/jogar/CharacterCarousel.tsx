@@ -60,18 +60,20 @@ export default function CharacterCarousel({ title, items, kind }: Props) {
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (selected || (event.pointerType === "mouse" && event.button !== 0)) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
     const now = performance.now();
     gesture.current = { pointer: event.pointerId, x: event.clientX, origin: current.current, sample: current.current, time: now, velocity: 0, moved: false };
     suppressClick.current = false;
-    setDragging(true);
   }
 
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
     const g = gesture.current;
     if (!g || g.pointer !== event.pointerId) return;
     const dx = event.clientX - g.x;
-    if (Math.abs(dx) > 5) g.moved = true;
+    if (Math.abs(dx) > 5 && !g.moved) {
+      g.moved = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setDragging(true);
+    }
     if (!g.moved) return;
     const next = g.origin - dx / Math.max(135, width * 0.42);
     current.current = next;
