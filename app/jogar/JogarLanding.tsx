@@ -468,7 +468,7 @@ export default function JogarLanding() {
           </div>
           <div>
             <CircleDollarSign aria-hidden="true" />
-            <del className={styles.originalPrice}>De R$ 20,00</del>
+            <del className={styles.originalPrice}>De R$ 25,00</del>
             <span className={styles.pricePrefix}>por</span>
             <strong>R$ 9,80</strong>
             <span>por sessão no pacote promocional</span>
@@ -497,7 +497,7 @@ export default function JogarLanding() {
 
         <p className={styles.limitedPlaces}>
           <Users size={16} aria-hidden="true" />
-          <span><strong>Vagas limitadas para esta temporada.</strong> Inscreva-se para participar da seleção.</span>
+          <span><strong>Vagas limitadas para esta temporada.</strong></span>
         </p>
         <div className={styles.finalActions}>
           <a className={styles.primaryCta} href="#inscricao">
