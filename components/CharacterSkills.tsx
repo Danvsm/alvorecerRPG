@@ -7,6 +7,7 @@ import { browserDb } from "@/lib/client";
 type Skill = {
   id: string;
   character_id: string;
+  skill_type: SkillType;
   title: string;
   description: string;
   level: number;
@@ -15,6 +16,7 @@ type Skill = {
   other_cost_label: string;
   image_path: string | null;
 };
+export type SkillType = "active" | "passive";
 type CostType = "mana" | "stamina" | "life" | "fury" | "other";
 type Draft = Pick<Skill, "title" | "description" | "level" | "cost_type" | "cost_amount" | "other_cost_label">;
 
@@ -41,7 +43,7 @@ const emptyDraft: Draft = {
   other_cost_label: "",
 };
 
-export default function CharacterSkills({ characterId }: { characterId: string }) {
+export default function CharacterSkills({ characterId, skillType }: { characterId: string; skillType: SkillType }) {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export default function CharacterSkills({ characterId }: { characterId: string }
   const load = useCallback(async () => {
     const { data, error: loadError } = await browserDb()
       .from("character_skills")
-      .select("id,character_id,title,description,level,cost_type,cost_amount,other_cost_label,image_path")
+      .select("id,character_id,skill_type,title,description,level,cost_type,cost_amount,other_cost_label,image_path")
       .eq("character_id", characterId)
       .order("created_at", { ascending: true });
     if (loadError) throw loadError;
@@ -122,12 +124,13 @@ export default function CharacterSkills({ characterId }: { characterId: string }
         );
       }
       const payload = {
+        skill_type: skillType,
         title: draft.title.trim(),
         description: draft.description.trim(),
         level: Number(draft.level),
-        cost_type: draft.cost_type,
-        cost_amount: Number(draft.cost_amount),
-        other_cost_label: draft.cost_type === "other" ? draft.other_cost_label.trim() : "",
+        cost_type: skillType === "passive" ? "mana" : draft.cost_type,
+        cost_amount: skillType === "passive" ? 0 : Number(draft.cost_amount),
+        other_cost_label: skillType === "active" && draft.cost_type === "other" ? draft.other_cost_label.trim() : "",
         image_path: uploadedPath || (removeImage ? null : existing?.image_path || null),
       };
       const query = existing
@@ -169,16 +172,21 @@ export default function CharacterSkills({ characterId }: { characterId: string }
     }
   };
 
+  const visibleSkills = skills.filter((skill) => skill.skill_type === skillType);
+  const label = skillType === "active" ? "ativa" : "passiva";
+
   return (
     <div className="character-skills">
       <div className="character-skills-heading">
-        <div><h2>Suas habilidades</h2><p>Crie técnicas para a sua ficha e acompanhe o custo de cada uma.</p></div>
-        <span>{skills.length} / 13</span>
+        <div><h2>Habilidades {skillType === "active" ? "Ativas" : "Passivas"}</h2>
+          <p>{skillType === "active" ? "Crie técnicas para a sua ficha e acompanhe o custo de cada uma." : "Registre efeitos permanentes ou automáticos da sua ficha."}</p></div>
+        <span>{visibleSkills.length} {visibleSkills.length === 1 ? "habilidade" : "habilidades"}</span>
       </div>
+      <p className="character-skills-limit">{skills.length} de 13 habilidades no total</p>
       {error && <p className="character-skills-error" role="alert">{error}</p>}
-      {loading ? <p className="empty">Carregando habilidades…</p> : skills.length ? (
+      {loading ? <p className="empty">Carregando habilidades…</p> : visibleSkills.length ? (
         <div className="character-skills-list">
-          {skills.map((skill) => (
+          {visibleSkills.map((skill) => (
             <article className="character-skill" key={skill.id}>
               <div className="character-skill-image">
                 {skill.image_path && imageUrls[skill.image_path]
@@ -188,9 +196,9 @@ export default function CharacterSkills({ characterId }: { characterId: string }
               <div className="character-skill-body">
                 <div className="character-skill-title"><h3>{skill.title}</h3><span>Nível {skill.level}</span></div>
                 <p>{skill.description}</p>
-                <span className={`character-skill-cost cost-${skill.cost_type}`}>
+                {skillType === "active" && <span className={`character-skill-cost cost-${skill.cost_type}`}>
                   {skill.cost_amount} {skill.cost_type === "other" ? skill.other_cost_label : costLabels[skill.cost_type]}
-                </span>
+                </span>}
               </div>
               <div className="character-skill-actions">
                 <button type="button" aria-label={`Editar ${skill.title}`} title="Editar" onClick={() => begin(skill)} disabled={saving}><Pencil size={17} /></button>
@@ -199,25 +207,25 @@ export default function CharacterSkills({ characterId }: { characterId: string }
             </article>
           ))}
         </div>
-      ) : <p className="character-skills-empty">Suas habilidades aparecerão aqui. Comece criando a primeira.</p>}
+      ) : <p className="character-skills-empty">Nenhuma habilidade {label} cadastrada. Comece criando a primeira.</p>}
 
       {!loading && editing === null && skills.length < 13 && (
-        <button className="character-skills-add" type="button" onClick={() => begin()}><Plus size={18} /> Adicionar habilidade</button>
+        <button className="character-skills-add" type="button" onClick={() => begin()}><Plus size={18} /> Adicionar habilidade {label}</button>
       )}
 
       {editing && (
         <form className="character-skill-form" onSubmit={(event) => void save(event)}>
-          <div className="character-skill-form-heading"><h3>{editing === "new" ? "Nova habilidade" : "Editar habilidade"}</h3>
+          <div className="character-skill-form-heading"><h3>{editing === "new" ? `Nova habilidade ${label}` : `Editar habilidade ${label}`}</h3>
             <button type="button" aria-label="Fechar formulário" onClick={() => setEditing(null)} disabled={saving}><X size={18} /></button></div>
           <label>Título<input required maxLength={80} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
           <label>Descrição<textarea required maxLength={2000} rows={4} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
           <div className="character-skill-form-grid">
             <label>Nível<input required type="number" min={1} max={99} value={draft.level} onChange={(event) => setDraft({ ...draft, level: Number(event.target.value) })} /></label>
-            <label>Recurso<select value={draft.cost_type} onChange={(event) => setDraft({ ...draft, cost_type: event.target.value as CostType })}>
+            {skillType === "active" && <label>Recurso<select value={draft.cost_type} onChange={(event) => setDraft({ ...draft, cost_type: event.target.value as CostType })}>
               {Object.entries(costLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}
-            </select></label>
-            <label>Custo<input required type="number" min={0} max={99999} value={draft.cost_amount} onChange={(event) => setDraft({ ...draft, cost_amount: Number(event.target.value) })} /></label>
-            {draft.cost_type === "other" && <label>Nome do recurso<input required maxLength={40} value={draft.other_cost_label} onChange={(event) => setDraft({ ...draft, other_cost_label: event.target.value })} /></label>}
+            </select></label>}
+            {skillType === "active" && <label>Custo<input required type="number" min={0} max={99999} value={draft.cost_amount} onChange={(event) => setDraft({ ...draft, cost_amount: Number(event.target.value) })} /></label>}
+            {skillType === "active" && draft.cost_type === "other" && <label>Nome do recurso<input required maxLength={40} value={draft.other_cost_label} onChange={(event) => setDraft({ ...draft, other_cost_label: event.target.value })} /></label>}
           </div>
           <label className="character-skill-upload"><ImagePlus size={20} /> <span>{image?.name || (editing === "new" ? "Adicionar imagem" : "Trocar imagem")}</span><small>JPG, PNG ou WebP · até 300 KB</small>
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
