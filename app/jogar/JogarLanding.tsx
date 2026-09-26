@@ -22,6 +22,9 @@ import { RECRUITMENT_CAMPAIGN, TABLE_CONTACT_URL } from "@/lib/recruitment";
 import styles from "./jogar.module.css";
 import { useScrollReveal } from "@/lib/useScrollReveal";
 import RecruitmentCounter from "./RecruitmentCounter";
+import CharacterCarousel from "./CharacterCarousel";
+import { classes, races } from "./characterCatalog";
+import carouselStyles from "./character-carousel.module.css";
 
 type Experience =
   "iniciante" | "algumas_vezes" | "intermediario" | "experiente";
@@ -346,6 +349,16 @@ export default function JogarLanding() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section className={carouselStyles.section} id="personagens" aria-labelledby="characters-title">
+        <div className={carouselStyles.intro} data-reveal>
+          <p className={carouselStyles.eyebrow}>SEU LUGAR NA HISTÓRIA</p>
+          <h2 id="characters-title">Crie seu <em>personagem</em></h2>
+          <p>Escolha uma raça, descubra uma classe e imagine a história que você quer viver.</p>
+        </div>
+        <CharacterCarousel title="Classes" kind="classe" items={classes} />
+        <CharacterCarousel title="Raças" kind="raça" items={races} />
       </section>
 
       <section className={styles.sessionSection}>
