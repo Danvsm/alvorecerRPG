@@ -21,6 +21,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { RECRUITMENT_CAMPAIGN, TABLE_CONTACT_URL } from "@/lib/recruitment";
 import styles from "./jogar.module.css";
 import { useScrollReveal } from "@/lib/useScrollReveal";
+import RecruitmentCounter from "./RecruitmentCounter";
 
 type Experience =
   "iniciante" | "algumas_vezes" | "intermediario" | "experiente";
@@ -855,6 +856,7 @@ export default function JogarLanding() {
         </span>
         <Clock3 aria-hidden="true" />
       </footer>
+      <RecruitmentCounter refreshKey={done} />
     </main>
   );
 }

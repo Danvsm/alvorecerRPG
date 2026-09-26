@@ -1,0 +1,29 @@
+.notice {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 12px;
+  z-index: 40;
+  width: min(360px, calc(100vw - 24px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 4px 14px 14px;
+  border: 1px solid rgb(215 183 114 / 32%);
+  border-radius: 16px;
+  background: rgb(10 24 40 / 97%);
+  color: #f5efdf;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 32%);
+  animation: arrive 420ms cubic-bezier(.2,.8,.2,1) both;
+}
+.icon { color: #dfbc78; flex-shrink: 0; }
+.copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.copy > span { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #dfbc78; }
+.copy strong { font-size: 13px; line-height: 1.4; font-weight: 600; }
+.copy small { font-size: 11px; color: #b9c3ce; }
+.number { display: inline-block; font-variant-numeric: tabular-nums; animation: arrive 300ms ease-out; }
+.close { display: grid; place-items: center; align-self: flex-start; flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 10px; color: #c5ced8; background: transparent; cursor: pointer; transition: background 180ms ease; }
+.close:hover { background: rgb(255 255 255 / 8%); }
+.close:focus-visible { outline: 2px solid #dfbc78; outline-offset: -3px; }
+@keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (min-width: 768px) { .notice { left: 24px; bottom: 24px; } }
+@media (prefers-reduced-motion: reduce) { .notice, .number { animation: none; } .close { transition: none; } }
