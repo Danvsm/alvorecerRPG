@@ -143,7 +143,9 @@ export default function CharacterSkills({ characterId }: { characterId: string }
       await load();
     } catch (cause) {
       if (uploadedPath && !persisted) await browserDb().storage.from(BUCKET).remove([uploadedPath]);
-      setError(cause instanceof Error ? cause.message : "Não foi possível salvar a habilidade.");
+      const message = cause && typeof cause === "object" && "message" in cause
+        && typeof cause.message === "string" ? cause.message : null;
+      setError(message || "Não foi possível salvar a habilidade.");
     } finally {
       setSaving(false);
     }
