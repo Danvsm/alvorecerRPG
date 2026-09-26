@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-26 — Exclusão de classes e raças
+
+- O Mestre pode excluir opções da lista em Configurações após confirmar a ação.
+- Antes da confirmação, o Mestre vê os personagens que usam a opção, inclusive arquivados. A opção pode ser removida da lista sem alterar as fichas existentes.
+- O Supabase exige uma nova confirmação se a lista de personagens em uso mudar, e preserva ao menos uma classe e uma raça disponíveis.
+- A exclusão também remove o ajuste de vagas daquela opção e atualiza a lista imediatamente.
+
 ## 2026-09-26 — Classe e raça na configuração do Mestre
 
 - A ficha usa os valores atuais de classe e raça do personagem, definidos no cadastro pelo convite e atualizados após mudanças do Mestre.

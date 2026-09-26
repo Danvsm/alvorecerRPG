@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { browserDb } from "@/lib/client";
 import { readableErrorMessage } from "@/lib/network";
 import type { Row } from "@/lib/types";
@@ -13,6 +13,7 @@ type SlotRow = {
   used_slots: number;
   remaining_slots: number;
 };
+type OptionUsage = { id: string; name: string; username: string | null; archived: boolean };
 
 export default function CharacterSlotSettings({
   campaign,
@@ -91,6 +92,38 @@ export default function CharacterSlotSettings({
       });
       if (result.error) throw result.error;
       setDrafts((current) => ({ ...current, [kind]: "" }));
+      await load();
+    } catch (reason) {
+      setError(readableErrorMessage(reason));
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const removeOption = async (row: SlotRow) => {
+    if (busyKey) return;
+    const label = row.option_kind === "class" ? "a classe" : "a raça";
+    setBusyKey(`remove:${row.option_kind}:${row.option_value}`);
+    setError("");
+    try {
+      const preview = await browserDb().rpc("character_option_usage", {
+        c: campaign,
+        p_kind: row.option_kind,
+        p_value: row.option_value,
+      });
+      if (preview.error) throw preview.error;
+      const users = (Array.isArray(preview.data) ? preview.data : []) as OptionUsage[];
+      const warning = users.length
+        ? `\n\nEm uso por:\n${users.map((user) => `• ${user.name}${user.username ? ` (@${user.username})` : ""}${user.archived ? " (arquivado)" : ""}`).join("\n")}\n\nEssas fichas manterão o valor atual até você alterá-lo.`
+        : "";
+      if (!window.confirm(`Excluir ${label} “${row.option_value}” da lista da campanha?${warning}`)) return;
+      const result = await browserDb().rpc("delete_character_option", {
+        c: campaign,
+        p_kind: row.option_kind,
+        p_value: row.option_value,
+        p_expected_character_ids: users.map((user) => user.id),
+      });
+      if (result.error) throw result.error;
       await load();
     } catch (reason) {
       setError(readableErrorMessage(reason));
@@ -178,6 +211,8 @@ export default function CharacterSlotSettings({
         .filter((row) => row.option_kind === kind)
         .map((row) => {
           const key = `${row.option_kind}:${row.option_value}`;
+          const lastOption = rows.filter((entry) => entry.option_kind === kind).length <= 1;
+          const removalDisabled = Boolean(busyKey) || lastOption;
           return (
             <div className="list-row character-slot-row" key={key}>
               <div>
@@ -220,6 +255,19 @@ export default function CharacterSlotSettings({
                 >
                   <Plus size={16} />
                   {busyKey === `${key}:1` ? "Aumentando..." : "Aumentar"}
+                </button>
+                <button
+                  type="button"
+                  className="secondary character-option-remove"
+                  disabled={removalDisabled}
+                  onClick={() => void removeOption(row)}
+                  aria-label={`Excluir ${kind === "class" ? "classe" : "raça"} ${row.option_value}`}
+                  title={lastOption
+                      ? "Mantenha pelo menos uma opção deste tipo"
+                      : "Ver quem usa e excluir da lista"}
+                >
+                  <Trash2 size={16} />
+                  <span>{busyKey === `remove:${key}` ? "Excluindo..." : "Excluir"}</span>
                 </button>
               </div>
             </div>
