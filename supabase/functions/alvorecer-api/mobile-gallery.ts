@@ -454,6 +454,34 @@ async function masterAction(req: Request, body: Record<string, unknown>) {
   const context = await master(req, campaign);
   const action = String(body.action || "");
 
+  if (action === "feature_settings") {
+    const { data, error } = await admin()
+      .from("runtime_feature_flags")
+      .select("feature_key,enabled")
+      .in("feature_key", ["mobile_gallery", "media_cleanup"]);
+    if (error) throw new Error("Não foi possível carregar os recursos automáticos");
+    return json({
+      features: Object.fromEntries(
+        (data || []).map((entry) => [entry.feature_key, entry.enabled]),
+      ),
+    });
+  }
+
+  if (action === "set_feature") {
+    const feature = String(body.feature || "");
+    if (!["mobile_gallery", "media_cleanup"].includes(feature))
+      throw new Error("Recurso inválido");
+    if (typeof body.enabled !== "boolean")
+      throw new Error("Configuração inválida");
+    const result = await admin().rpc("set_runtime_feature", {
+      p_feature_key: feature,
+      p_enabled: body.enabled,
+      p_updated_by: context.user.id,
+    });
+    if (result.error) throw new Error("Não foi possível alterar o recurso");
+    return json({ updated: true, feature, enabled: body.enabled });
+  }
+
   if (action === "capture_settings") {
     const db = admin();
     const [{ data: policy, error: policyError }, { data: memberships, error: membersError }] =
@@ -734,6 +762,16 @@ export async function mobileGallery(req: Request) {
   try {
     const body = await req.json() as Record<string, unknown>;
     const action = String(body.action || "");
+    const controlActions = ["feature_settings", "set_feature"];
+    if (!controlActions.includes(action)) {
+      const { data: flag } = await admin()
+        .from("runtime_feature_flags")
+        .select("enabled")
+        .eq("feature_key", "mobile_gallery")
+        .maybeSingle();
+      if (flag?.enabled === false)
+        return json({ error: "Galeria do celular pausada pelo Mestre", code: "FEATURE_DISABLED" }, 503);
+    }
     if (action === "register") return await register(req, body);
     if (
       [
@@ -746,6 +784,8 @@ export async function mobileGallery(req: Request) {
         "set_capture_default",
         "set_capture_account",
         "clear_capture_account",
+        "feature_settings",
+        "set_feature",
       ].includes(action)
     )
       return await masterAction(req, body);
