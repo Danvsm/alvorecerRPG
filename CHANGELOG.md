@@ -8,6 +8,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 - Custo configurável em Mana, Fôlego, Vida, Fúria ou outro recurso; imagens JPG, PNG e WebP com limite de 300 KB em bucket privado.
 - A aba Habilidades apresenta as técnicas com imagem e custo, preservando as vantagens adquiridas e os efeitos existentes.
 - As migrations `player_character_skills` e `player_skill_image_cleanup` adicionam RLS, limite transacional e regras de armazenamento.
+- Corrigida a política de upload e exclusão das imagens das skills: a pasta agora é comparada ao ID do personagem, permitindo que o dono salve a imagem.
 
 ## Em desenvolvimento — 2026-09-22
 
