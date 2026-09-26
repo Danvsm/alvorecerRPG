@@ -11,6 +11,7 @@ import { formatCompactDracmas } from "@/lib/currency";
 import type { Row } from "@/lib/types";
 import IdentityAvatar from "./IdentityAvatar";
 import ProgressionPanel from "./ProgressionPanel";
+import CharacterSkills from "./CharacterSkills";
 
 type SheetTab = "summary" | "attributes" | "skills" | "equipment";
 
@@ -214,6 +215,9 @@ export default function CharacterSheet({
             <Sparkles size={19} />
             <h2>Habilidades e vantagens</h2>
           </div>
+          <CharacterSkills key={String(character.id)} characterId={String(character.id)} />
+          <div className="character-advantages">
+            <h3>Vantagens adquiridas</h3>
           {characterAdvantages.length > 0 ? (
             <div className="sheet-skill-list">
               {characterAdvantages.map(({ owned, advantage }) => (
@@ -226,8 +230,9 @@ export default function CharacterSheet({
               ))}
             </div>
           ) : (
-            <p className="empty">Nenhuma habilidade ou vantagem adquirida.</p>
+            <p className="empty">Nenhuma vantagem adquirida.</p>
           )}
+          </div>
 
           {effects.length > 0 && (
             <div className="sheet-effects">

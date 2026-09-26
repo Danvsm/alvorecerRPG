@@ -2,6 +2,13 @@
 
 Todas as mudanças relevantes concluídas neste projeto são registradas aqui. Itens que ainda dependem de validação permanecem fora da lista de entregas concluídas.
 
+## 2026-09-26 — Habilidades personalizadas da ficha
+
+- Jogadores podem criar, editar e excluir até 13 habilidades por personagem, com título, descrição, nível, custo e imagem opcional.
+- Custo configurável em Mana, Fôlego, Vida, Fúria ou outro recurso; imagens JPG, PNG e WebP com limite de 300 KB em bucket privado.
+- A aba Habilidades apresenta as técnicas com imagem e custo, preservando as vantagens adquiridas e os efeitos existentes.
+- As migrations `player_character_skills` e `player_skill_image_cleanup` adicionam RLS, limite transacional e regras de armazenamento.
+
 ## Em desenvolvimento — 2026-09-22
 
 ### Entregue
