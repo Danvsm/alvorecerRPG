@@ -2,53 +2,63 @@
 
 import Image from "next/image";
 import {
-  ArrowDown,
   ArrowRight,
   Check,
   ChevronLeft,
-  Compass,
-  ScrollText,
+  CircleDollarSign,
+  Clock3,
+  MapPin,
+  MessageCircle,
+  Pizza,
+  ShieldCheck,
+  Smartphone,
   Sparkles,
+  Sun,
   Swords,
   Users,
 } from "lucide-react";
-import {
-  type CSSProperties,
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import { RECRUITMENT_CAMPAIGN, TABLE_CONTACT_URL } from "@/lib/recruitment";
 import styles from "./jogar.module.css";
+import { useScrollReveal } from "@/lib/useScrollReveal";
 
 type Experience =
-  | "iniciante"
-  | "algumas_vezes"
-  | "intermediario"
-  | "experiente";
+  "iniciante" | "algumas_vezes" | "intermediario" | "experiente";
 
 type FormState = {
   fullName: string;
+  preferredName: string;
   age: string;
-  instagram: string;
-  whatsapp: string;
   email: string;
+  whatsapp: string;
+  instagram: string;
+  city: string;
+  neighborhood: string;
   experienceLevel: Experience | "";
-  systemsPlayed: string;
-  about: string;
+  availability: string;
+  preferredTime: string;
+  expectations: string;
+  avoidedContent: string;
+  discoverySource: string;
   contactConsent: boolean;
   website: string;
 };
 
 const initialForm: FormState = {
   fullName: "",
+  preferredName: "",
   age: "",
-  instagram: "",
-  whatsapp: "",
   email: "",
+  whatsapp: "",
+  instagram: "",
+  city: "",
+  neighborhood: "",
   experienceLevel: "",
-  systemsPlayed: "",
-  about: "",
+  availability: "",
+  preferredTime: "",
+  expectations: "",
+  avoidedContent: "",
+  discoverySource: "",
   contactConsent: false,
   website: "",
 };
@@ -66,74 +76,57 @@ const experienceOptions: Array<{
   {
     value: "algumas_vezes",
     title: "Joguei algumas vezes",
-    text: "Já participei de algumas sessões ou campanhas curtas.",
+    text: "Já participei de sessões ou aventuras curtas.",
   },
   {
     value: "intermediario",
-    title: "Intermediário",
-    text: "Já conheço a dinâmica de mesa e alguns sistemas.",
+    title: "Tenho experiência",
+    text: "Já conheço a dinâmica de uma mesa de RPG.",
   },
   {
     value: "experiente",
-    title: "Experiente",
-    text: "RPG já faz parte da minha rotina há bastante tempo.",
+    title: "Jogo há bastante tempo",
+    text: "Já participei de campanhas e conheço vários jogos.",
   },
+];
+
+const stepTitles = [
+  "Vamos conhecer você",
+  "Contato e localização",
+  "Sua experiência e agenda",
+  "O que você busca na mesa",
 ];
 
 function formatWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 13);
   if (!digits) return "";
-  if (digits.length <= 2) return "(" + digits;
-  if (digits.length <= 7)
-    return "(" + digits.slice(0, 2) + ") " + digits.slice(2);
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   if (digits.length <= 11)
-    return (
-      "(" +
-      digits.slice(0, 2) +
-      ") " +
-      digits.slice(2, 7) +
-      "-" +
-      digits.slice(7)
-    );
-  return (
-    "+" +
-    digits.slice(0, 2) +
-    " (" +
-    digits.slice(2, 4) +
-    ") " +
-    digits.slice(4, 9) +
-    "-" +
-    digits.slice(9)
-  );
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
 }
 
 export default function JogarLanding() {
+  const motionRoot = useScrollReveal<HTMLElement>();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const progress = step * 25;
+  const formHeading = useRef<HTMLDivElement>(null);
+  const previousStep = useRef(step);
 
   useEffect(() => {
-    const items = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-reveal]"),
-    );
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add(styles.revealed);
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.16 },
-    );
-    items.forEach((item) => observer.observe(item));
-    return () => observer.disconnect();
-  }, []);
-
-  const progress = useMemo(() => (step / 3) * 100, [step]);
+    if (previousStep.current === step) return;
+    previousStep.current = step;
+    formHeading.current?.focus({ preventScroll: true });
+    formHeading.current?.scrollIntoView({
+      block: "start",
+      behavior: "instant",
+    });
+  }, [step]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -143,7 +136,11 @@ export default function JogarLanding() {
   const validateStep = (target: number) => {
     if (target === 1) {
       if (form.fullName.trim().length < 3) {
-        setError("Escreva seu nome e sobrenome.");
+        setError("Informe seu nome e sobrenome.");
+        return false;
+      }
+      if (form.preferredName.trim().length < 2) {
+        setError("Informe como gostaria de ser chamado.");
         return false;
       }
       const age = Number(form.age);
@@ -151,30 +148,53 @@ export default function JogarLanding() {
         setError("Informe uma idade válida.");
         return false;
       }
-      if (form.instagram.trim().length < 2) {
-        setError("Informe seu Instagram.");
-        return false;
-      }
     }
 
     if (target === 2) {
+      if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+        setError("Informe um e-mail válido.");
+        return false;
+      }
       if (form.whatsapp.replace(/\D/g, "").length < 8) {
         setError("Informe um WhatsApp válido.");
         return false;
       }
-      if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
-        setError("Informe um e-mail válido.");
+      if (form.city.trim().length < 2) {
+        setError("Informe sua cidade ou município.");
+        return false;
+      }
+      if (form.neighborhood.trim().length < 2) {
+        setError("Informe seu bairro.");
         return false;
       }
     }
 
     if (target === 3) {
       if (!form.experienceLevel) {
-        setError("Conte qual é a sua experiência com RPG.");
+        setError("Selecione sua experiência com RPG.");
+        return false;
+      }
+      if (form.availability.trim().length < 2) {
+        setError("Informe sua disponibilidade.");
+        return false;
+      }
+      if (!form.preferredTime) {
+        setError("Informe sua preferência de horário.");
+        return false;
+      }
+    }
+
+    if (target === 4) {
+      if (form.expectations.trim().length < 3) {
+        setError("Conte o que espera de uma mesa de RPG.");
+        return false;
+      }
+      if (!form.discoverySource) {
+        setError("Informe como conheceu o projeto.");
         return false;
       }
       if (!form.contactConsent) {
-        setError("Autorize o contato para concluir a inscrição.");
+        setError("Autorize o contato para concluir.");
         return false;
       }
     }
@@ -185,24 +205,20 @@ export default function JogarLanding() {
 
   const next = () => {
     if (!validateStep(step)) return;
-    setStep((current) => Math.min(3, current + 1));
+    setStep((current) => Math.min(4, current + 1));
   };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!validateStep(3) || sending) return;
+    if (!validateStep(4) || sending) return;
 
     setSending(true);
     setError("");
-
     try {
       const response = await fetch("/api/interesse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          age: Number(form.age),
-        }),
+        body: JSON.stringify({ ...form, age: Number(form.age) }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -222,175 +238,304 @@ export default function JogarLanding() {
   };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.ambient} aria-hidden="true">
-        <div className={styles.auroraOne} />
-        <div className={styles.auroraTwo} />
-        <div className={styles.grain} />
-        <div className={styles.particles}>
-          {Array.from({ length: 18 }).map((_, index) => (
-            <span key={index} />
-          ))}
-        </div>
-      </div>
-
+    <main className={styles.page} ref={motionRoot}>
       <header className={styles.header}>
         <a className={styles.brand} href="#inicio" aria-label="Alvorecer">
           <Image src="/alvorecer-mark.svg" width={38} height={38} alt="" />
           <span>
             <strong>ALVORECER</strong>
-            <small>A Promessa do Amanhecer</small>
+            <small>VSM PRODUÇÃO</small>
           </span>
         </a>
+        <nav className={styles.headerNav} aria-label="Conheça a campanha">
+          <a href="#campanha">A campanha</a>
+          <a href="#participar">Como participar</a>
+        </nav>
         <a className={styles.headerCta} href="#inscricao">
-          Quero participar
+          Inscreva-se
         </a>
       </header>
 
       <section className={styles.hero} id="inicio">
-        <div className={styles.heroBackdrop} aria-hidden="true" />
+        <Image
+          className={styles.coverImage}
+          src="/jogar/amanhecer-hero.webp"
+          alt=""
+          fill
+          sizes="100vw"
+          preload
+        />
+        <div className={styles.heroShade} aria-hidden="true" />
         <div className={styles.heroContent}>
-          <p className={styles.kicker}>UMA HISTÓRIA ESTÁ PRESTES A COMEÇAR</p>
-          <h1 className={styles.heroTitle} aria-label="Alvorecer">
-            {"ALVORECER".split("").map((letter, index) => (
-              <span
-                key={index}
-                style={{ "--letter": index } as CSSProperties}
-                aria-hidden="true"
-              >
-                {letter}
-              </span>
-            ))}
+          <p className={styles.eyebrow}>CAMPANHA PRESENCIAL DE RPG</p>
+          <h1>
+            <span>CONHEÇA O RPG</span>
+            ALVORECER
           </h1>
-          <p className={styles.campaignName}>A Promessa do Amanhecer</p>
-          <p className={styles.heroCopy}>
-            Há mundos que você observa. Este foi feito para ser vivido.
+          <p className={styles.byline}>
+            Criado pela Produção VSM
+            <br />
+            Campanha: <strong>{RECRUITMENT_CAMPAIGN}</strong>
           </p>
-          <div className={styles.heroActions}>
-            <a className={styles.primaryCta} href="#mundo">
-              Conhecer o Alvorecer <ArrowDown size={18} />
-            </a>
-            <a className={styles.secondaryCta} href="#inscricao">
-              Manifestar interesse
-            </a>
+          <p className={styles.heroCopy}>
+            Um RPG de fantasia feito para quem está começando ou já teve algum
+            contato com o gênero, com regras fáceis de aprender e um mundo cheio
+            de escolhas.
+          </p>
+          <div className={styles.heroTags} aria-label="Informações principais">
+            <span>Iniciantes bem-vindos</span>
+            <span>Nova Iguaçu</span>
+            <span>10 encontros</span>
+          </div>
+          <a className={styles.primaryCta} href="#inscricao">
+            INSCREVA-SE <ArrowRight aria-hidden="true" />
+          </a>
+        </div>
+      </section>
+
+      <section className={styles.campaignSection} id="campanha">
+        <div className={styles.campaignArt}>
+          <Image
+            className={styles.coverImage}
+            src="/jogar/dama-de-sangue.webp"
+            alt=""
+            fill
+            sizes="(max-width: 760px) 100vw, 45vw"
+          />
+          <div className={styles.bloodShade} aria-hidden="true" />
+        </div>
+        <div className={styles.sectionCopy} data-reveal>
+          <p className={styles.eyebrow}>A PROMESSA DO AMANHECER</p>
+          <h2>Uma campanha de aventura, mistério e escolhas.</h2>
+          <p>
+            Sete reinos guardam histórias antigas enquanto a presença da Dama de
+            Sangue volta a caminhar. Cada decisão do grupo pode proteger o
+            amanhecer — ou aproximar a escuridão.
+          </p>
+          <div className={styles.storyPoints}>
+            <span>
+              <Swords aria-hidden="true" /> Combates intensos
+            </span>
+            <span>
+              <Sparkles aria-hidden="true" /> Mistérios do mundo
+            </span>
+            <span>
+              <Users aria-hidden="true" /> Personagens marcantes
+            </span>
           </div>
         </div>
+      </section>
 
-        <div className={styles.heroSigil} aria-hidden="true">
-          <div className={styles.sigilRing} />
+      <section className={styles.worldSection}>
+        <div className={styles.worldArt}>
           <Image
-            src="/alvorecer-mark.svg"
-            width={158}
-            height={158}
-            alt=""
-            priority
+            className={styles.coverImage}
+            src="/jogar/mundo.webp"
+            alt="Paisagem fantástica com reinos, montanhas e rios"
+            fill
+            sizes="100vw"
+          />
+          <div className={styles.worldShade} aria-hidden="true" />
+          <div className={styles.worldCopy} data-reveal>
+            <p className={styles.eyebrow}>CONHEÇA O MUNDO</p>
+            <h2>Fantasia, descobertas e espaço para sua história.</h2>
+            <p>
+              Reinos, guildas, crenças e segredos criam um cenário que responde
+              às escolhas da mesa.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.sessionSection}>
+        <div className={styles.sessionArt}>
+          <Image
+            className={styles.coverImage}
+            src="/jogar/sessao.webp"
+            alt="Grupo reunido em volta de uma mesa de RPG"
+            fill
+            sizes="(max-width: 760px) 100vw, 52vw"
           />
         </div>
-
-        <div className={styles.scrollHint} aria-hidden="true">
-          <span />
-          DESÇA PARA ENTRAR
-        </div>
-      </section>
-
-      <section className={styles.manifesto} id="mundo">
-        <div className={styles.sectionIntro} data-reveal>
-          <span className={styles.sectionNumber}>01</span>
-          <p>O MUNDO</p>
-          <h2>A história não começa na ficha.</h2>
-          <p className={styles.lead}>
-            Ela começa quando pessoas diferentes sentam à mesma mesa e decidem
-            descobrir o que existe depois do próximo passo.
-          </p>
-        </div>
-
-        <div className={styles.worldStage} data-reveal>
-          <div className={styles.worldImage} aria-hidden="true" />
-          <div className={styles.worldShade} aria-hidden="true" />
-          <div className={styles.worldTitle}>
-            <small>ALVORECER</small>
-            <strong>A Promessa do Amanhecer</strong>
-          </div>
-          <div className={styles.floatCard + " " + styles.cardOne}>
-            <Compass size={22} />
-            <strong>Um mundo para explorar</strong>
-            <span>
-              Fantasia, descoberta e espaço para seu personagem construir a
-              própria trajetória.
-            </span>
-          </div>
-          <div className={styles.floatCard + " " + styles.cardTwo}>
-            <Swords size={22} />
-            <strong>Escolhas com peso</strong>
-            <span>
-              Decisões, relações e consequências fazem cada sessão deixar uma
-              marca na campanha.
-            </span>
-          </div>
-          <div className={styles.floatCard + " " + styles.cardThree}>
-            <Users size={22} />
-            <strong>Uma história em grupo</strong>
-            <span>
-              O Alvorecer cresce com quem joga. Não existe aventura sem a mesa.
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.storySection}>
-        <div className={styles.storyText} data-reveal>
-          <span className={styles.sectionNumber}>02</span>
-          <p>O CHAMADO</p>
+        <div className={styles.sessionCopy} data-reveal>
+          <p className={styles.eyebrow}>COMO FUNCIONA A SESSÃO</p>
           <h2>Você não precisa chegar sabendo tudo.</h2>
+          <ol>
+            <li>
+              <span>1</span>
+              <div>
+                <strong>Crie seu herói</strong>
+                <p>Escolha sua ideia de personagem com apoio da mesa.</p>
+              </div>
+            </li>
+            <li>
+              <span>2</span>
+              <div>
+                <strong>Entre na história</strong>
+                <p>O Mestre apresenta o cenário, os desafios e as escolhas.</p>
+              </div>
+            </li>
+            <li>
+              <span>3</span>
+              <div>
+                <strong>Viva a aventura</strong>
+                <p>Converse, interprete e role o dado quando for necessário.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section className={styles.conversionSection} id="participar">
+        <div className={styles.conversionIntro} data-reveal>
+          <Sun aria-hidden="true" />
+          <h2>
+            SEU AMANHECER
+            <br />
+            COMEÇA AGORA
+          </h2>
           <p>
-            Nunca jogou RPG? Tudo bem. Já joga há anos? Também. A ideia deste
-            cadastro é conhecer quem tem vontade de participar e entender quem
-            pode combinar com uma próxima mesa.
+            Se você quer viver uma aventura fantástica, este pode ser o seu
+            primeiro passo.
           </p>
         </div>
 
-        <div className={styles.storyCards}>
-          <article data-reveal>
-            <Sparkles />
-            <span>Primeira vez</span>
-            <strong>Curiosidade vale mais que currículo.</strong>
-          </article>
-          <article data-reveal>
-            <ScrollText />
-            <span>Alguma experiência</span>
-            <strong>Conte quais sistemas e mesas já passaram por você.</strong>
-          </article>
-          <article data-reveal>
-            <Users />
-            <span>Mais importante</span>
-            <strong>Vontade de construir uma boa história em grupo.</strong>
-          </article>
+        <div className={styles.benefits}>
+          <h3>UMA EXPERIÊNCIA PREPARADA PARA VOCÊ</h3>
+          <div className={styles.benefitGrid}>
+            <article data-reveal data-reveal-delay="0">
+              <svg
+                className={styles.d20Icon}
+                viewBox="0 0 32 32"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M16 2 29 9v14L16 30 3 23V9Z M16 2 8 10h16ZM3 9l5 1-5 13m26-14-5 1 5 13M8 10l-2 12h20l-2-12M6 22l10 8 10-8" />
+                <text
+                  x="16"
+                  y="20"
+                  fill="currentColor"
+                  stroke="none"
+                  textAnchor="middle"
+                  fontSize="9"
+                  fontFamily="sans-serif"
+                >
+                  20
+                </text>
+              </svg>
+              <h4>Mestre com +10 anos narrando</h4>
+              <p>
+                Histórias envolventes e uma mesa preparada também para novos
+                jogadores.
+              </p>
+            </article>
+            <article data-reveal data-reveal-delay="80">
+              <Smartphone aria-hidden="true" />
+              <h4>Aplicativo da campanha</h4>
+              <p>
+                Acompanhe personagem, sistema e informações importantes pelo
+                aplicativo.
+              </p>
+            </article>
+            <article data-reveal data-reveal-delay="160">
+              <Sparkles aria-hidden="true" />
+              <h4>IA de apoio ao sistema</h4>
+              <p>
+                Consulte regras e informações para passar menos tempo procurando
+                e mais tempo jogando.
+              </p>
+            </article>
+            <article data-reveal data-reveal-delay="240">
+              <Pizza aria-hidden="true" />
+              <h4>Lanche durante as sessões</h4>
+              <p>
+                Um ambiente preparado para jogar, conversar e aproveitar a noite
+                com o grupo.
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <div className={styles.campaignFacts} data-reveal>
+          <div>
+            <Users aria-hidden="true" />
+            <strong>10 sessões</strong>
+            <span>presenciais</span>
+          </div>
+          <div>
+            <CircleDollarSign aria-hidden="true" />
+            <strong>R$ 4,90</strong>
+            <span>por sessão</span>
+          </div>
+          <div>
+            <ShieldCheck aria-hidden="true" />
+            <strong>R$ 49,00</strong>
+            <span>pacote completo</span>
+          </div>
+          <div>
+            <MapPin aria-hidden="true" />
+            <strong>Figueira</strong>
+            <span>Nova Iguaçu, RJ</span>
+          </div>
+        </div>
+
+        <p className={styles.packageNote}>
+          As sessões não são vendidas individualmente. A participação é pelo
+          pacote completo de 10 encontros. O endereço exato será informado aos
+          participantes apropriados; o espaço é reservado e preparado para as
+          sessões.
+        </p>
+
+        <div className={styles.finalActions}>
+          <a className={styles.primaryCta} href="#inscricao">
+            INSCREVA-SE <ArrowRight aria-hidden="true" />
+          </a>
+          {TABLE_CONTACT_URL ? (
+            <a
+              className={styles.contactCta}
+              href={TABLE_CONTACT_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <MessageCircle aria-hidden="true" /> FALAR COM O MESTRE
+            </a>
+          ) : (
+            <button
+              className={styles.contactCta}
+              type="button"
+              disabled
+              title="Canal de contato em configuração"
+            >
+              <MessageCircle aria-hidden="true" /> FALAR COM O MESTRE
+            </button>
+          )}
         </div>
       </section>
 
       <section className={styles.formSection} id="inscricao">
         <div className={styles.formIntro} data-reveal>
-          <span className={styles.sectionNumber}>03</span>
-          <p>MANIFESTE SEU INTERESSE</p>
-          <h2>Talvez o próximo nome da história seja o seu.</h2>
+          <p className={styles.eyebrow}>INSCRIÇÃO</p>
+          <h2>Conte um pouco sobre você.</h2>
           <p>
-            Este cadastro não cria uma conta e não garante uma vaga. Ele serve
-            para conhecermos você e entrarmos em contato quando surgir uma
-            oportunidade de mesa.
+            Suas respostas serão vistas somente pelo Mestre e usadas para
+            organizar a seleção da campanha.
           </p>
         </div>
 
-        <div className={styles.formShell} data-reveal>
+        <div className={styles.formShell}>
           {done ? (
-            <div className={styles.success}>
-              <div className={styles.successIcon}>
-                <Check size={34} />
-              </div>
-              <span>INSCRIÇÃO RECEBIDA</span>
-              <h3>Seu nome entrou no chamado.</h3>
+            <div className={styles.success} role="status">
+              <span>
+                <Check aria-hidden="true" />
+              </span>
+              <p className={styles.eyebrow}>INSCRIÇÃO RECEBIDA</p>
+              <h3>Seu primeiro passo foi registrado.</h3>
               <p>
-                Se houver encaixe para uma próxima mesa, entraremos em contato
-                pelos dados que você enviou.
+                Sua inscrição para {RECRUITMENT_CAMPAIGN} está como “Nova”. O
+                Mestre poderá analisar suas respostas e entrar em contato.
               </p>
               <button
                 type="button"
@@ -399,74 +544,81 @@ export default function JogarLanding() {
                   setStep(1);
                 }}
               >
-                Voltar ao início do formulário
+                Enviar outra inscrição
               </button>
             </div>
           ) : (
             <form onSubmit={submit} noValidate>
-              <div className={styles.formTop}>
+              <div
+                className={styles.formTop}
+                ref={formHeading}
+                tabIndex={-1}
+                role="group"
+                aria-label={`Etapa ${step} de 4: ${stepTitles[step - 1]}`}
+              >
                 <div>
-                  <span>ETAPA {step} DE 3</span>
-                  <strong>
-                    {step === 1
-                      ? "Quem atravessa o portal?"
-                      : step === 2
-                        ? "Como o chamado chega até você?"
-                        : "Sua história com RPG"}
-                  </strong>
+                  <span>ETAPA {step} DE 4</span>
+                  <strong>{stepTitles[step - 1]}</strong>
                 </div>
-                <span className={styles.progressNumber}>
-                  {Math.round(progress)}%
-                </span>
+                <span>{Math.round(progress)}%</span>
               </div>
-
               <div className={styles.progressTrack} aria-hidden="true">
-                <span style={{ width: String(progress) + "%" }} />
+                <span style={{ width: `${progress}%` }} />
               </div>
 
               {step === 1 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="identity">
                   <label>
-                    Nome e sobrenome
+                    Nome + sobrenome
                     <input
                       value={form.fullName}
                       onChange={(event) =>
                         update("fullName", event.target.value)
                       }
                       autoComplete="name"
-                      placeholder="Como você se apresenta?"
+                      maxLength={120}
+                      required
                     />
                   </label>
-                  <div className={styles.twoColumns}>
-                    <label>
-                      Idade
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min="1"
-                        max="120"
-                        value={form.age}
-                        onChange={(event) => update("age", event.target.value)}
-                        placeholder="29"
-                      />
-                    </label>
-                    <label>
-                      Instagram
-                      <input
-                        value={form.instagram}
-                        onChange={(event) =>
-                          update("instagram", event.target.value)
-                        }
-                        autoComplete="off"
-                        placeholder="@seuinstagram"
-                      />
-                    </label>
-                  </div>
+                  <label>
+                    Como gostaria de ser chamado
+                    <input
+                      value={form.preferredName}
+                      onChange={(event) =>
+                        update("preferredName", event.target.value)
+                      }
+                      maxLength={80}
+                      required
+                    />
+                  </label>
+                  <label className={styles.smallField}>
+                    Idade
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="120"
+                      value={form.age}
+                      onChange={(event) => update("age", event.target.value)}
+                      required
+                    />
+                  </label>
                 </div>
               )}
 
               {step === 2 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="contact">
+                  <label>
+                    E-mail
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(event) => update("email", event.target.value)}
+                      autoComplete="email"
+                      maxLength={254}
+                      required
+                    />
+                  </label>
                   <label>
                     WhatsApp
                     <input
@@ -476,30 +628,53 @@ export default function JogarLanding() {
                       }
                       inputMode="tel"
                       autoComplete="tel"
+                      maxLength={32}
                       placeholder="(21) 99999-9999"
+                      required
                     />
                   </label>
                   <label>
-                    E-mail
+                    Instagram <small>opcional</small>
                     <input
-                      type="email"
-                      value={form.email}
-                      onChange={(event) => update("email", event.target.value)}
-                      autoComplete="email"
-                      placeholder="voce@exemplo.com"
+                      value={form.instagram}
+                      onChange={(event) =>
+                        update("instagram", event.target.value)
+                      }
+                      maxLength={80}
+                      placeholder="@seuinstagram"
                     />
                   </label>
-                  <p className={styles.formNote}>
-                    Usaremos estes dados somente para falar com você sobre uma
-                    possível participação no Alvorecer.
-                  </p>
+                  <div className={styles.twoColumns}>
+                    <label>
+                      Cidade/Município
+                      <input
+                        value={form.city}
+                        onChange={(event) => update("city", event.target.value)}
+                        autoComplete="address-level2"
+                        maxLength={100}
+                        required
+                      />
+                    </label>
+                    <label>
+                      Bairro
+                      <input
+                        value={form.neighborhood}
+                        onChange={(event) =>
+                          update("neighborhood", event.target.value)
+                        }
+                        autoComplete="address-level3"
+                        maxLength={100}
+                        required
+                      />
+                    </label>
+                  </div>
                 </div>
               )}
 
               {step === 3 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="experience">
                   <fieldset className={styles.experienceFieldset}>
-                    <legend>Como você se considera no RPG?</legend>
+                    <legend>Experiência com RPG</legend>
                     <div className={styles.experienceGrid}>
                       {experienceOptions.map((option) => (
                         <label
@@ -525,29 +700,81 @@ export default function JogarLanding() {
                       ))}
                     </div>
                   </fieldset>
-
                   <label>
-                    Quais sistemas você já jogou?
+                    Disponibilidade
                     <textarea
-                      value={form.systemsPlayed}
+                      value={form.availability}
                       onChange={(event) =>
-                        update("systemsPlayed", event.target.value)
+                        update("availability", event.target.value)
                       }
                       rows={3}
-                      placeholder="Se for sua primeira vez, pode deixar em branco."
+                      maxLength={200}
+                      placeholder="Ex.: sábados alternados e domingos."
+                      required
                     />
                   </label>
-
                   <label>
-                    Quer contar mais alguma coisa sobre você?
+                    Preferência de horário
+                    <select
+                      value={form.preferredTime}
+                      onChange={(event) =>
+                        update("preferredTime", event.target.value)
+                      }
+                      required
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Manhã">Manhã</option>
+                      <option value="Tarde">Tarde</option>
+                      <option value="Noite">Noite</option>
+                      <option value="Flexível">Horário flexível</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              {step === 4 && (
+                <div className={styles.formStep} key="expectations">
+                  <label>
+                    O que espera de uma mesa de RPG?
                     <textarea
-                      value={form.about}
-                      onChange={(event) => update("about", event.target.value)}
-                      rows={4}
-                      placeholder="Opcional. Pode ser curto."
+                      value={form.expectations}
+                      onChange={(event) =>
+                        update("expectations", event.target.value)
+                      }
+                      rows={5}
+                      maxLength={1500}
+                      required
                     />
                   </label>
-
+                  <label>
+                    Há algum conteúdo que prefere não encontrar durante o jogo?{" "}
+                    <small>opcional</small>
+                    <textarea
+                      value={form.avoidedContent}
+                      onChange={(event) =>
+                        update("avoidedContent", event.target.value)
+                      }
+                      rows={4}
+                      maxLength={1500}
+                    />
+                  </label>
+                  <label>
+                    Como conheceu o projeto?
+                    <select
+                      value={form.discoverySource}
+                      onChange={(event) =>
+                        update("discoverySource", event.target.value)
+                      }
+                      required
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="QR Code">QR Code</option>
+                      <option value="Indicação">Indicação</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  </label>
                   <label className={styles.consent}>
                     <input
                       type="checkbox"
@@ -557,18 +784,19 @@ export default function JogarLanding() {
                       }
                     />
                     <span>
-                      Autorizo o contato pelos dados informados sobre uma
-                      possível participação no Alvorecer.
+                      Autorizo o contato pelos dados informados sobre esta
+                      campanha.
                     </span>
                   </label>
-
                   <label className={styles.honeypot} aria-hidden="true">
                     Website
                     <input
                       tabIndex={-1}
                       autoComplete="off"
                       value={form.website}
-                      onChange={(event) => update("website", event.target.value)}
+                      onChange={(event) =>
+                        update("website", event.target.value)
+                      }
                     />
                   </label>
                 </div>
@@ -590,20 +818,18 @@ export default function JogarLanding() {
                       setStep((current) => Math.max(1, current - 1));
                     }}
                   >
-                    <ChevronLeft size={18} />
-                    Voltar
+                    <ChevronLeft aria-hidden="true" /> Voltar
                   </button>
                 ) : (
                   <span />
                 )}
-
-                {step < 3 ? (
+                {step < 4 ? (
                   <button
                     type="button"
                     className={styles.continueButton}
                     onClick={next}
                   >
-                    Continuar <ArrowRight size={18} />
+                    Continuar <ArrowRight aria-hidden="true" />
                   </button>
                 ) : (
                   <button
@@ -611,8 +837,8 @@ export default function JogarLanding() {
                     className={styles.continueButton}
                     disabled={sending}
                   >
-                    {sending ? "Enviando..." : "Enviar meu interesse"}
-                    {!sending && <ArrowRight size={18} />}
+                    {sending ? "Enviando..." : "Enviar inscrição"}
+                    {!sending && <ArrowRight aria-hidden="true" />}
                   </button>
                 )}
               </div>
@@ -622,9 +848,12 @@ export default function JogarLanding() {
       </section>
 
       <footer className={styles.footer}>
-        <Image src="/alvorecer-mark.svg" width={28} height={28} alt="" />
-        <span>Alvorecer RPG</span>
-        <small>A Promessa do Amanhecer</small>
+        <Image src="/alvorecer-mark.svg" width={32} height={32} alt="" />
+        <span>
+          <strong>Alvorecer RPG</strong>
+          <small>Produção VSM · Nova Iguaçu, RJ</small>
+        </span>
+        <Clock3 aria-hidden="true" />
       </footer>
     </main>
   );

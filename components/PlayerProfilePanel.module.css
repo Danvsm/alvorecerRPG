@@ -65,7 +65,7 @@
   margin: 7px 0 0;
   overflow: hidden;
   color: #fff8ef;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 7vw, 3.5rem);
   font-weight: 500;
   letter-spacing: -0.035em;
@@ -193,7 +193,7 @@
 .section {
   width: min(100%, 760px);
   margin: 0 auto;
-  padding: 18px 24px 20px;
+  padding: 26px 24px 28px;
 }
 
 .sectionHeader {
@@ -228,7 +228,7 @@
 .sectionTitle h2 {
   margin: 0;
   color: #fff6ed;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: clamp(1.55rem, 5vw, 2.15rem);
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -236,7 +236,7 @@
 
 .sectionTitle p {
   margin: 5px 0 0;
-  color: #9b989a;
+  color: #b5afb2;
   font-size: 0.88rem;
   line-height: 1.45;
 }
@@ -530,8 +530,7 @@
   border-radius: 24px;
   color: #f5eee8;
   background:
-    radial-gradient(circle at 50% 0%, #43182052, transparent 22rem),
-    #0b0c0feF;
+    radial-gradient(circle at 50% 0%, #43182052, transparent 22rem), #0b0c0fef;
   box-shadow: 0 26px 80px #000c;
 }
 
@@ -620,7 +619,6 @@
   object-fit: contain;
 }
 
-
 .libraryBackdrop {
   position: fixed;
   z-index: 1350;
@@ -651,10 +649,7 @@
   align-items: start;
   gap: 18px;
   min-height: 248px;
-  padding:
-    max(28px, env(safe-area-inset-top))
-    26px
-    26px;
+  padding: max(28px, env(safe-area-inset-top)) 26px 26px;
   overflow: hidden;
   border-bottom: 1px solid #4b342552;
   background:
@@ -838,8 +833,7 @@
 .rarityTabs button[aria-pressed="true"] {
   border-color: #d59a4f;
   background:
-    radial-gradient(circle at 50% 20%, #8f5b283d, transparent 62%),
-    #12100f;
+    radial-gradient(circle at 50% 20%, #8f5b283d, transparent 62%), #12100f;
   box-shadow:
     inset 0 0 18px #c17c2f22,
     0 0 0 1px #d99d4e55;
@@ -1101,10 +1095,7 @@
     grid-template-columns: 46px minmax(0, 1fr);
     min-height: 224px;
     gap: 11px;
-    padding:
-      max(18px, env(safe-area-inset-top))
-      14px
-      22px;
+    padding: max(18px, env(safe-area-inset-top)) 14px 22px;
   }
 
   .libraryBack {

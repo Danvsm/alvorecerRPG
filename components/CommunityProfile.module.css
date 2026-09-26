@@ -12,8 +12,7 @@
   font-family: var(--font-ui);
   background:
     radial-gradient(circle at 86% 10%, #7b111927, transparent 20rem),
-    radial-gradient(circle at 12% 44%, #6f35151a, transparent 28rem),
-    #080708;
+    radial-gradient(circle at 12% 44%, #6f35151a, transparent 28rem), #080708;
 }
 
 .hero {
@@ -239,9 +238,7 @@
   border: 1px solid #9b6d2d;
   border-radius: 10px;
   color: #f1cc79;
-  background:
-    linear-gradient(110deg, #46141099, #140d0dca),
-    #100c0d;
+  background: linear-gradient(110deg, #46141099, #140d0dca), #100c0d;
   font-size: 0.82rem;
   font-weight: 550;
   line-height: 1.25;
@@ -413,13 +410,13 @@
 }
 
 .tabs button.activeTab {
-  color: var(--profile-red);
+  color: #e3c184;
   font-weight: 650;
 }
 
 .tabs button.activeTab::after {
-  background: var(--profile-red);
-  box-shadow: 0 0 10px #ef40556b;
+  background: #e3c184;
+  box-shadow: 0 0 10px #e3c18430;
 }
 
 .tabs svg {
@@ -452,9 +449,7 @@
   padding: 14px;
   border: 1px solid #8b682d94;
   border-radius: 12px;
-  background:
-    linear-gradient(160deg, #15100dcc, #090809e8),
-    #0b090a;
+  background: linear-gradient(160deg, #15100dcc, #090809e8), #0b090a;
   box-shadow: inset 0 0 28px #0005;
 }
 
@@ -713,9 +708,7 @@
   overflow: hidden;
   border: 1px solid #ffffff0f;
   border-radius: 10px;
-  background:
-    linear-gradient(0deg, #0807084d, transparent),
-    #151012;
+  background: linear-gradient(0deg, #0807084d, transparent), #151012;
   background-position: center;
   background-size: cover;
 }
@@ -833,18 +826,14 @@
   padding: 15px;
   border-color: #ffffff11;
   border-radius: 16px;
-  background:
-    linear-gradient(160deg, #1b1516, #0c0a0c),
-    #0c0a0c;
+  background: linear-gradient(160deg, #1b1516, #0c0a0c), #0c0a0c;
   text-align: left;
 }
 
 .visualActionCard:hover,
 .visualActionCard:focus-visible {
   border-color: #a57a39;
-  background:
-    linear-gradient(160deg, #241a15, #0e0b0d),
-    #0c0a0c;
+  background: linear-gradient(160deg, #241a15, #0e0b0d), #0c0a0c;
   box-shadow: inset 0 0 24px #a56f1518;
 }
 
@@ -1015,8 +1004,7 @@
   padding: 20px;
   border-color: #4c3b28;
   background:
-    radial-gradient(circle at 50% 0%, #6d4a171c, transparent 230px),
-    #100e10;
+    radial-gradient(circle at 50% 0%, #6d4a171c, transparent 230px), #100e10;
 }
 
 .medalDialogHeader,
@@ -1466,7 +1454,6 @@
     gap: 9px;
   }
 
-
   .visualDialog {
     padding: 16px;
   }
@@ -1501,7 +1488,6 @@
     width: clamp(68px, 20vw, 82px);
     height: clamp(68px, 20vw, 82px);
   }
-
 
   .medalDialog {
     padding: 16px;
@@ -1827,7 +1813,6 @@
   }
 }
 
-
 .profileActionsBackdrop {
   position: fixed;
   z-index: 27;
@@ -1915,7 +1900,6 @@
     width: min(226px, calc(100vw - 20px));
   }
 }
-
 
 /* Destaques do perfil ficam antes das abas, não dentro do Mural. */
 .profileShowcaseArea {

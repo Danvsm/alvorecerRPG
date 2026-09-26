@@ -33,6 +33,7 @@ import {
   Gamepad2,
   Images,
   Smartphone,
+  ClipboardList,
 } from "lucide-react";
 import { browserDb, configured } from "@/lib/client";
 import {
@@ -92,7 +93,11 @@ import {
 } from "@/lib/avatar";
 import { combatDamagePayload, combatResourceCommand } from "@/lib/combat";
 import { cosmeticsActionRequest } from "@/lib/cosmetics";
-import { formatCompactDracmas, formatDracmas, parseDracmas } from "@/lib/currency";
+import {
+  formatCompactDracmas,
+  formatDracmas,
+  parseDracmas,
+} from "@/lib/currency";
 import { readableErrorMessage, retryNetworkRead } from "@/lib/network";
 import {
   collectVisualAssets,
@@ -110,6 +115,7 @@ import MasterMobileGallery from "./MasterMobileGallery";
 import MasterCaptureSettings from "./MasterCaptureSettings";
 import CharacterSlotSettings from "./CharacterSlotSettings";
 import InviteCharacterOptions from "./InviteCharacterOptions";
+import RecruitmentApplications from "./RecruitmentApplications";
 import {
   clearAndroidWebSession,
   isAndroidApp,
@@ -223,6 +229,7 @@ const historyActions: Row = {
 const masterMenu = [
   ["Visão Geral", LayoutDashboard],
   ["Dados", Users],
+  ["Inscrições", ClipboardList],
   ["Personagens", Shield],
   ["Combate", Swords],
   ["Jokenpô", Gamepad2],
@@ -305,7 +312,9 @@ function formatHistoryValue(value: unknown): string {
 
 export default function Game({ invite }: { invite?: string }) {
   const [speakingAs, setSpeakingAs] = useState("");
-  const [jokenpoOutcome, setJokenpoOutcome] = useState<"vitoria" | "derrota" | "empate">();
+  const [jokenpoOutcome, setJokenpoOutcome] = useState<
+    "vitoria" | "derrota" | "empate"
+  >();
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [playerSearch, setPlayerSearch] = useState("");
   const [expandedPlayer, setExpandedPlayer] = useState("");
@@ -394,7 +403,11 @@ export default function Game({ invite }: { invite?: string }) {
         member.campaign_id === campaign && member.user_id === session.user.id,
     );
     if (!membership?.access_active || membership.archived_at) return;
-    return startAndroidGalleryRegistration(campaign, session.user.id, session.access_token);
+    return startAndroidGalleryRegistration(
+      campaign,
+      session.user.id,
+      session.access_token,
+    );
   }, [campaign, members, session]);
   const currentCampaign = campaigns.find((c) => c.id === campaign);
   const avatarShape = avatarShapeFromTheme(currentCampaign?.theme);
@@ -428,9 +441,11 @@ export default function Game({ invite }: { invite?: string }) {
   useEffect(() => {
     if (!campaign || !socialActor || typeof window === "undefined") return;
 
-    const openTarget = (
-      detail: { type?: string; id?: string; referenceId?: string },
-    ) => {
+    const openTarget = (detail: {
+      type?: string;
+      id?: string;
+      referenceId?: string;
+    }) => {
       if (detail.type === "chat" && detail.id) {
         setSpeakingAs("");
         setChatPeer({ id: detail.id, nonce: Date.now() });
@@ -449,11 +464,13 @@ export default function Game({ invite }: { invite?: string }) {
 
     const handleNotificationOpen = (event: Event) => {
       openTarget(
-        (event as CustomEvent<{
-          type?: string;
-          id?: string;
-          referenceId?: string;
-        }>).detail || {},
+        (
+          event as CustomEvent<{
+            type?: string;
+            id?: string;
+            referenceId?: string;
+          }>
+        ).detail || {},
       );
     };
 
@@ -585,11 +602,7 @@ export default function Game({ invite }: { invite?: string }) {
   }, []);
   const load = useCallback((c: string, strict = false) => {
     const active = loadInFlight.current;
-    if (
-      active &&
-      active.campaign === c &&
-      (!strict || active.strict)
-    ) {
+    if (active && active.campaign === c && (!strict || active.strict)) {
       return strict ? active.promise : active.promise.catch(() => undefined);
     }
 
@@ -652,9 +665,7 @@ export default function Game({ invite }: { invite?: string }) {
         setRecipients(directory);
         if (campaignResult) {
           setCampaigns((current) =>
-            current.map((entry) =>
-              entry.id === c ? campaignResult : entry,
-            ),
+            current.map((entry) => (entry.id === c ? campaignResult : entry)),
           );
         }
       } catch (e) {
@@ -698,9 +709,7 @@ export default function Game({ invite }: { invite?: string }) {
         !isAndroidApp() &&
         activeMemberships.length > 0 &&
         activeMemberships.every((member) => member.role === "player") &&
-        !activeMemberships.some(
-          (member) => member.web_access_enabled === true,
-        );
+        !activeMemberships.some((member) => member.web_access_enabled === true);
 
       if (browserPlayerOnly) {
         setWebPlayerBlocked(true);
@@ -1669,7 +1678,7 @@ export default function Game({ invite }: { invite?: string }) {
         userId={session.user.id}
         campaign={campaign}
       />
-      <aside className={menu ? "sidebar open" : "sidebar"}>
+      <aside id="main-navigation" className={menu ? "sidebar open" : "sidebar"}>
         <Brand logo={currentCampaign?.theme?.logo} />
         <div className="campaign-switch">
           <small>CAMPANHA</small>
@@ -1685,10 +1694,11 @@ export default function Game({ invite }: { invite?: string }) {
             ))}
           </select>
         </div>
-        <nav>
+        <nav aria-label={isMaster ? "Painel do Mestre" : "Menu do jogador"}>
           {(isMaster ? masterMenu : playerMenu).map(([name, Icon]) => (
             <button
               className={page === name ? "active" : ""}
+              aria-current={page === name ? "page" : undefined}
               key={name}
               onClick={() => navigate(name)}
             >
@@ -1749,6 +1759,8 @@ export default function Game({ invite }: { invite?: string }) {
             <button
               className="mobile-toggle"
               aria-label="Abrir menu"
+              aria-expanded={menu}
+              aria-controls="main-navigation"
               onClick={() => setMenu(!menu)}
             >
               <Menu />
@@ -1761,7 +1773,9 @@ export default function Game({ invite }: { invite?: string }) {
             )}
             {!(page === "Minha Ficha" && !isMaster) && (
               <small
-                className={connection === "Tempo real ativo" ? "online" : "muted"}
+                className={
+                  connection === "Tempo real ativo" ? "online" : "muted"
+                }
               >
                 {connection}
               </small>
@@ -1787,7 +1801,7 @@ export default function Game({ invite }: { invite?: string }) {
             page !== "Comunidade" &&
             !(!isMaster && page === "Perfil") &&
             !(!isMaster && page === "Minha Ficha") && (
-              <div className="page-heading">
+              <div className="page-heading" key={page}>
                 <div>
                   {(isMaster || page !== "Minha Ficha") && (
                     <p className="eyebrow">
@@ -1830,7 +1844,8 @@ export default function Game({ invite }: { invite?: string }) {
                   {page === "Jokenpô" && campaign && (
                     <div className="jokenpo-page-stats">
                       <strong className="jokenpo-page-balance">
-                        D$: {formatDracmas(
+                        D$:{" "}
+                        {formatDracmas(
                           Number(
                             (isMaster
                               ? ownMember?.dracmas_cents
@@ -1839,7 +1854,8 @@ export default function Game({ invite }: { invite?: string }) {
                         ).replace(" Dracmas", "")}
                       </strong>
                       <small className="jokenpo-page-total">
-                        Ganho total: D$: {formatDracmas(
+                        Ganho total: D$:{" "}
+                        {formatDracmas(
                           Number(ownMember?.jokenpo_total_winnings_cents || 0),
                         ).replace(" Dracmas", "")}
                       </small>
@@ -1872,7 +1888,9 @@ export default function Game({ invite }: { invite?: string }) {
           {campaign && page === "Jokenpô" && (
             <JokenpoGame
               balanceCents={Number(
-                (isMaster ? ownMember?.dracmas_cents : ownCharacter?.dracmas_cents) || 0,
+                (isMaster
+                  ? ownMember?.dracmas_cents
+                  : ownCharacter?.dracmas_cents) || 0,
               )}
               totalWinningsCents={Number(
                 ownMember?.jokenpo_total_winnings_cents || 0,
@@ -1885,16 +1903,14 @@ export default function Game({ invite }: { invite?: string }) {
               onOutcomeChange={setJokenpoOutcome}
               playRound={(choice, betCents, requestId) =>
                 perform(async () => {
-                  const { data: result, error: roundError } = await browserDb().rpc(
-                    "play_jokenpo",
-                    {
+                  const { data: result, error: roundError } =
+                    await browserDb().rpc("play_jokenpo", {
                       p_campaign_id: campaign,
                       p_character_id: isMaster ? null : ownCharacter?.id,
                       p_bet_cents: betCents,
                       p_player_choice: choice,
                       p_request_id: requestId,
-                    },
-                  );
+                    });
                   if (roundError) throw new Error(roundError.message);
                   await load(campaign, true);
                   setMessage("Rodada registrada na carteira");
@@ -1902,6 +1918,9 @@ export default function Game({ invite }: { invite?: string }) {
                 })
               }
             />
+          )}
+          {campaign && page === "Inscrições" && isMaster && (
+            <RecruitmentApplications campaign={campaign} />
           )}
           {campaign && ["Visão Geral", "Início"].includes(page) && (
             <>
@@ -3948,7 +3967,10 @@ export default function Game({ invite }: { invite?: string }) {
                       );
                       const allowed = member.web_access_enabled === true;
                       return (
-                        <div className="list-row web-access-player" key={member.user_id}>
+                        <div
+                          className="list-row web-access-player"
+                          key={member.user_id}
+                        >
                           <div>
                             <strong>
                               {profile?.display_name ||
