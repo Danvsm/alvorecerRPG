@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-26 — Classe e raça na configuração do Mestre
+
+- A ficha usa os valores atuais de classe e raça do personagem, definidos no cadastro pelo convite e atualizados após mudanças do Mestre.
+- Configurações do Mestre agora permite selecionar um personagem e alterar sua classe e raça entre as opções da campanha, respeitando vagas disponíveis na interface.
+
 ## 2026-09-26 — Histórico com retenção de 30 dias
 
 - Histórico retirado do início do jogador e disponível no menu Histórico, carregado em páginas de 20 registros dos últimos 30 dias.

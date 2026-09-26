@@ -3928,7 +3928,17 @@ export default function Game({ invite }: { invite?: string }) {
               <SessionCountManager campaign={campaign} />
               <MasterCaptureSettings campaign={campaign} />
               <ServerFeatureSettings campaign={campaign} />
-              <CharacterSlotSettings campaign={campaign} />
+              <CharacterSlotSettings
+                campaign={campaign}
+                characters={chars}
+                saveCharacter={async (characterId, characterClass, characterRace) => {
+                  await command("character", {
+                    character_id: characterId,
+                    class: characterClass,
+                    race: characterRace,
+                  });
+                }}
+              />
               <section className="panel web-access-settings">
                 <div>
                   <h2>Acesso pelo navegador</h2>
