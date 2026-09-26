@@ -117,7 +117,9 @@ export default function CharacterSkills({ characterId }: { characterId: string }
         uploadedPath = `${characterId}/${id}/${crypto.randomUUID()}.${imageExtensions[image.type]}`;
         const { error: uploadError } = await browserDb().storage.from(BUCKET)
           .upload(uploadedPath, image, { contentType: image.type, upsert: false });
-        if (uploadError) throw uploadError;
+        if (uploadError) throw new Error(
+          "Não foi possível enviar a imagem. Verifique o formato e o limite de 300 KB e tente novamente.",
+        );
       }
       const payload = {
         title: draft.title.trim(),
