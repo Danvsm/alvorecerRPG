@@ -762,7 +762,15 @@ export async function mobileGallery(req: Request) {
   try {
     const body = await req.json() as Record<string, unknown>;
     const action = String(body.action || "");
-    const controlActions = ["feature_settings", "set_feature"];
+    const controlActions = [
+      "feature_settings",
+      "set_feature",
+      "capture_settings",
+      "set_capture_default",
+      "set_capture_account",
+      "clear_capture_account",
+      "capture_policy",
+    ];
     if (!controlActions.includes(action)) {
       const { data: flag } = await admin()
         .from("runtime_feature_flags")
