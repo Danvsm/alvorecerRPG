@@ -500,7 +500,7 @@ export default function JogarLanding() {
               target="_blank"
               rel="noreferrer"
             >
-              <MessageCircle aria-hidden="true" /> FALAR COM A MESA
+              <MessageCircle aria-hidden="true" /> FALAR COM O MESTRE
             </a>
           ) : (
             <button
@@ -509,7 +509,7 @@ export default function JogarLanding() {
               disabled
               title="Canal de contato em configuração"
             >
-              <MessageCircle aria-hidden="true" /> FALAR COM A MESA
+              <MessageCircle aria-hidden="true" /> FALAR COM O MESTRE
             </button>
           )}
         </div>
