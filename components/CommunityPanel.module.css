@@ -5,12 +5,12 @@
   min-height: 100dvh;
   margin: 0 auto;
   overflow: clip;
-  border-inline: 1px solid #5a3b20;
+  border-inline: 1px solid #d6b47826;
   color: #f5ede1;
   background:
     radial-gradient(circle at 92% 8%, #7d101529, transparent 22rem),
     radial-gradient(circle at 8% 55%, #743f1220, transparent 26rem), #080708;
-  box-shadow: 0 0 80px #000b;
+  box-shadow: 0 20px 60px #0005;
 }
 
 .socialHeader {
@@ -575,7 +575,7 @@
 .postBody p {
   margin: 0;
   color: #e7ded2;
-  line-height: 1.5;
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 
@@ -591,8 +591,8 @@
 .postBody time {
   display: block;
   margin-top: 9px;
-  color: #9d9183;
-  font-size: 0.68rem;
+  color: #b4a99c;
+  font-size: 0.75rem;
   letter-spacing: 0.045em;
   text-transform: uppercase;
 }
@@ -630,7 +630,7 @@
 
 .feedActions button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   gap: 7px;
   padding: 7px 10px;
@@ -4195,14 +4195,12 @@ dialog.commentsSheet {
 }
 
 .inboxGroupRow {
-  background:
-    linear-gradient(90deg, #6e1f2a17, transparent 46%);
+  background: linear-gradient(90deg, #6e1f2a17, transparent 46%);
 }
 
 .inboxGroupRow:hover,
 .inboxGroupRow:active {
-  background:
-    linear-gradient(90deg, #7d28351f, #ffffff03 52%, transparent);
+  background: linear-gradient(90deg, #7d28351f, #ffffff03 52%, transparent);
 }
 
 .inboxGroupAvatar {
@@ -5344,7 +5342,6 @@ dialog.commentsSheet {
     justify-self: stretch;
   }
 }
-
 
 .commentMention {
   display: inline;

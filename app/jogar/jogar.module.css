@@ -14,6 +14,14 @@
   scroll-behavior: smooth;
 }
 
+.page section[id] {
+  scroll-margin-top: 92px;
+}
+.page :is(a, button):focus-visible {
+  outline: 3px solid var(--gold-light);
+  outline-offset: 5px;
+}
+
 .page *,
 .page *::before,
 .page *::after {
@@ -53,7 +61,7 @@
   padding: 10px 16px;
   border-bottom: 1px solid #e8b8512e;
   background: #03101de8;
-  box-shadow: 0 12px 40px #0006;
+  box-shadow: 0 8px 32px #0003;
   backdrop-filter: blur(14px);
 }
 
@@ -84,7 +92,7 @@
 
 .brand small {
   color: #d7dfe2;
-  font-size: 0.52rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.18em;
 }
@@ -108,7 +116,7 @@
 
 .headerCta {
   flex: 0 0 auto;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 15px;
   border: 1px solid #ffe4a7;
   color: #1d1609 !important;
@@ -120,9 +128,9 @@
 .hero {
   position: relative;
   display: grid;
-  min-height: 780px;
+  min-height: min(850px, max(720px, 100svh));
   align-items: center;
-  padding: 110px 20px 64px;
+  padding: 128px 24px 72px;
   isolation: isolate;
 }
 
@@ -163,10 +171,10 @@
 .hero h1 {
   margin-bottom: 16px;
   color: var(--gold-light);
-  font-size: clamp(3rem, 16vw, 5.6rem);
+  font-size: clamp(2.9rem, 13.6vw, 5.6rem);
   font-weight: 650;
   letter-spacing: -0.055em;
-  line-height: 0.83;
+  line-height: 1.04;
   text-wrap: balance;
 }
 
@@ -212,18 +220,21 @@
   border-radius: 999px;
   color: #fff7e7;
   background: #061522b8;
-  font-size: 0.69rem;
+  font-size: 0.76rem;
   font-weight: 700;
   backdrop-filter: blur(8px);
 }
 
 .primaryCta {
+  min-height: 52px;
   min-width: min(100%, 280px);
   padding: 0 22px;
   border: 1px solid #ffe8af;
   color: #1b1408 !important;
   background: linear-gradient(135deg, #ffe39a, #d79a31 70%, #bd7d1e);
-  box-shadow: 0 12px 34px #d89d3a4f;
+  box-shadow:
+    0 8px 28px #d89d3a30,
+    inset 0 1px #fff8;
   font-size: 0.82rem;
 }
 
@@ -261,7 +272,7 @@
 
 .sectionCopy,
 .sessionCopy {
-  padding: 44px 20px 58px;
+  padding: 56px 24px 72px;
 }
 
 .sectionCopy h2,
@@ -272,7 +283,7 @@
   margin-bottom: 18px;
   font-size: clamp(2rem, 10vw, 3.6rem);
   font-weight: 600;
-  line-height: 1.05;
+  line-height: 1.14;
   text-wrap: balance;
 }
 
@@ -318,7 +329,7 @@
   min-height: 600px;
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid #e8b8514a;
+  border: 1px solid #e8b85126;
   border-radius: 22px;
   isolation: isolate;
   box-shadow: 0 26px 70px #0008;
@@ -455,13 +466,13 @@
 .benefitGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .benefitGrid article {
   min-width: 0;
-  padding: 18px 13px;
-  border: 1px solid #d9b15a52;
+  padding: 22px 15px;
+  border: 1px solid #d9b15a30;
   border-radius: 14px;
   background: linear-gradient(145deg, #0d2639d9, #061521e6);
   box-shadow: inset 0 1px #fff1;
@@ -482,25 +493,22 @@
 }
 
 .d20Icon {
-  border: 1.5px solid var(--gold-light);
-  clip-path: polygon(50% 0, 95% 22%, 100% 70%, 50% 100%, 0 70%, 5% 22%);
-  font-family: var(--font-lora), serif;
-  font-size: 0.75rem;
+  overflow: visible;
 }
 
 .benefitGrid h4 {
   margin-bottom: 8px;
   color: #fff8e9;
   font-family: var(--font-lora), serif;
-  font-size: 0.92rem;
-  line-height: 1.25;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .benefitGrid p {
   margin: 0;
-  color: #aebbc2;
-  font-size: 0.73rem;
-  line-height: 1.5;
+  color: #c0cbd0;
+  font-size: 0.82rem;
+  line-height: 1.65;
 }
 
 .campaignFacts {
@@ -543,14 +551,14 @@
 .campaignFacts span {
   margin-top: 3px;
   color: #aebbc2;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
 }
 
 .packageNote {
   margin-top: 20px;
   margin-bottom: 0;
   color: #9fadb5;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   line-height: 1.65;
   text-align: center;
 }
@@ -580,6 +588,7 @@
 }
 
 .formSection {
+  color-scheme: light;
   padding: 72px 16px 88px;
   background: #f3ecdf;
 }
@@ -610,7 +619,7 @@
 }
 
 .formShell {
-  padding: 22px 16px;
+  padding: 26px 20px;
   border: 1px solid #bea66f80;
   border-radius: 18px;
   color: #0a1a27;
@@ -619,6 +628,7 @@
 }
 
 .formTop {
+  scroll-margin-top: 106px;
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -670,13 +680,13 @@
   display: grid;
   gap: 7px;
   color: #273640;
-  font-size: 0.81rem;
+  font-size: 0.875rem;
   font-weight: 750;
 }
 
 .formStep label small {
-  color: #718089;
-  font-size: 0.7rem;
+  color: #57656d;
+  font-size: 0.78rem;
   font-weight: 500;
 }
 
@@ -692,7 +702,7 @@
   background: #fffefd;
   box-shadow: inset 0 1px 2px #34270e0d;
   font: inherit;
-  font-size: 0.91rem;
+  font-size: 1rem;
   font-weight: 500;
   outline: none;
 }
@@ -1070,6 +1080,159 @@
   }
 }
 
+.headerNav {
+  display: none;
+}
+
+.headerCta,
+.primaryCta,
+.contactCta,
+.continueButton,
+.backButton {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    filter 220ms ease;
+}
+.formSection :is(a, button):focus-visible {
+  outline-color: #82540d;
+}
+.formTop:focus-visible {
+  outline: 2px solid #b18a434d;
+  outline-offset: 8px;
+  border-radius: 4px;
+}
+.campaignFacts div:nth-child(3) {
+  background: #e8b8510c;
+}
+.campaignFacts div:nth-child(3) strong {
+  color: var(--gold-light);
+  font-size: 1.2rem;
+}
+
+@media (min-width: 860px) {
+  .headerNav {
+    display: flex;
+    gap: 28px;
+    margin-left: auto;
+    margin-right: 30px;
+  }
+  .headerNav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: #c2cbd1;
+    font-size: 0.85rem;
+  }
+  .headerNav a:hover {
+    color: var(--gold-light);
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .primaryCta:hover,
+  .headerCta:hover,
+  .continueButton:not(:disabled):hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+    box-shadow:
+      0 12px 30px #d89d3a40,
+      inset 0 1px #fff8;
+  }
+  .contactCta:not(:disabled):hover {
+    border-color: var(--gold-light);
+    background: #102b40;
+  }
+}
+/* Entry choreography and tactile feedback, with no layout shifts. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero {
+    overflow: hidden;
+  }
+  .hero .coverImage {
+    animation: dawn-image 1800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .heroContent > * {
+    animation: dawn-enter 750ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .heroContent > :nth-child(2) {
+    animation-delay: 80ms;
+  }
+  .heroContent > :nth-child(3) {
+    animation-delay: 160ms;
+  }
+  .heroContent > :nth-child(4) {
+    animation-delay: 240ms;
+  }
+  .heroContent > :nth-child(5) {
+    animation-delay: 320ms;
+  }
+  .heroContent > :nth-child(6) {
+    animation-delay: 400ms;
+  }
+  .formStep {
+    animation: dawn-enter 320ms ease-out both;
+  }
+  .success {
+    animation: dawn-enter 500ms ease-out both;
+  }
+  .success > span {
+    animation: dawn-seal 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .benefitGrid article {
+    transition:
+      transform 280ms ease,
+      border-color 280ms ease,
+      box-shadow 280ms ease;
+  }
+  .primaryCta svg,
+  .continueButton svg {
+    transition: transform 220ms ease;
+  }
+  .page
+    :is(.primaryCta, .headerCta, .continueButton, .backButton):not(
+      :disabled
+    ):active {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .benefitGrid article:hover {
+      transform: translateY(-5px);
+      border-color: #e8b85180;
+      box-shadow: 0 18px 38px #0004;
+    }
+    .primaryCta:hover svg,
+    .continueButton:not(:disabled):hover svg {
+      transform: translateX(3px);
+    }
+  }
+}
+@keyframes dawn-image {
+  from {
+    transform: scale(1.045);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes dawn-seal {
+  from {
+    transform: scale(0.78) rotate(-12deg);
+  }
+  to {
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes dawn-enter {
+  from {
+    opacity: 0.35;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .page {
     scroll-behavior: auto;
@@ -1077,5 +1240,15 @@
 
   .progressTrack span {
     transition: none;
+  }
+  .page *,
+  .page *::before,
+  .page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .page :is(a, button):hover {
+    transform: none;
   }
 }

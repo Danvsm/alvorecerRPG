@@ -1678,7 +1678,7 @@ export default function Game({ invite }: { invite?: string }) {
         userId={session.user.id}
         campaign={campaign}
       />
-      <aside className={menu ? "sidebar open" : "sidebar"}>
+      <aside id="main-navigation" className={menu ? "sidebar open" : "sidebar"}>
         <Brand logo={currentCampaign?.theme?.logo} />
         <div className="campaign-switch">
           <small>CAMPANHA</small>
@@ -1694,10 +1694,11 @@ export default function Game({ invite }: { invite?: string }) {
             ))}
           </select>
         </div>
-        <nav>
+        <nav aria-label={isMaster ? "Painel do Mestre" : "Menu do jogador"}>
           {(isMaster ? masterMenu : playerMenu).map(([name, Icon]) => (
             <button
               className={page === name ? "active" : ""}
+              aria-current={page === name ? "page" : undefined}
               key={name}
               onClick={() => navigate(name)}
             >
@@ -1758,6 +1759,8 @@ export default function Game({ invite }: { invite?: string }) {
             <button
               className="mobile-toggle"
               aria-label="Abrir menu"
+              aria-expanded={menu}
+              aria-controls="main-navigation"
               onClick={() => setMenu(!menu)}
             >
               <Menu />
@@ -1798,7 +1801,7 @@ export default function Game({ invite }: { invite?: string }) {
             page !== "Comunidade" &&
             !(!isMaster && page === "Perfil") &&
             !(!isMaster && page === "Minha Ficha") && (
-              <div className="page-heading">
+              <div className="page-heading" key={page}>
                 <div>
                   {(isMaster || page !== "Minha Ficha") && (
                     <p className="eyebrow">
