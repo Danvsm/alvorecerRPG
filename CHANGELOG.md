@@ -4,6 +4,7 @@ Todas as mudanças relevantes concluídas neste projeto são registradas aqui. I
 
 ## 2026-09-26 — Habilidades personalizadas da ficha
 
+- A ficha separa habilidades Ativas, Passivas e Vantagens em abas; habilidades existentes permanecem Ativas, Passivas não têm custo e o limite de 13 é compartilhado.
 - Jogadores podem criar, editar e excluir até 13 habilidades por personagem, com título, descrição, nível, custo e imagem opcional.
 - Custo configurável em Mana, Fôlego, Vida, Fúria ou outro recurso; imagens JPG, PNG e WebP com limite de 300 KB em bucket privado.
 - A aba Habilidades apresenta as técnicas com imagem e custo, preservando as vantagens adquiridas e os efeitos existentes.
