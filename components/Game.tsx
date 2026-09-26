@@ -1801,7 +1801,7 @@ export default function Game({ invite }: { invite?: string }) {
             page !== "Comunidade" &&
             !(!isMaster && page === "Perfil") &&
             !(!isMaster && page === "Minha Ficha") && (
-              <div className="page-heading">
+              <div className="page-heading" key={page}>
                 <div>
                   {(isMaster || page !== "Minha Ficha") && (
                     <p className="eyebrow">

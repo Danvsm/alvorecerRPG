@@ -19,8 +19,11 @@ Conteúdo, regras, autenticação e contratos com o banco não foram alterados.
 - Landing: títulos com entrelinha menos apertada, cards 2x2 mais legíveis,
   pacote completo destacado, navegação desktop e formulário com foco entre etapas.
 - D20 vetorial com o mesmo traço dos demais ícones.
-- Microinterações apenas em elementos relevantes. Entradas por CSS são melhoria
-  progressiva; não há biblioteca de animação, listener de cursor ou parallax contínuo.
+- Motion UI: topo em sequência, aproximação inicial da imagem, revelação de seções
+  por IntersectionObserver e Web Animations, cards escalonados e transição de etapas.
+  Cada bloco é revelado uma vez; o conteúdo permanece visível sem JavaScript.
+  Não há biblioteca de animação, listener de cursor ou parallax contínuo.
+- Alterar a preferência por movimento reduzido também cancela animações em andamento.
 - Movimento reduzido desativa efeitos; hover com movimento é restrito ao mouse.
 
 ## Limites da validação

@@ -20,6 +20,7 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { RECRUITMENT_CAMPAIGN, TABLE_CONTACT_URL } from "@/lib/recruitment";
 import styles from "./jogar.module.css";
+import { useScrollReveal } from "@/lib/useScrollReveal";
 
 type Experience =
   "iniciante" | "algumas_vezes" | "intermediario" | "experiente";
@@ -107,6 +108,7 @@ function formatWhatsapp(value: string) {
 }
 
 export default function JogarLanding() {
+  const motionRoot = useScrollReveal<HTMLElement>();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
@@ -236,7 +238,7 @@ export default function JogarLanding() {
   };
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} ref={motionRoot}>
       <header className={styles.header}>
         <a className={styles.brand} href="#inicio" aria-label="Alvorecer">
           <Image src="/alvorecer-mark.svg" width={38} height={38} alt="" />
@@ -302,7 +304,7 @@ export default function JogarLanding() {
           />
           <div className={styles.bloodShade} aria-hidden="true" />
         </div>
-        <div className={styles.sectionCopy}>
+        <div className={styles.sectionCopy} data-reveal>
           <p className={styles.eyebrow}>A PROMESSA DO AMANHECER</p>
           <h2>Uma campanha de aventura, mistério e escolhas.</h2>
           <p>
@@ -334,7 +336,7 @@ export default function JogarLanding() {
             sizes="100vw"
           />
           <div className={styles.worldShade} aria-hidden="true" />
-          <div className={styles.worldCopy}>
+          <div className={styles.worldCopy} data-reveal>
             <p className={styles.eyebrow}>CONHEÇA O MUNDO</p>
             <h2>Fantasia, descobertas e espaço para sua história.</h2>
             <p>
@@ -355,7 +357,7 @@ export default function JogarLanding() {
             sizes="(max-width: 760px) 100vw, 52vw"
           />
         </div>
-        <div className={styles.sessionCopy}>
+        <div className={styles.sessionCopy} data-reveal>
           <p className={styles.eyebrow}>COMO FUNCIONA A SESSÃO</p>
           <h2>Você não precisa chegar sabendo tudo.</h2>
           <ol>
@@ -385,7 +387,7 @@ export default function JogarLanding() {
       </section>
 
       <section className={styles.conversionSection} id="participar">
-        <div className={styles.conversionIntro}>
+        <div className={styles.conversionIntro} data-reveal>
           <Sun aria-hidden="true" />
           <h2>
             SEU AMANHECER
@@ -401,7 +403,7 @@ export default function JogarLanding() {
         <div className={styles.benefits}>
           <h3>UMA EXPERIÊNCIA PREPARADA PARA VOCÊ</h3>
           <div className={styles.benefitGrid}>
-            <article>
+            <article data-reveal data-reveal-delay="0">
               <svg
                 className={styles.d20Icon}
                 viewBox="0 0 32 32"
@@ -430,7 +432,7 @@ export default function JogarLanding() {
                 jogadores.
               </p>
             </article>
-            <article>
+            <article data-reveal data-reveal-delay="80">
               <Smartphone aria-hidden="true" />
               <h4>Aplicativo da campanha</h4>
               <p>
@@ -438,7 +440,7 @@ export default function JogarLanding() {
                 aplicativo.
               </p>
             </article>
-            <article>
+            <article data-reveal data-reveal-delay="160">
               <Sparkles aria-hidden="true" />
               <h4>IA de apoio ao sistema</h4>
               <p>
@@ -446,7 +448,7 @@ export default function JogarLanding() {
                 e mais tempo jogando.
               </p>
             </article>
-            <article>
+            <article data-reveal data-reveal-delay="240">
               <Pizza aria-hidden="true" />
               <h4>Lanche durante as sessões</h4>
               <p>
@@ -457,7 +459,7 @@ export default function JogarLanding() {
           </div>
         </div>
 
-        <div className={styles.campaignFacts}>
+        <div className={styles.campaignFacts} data-reveal>
           <div>
             <Users aria-hidden="true" />
             <strong>10 sessões</strong>
@@ -514,7 +516,7 @@ export default function JogarLanding() {
       </section>
 
       <section className={styles.formSection} id="inscricao">
-        <div className={styles.formIntro}>
+        <div className={styles.formIntro} data-reveal>
           <p className={styles.eyebrow}>INSCRIÇÃO</p>
           <h2>Conte um pouco sobre você.</h2>
           <p>
@@ -565,7 +567,7 @@ export default function JogarLanding() {
               </div>
 
               {step === 1 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="identity">
                   <label>
                     Nome + sobrenome
                     <input
@@ -605,7 +607,7 @@ export default function JogarLanding() {
               )}
 
               {step === 2 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="contact">
                   <label>
                     E-mail
                     <input
@@ -670,7 +672,7 @@ export default function JogarLanding() {
               )}
 
               {step === 3 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="experience">
                   <fieldset className={styles.experienceFieldset}>
                     <legend>Experiência com RPG</legend>
                     <div className={styles.experienceGrid}>
@@ -731,7 +733,7 @@ export default function JogarLanding() {
               )}
 
               {step === 4 && (
-                <div className={styles.formStep}>
+                <div className={styles.formStep} key="expectations">
                   <label>
                     O que espera de uma mesa de RPG?
                     <textarea
