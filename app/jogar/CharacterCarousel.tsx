@@ -146,7 +146,7 @@ export default function CharacterCarousel({ title, items, kind }: Props) {
             <button
               type="button"
               key={item.name}
-              className={`${styles.card} ${centered ? styles.centered : ""} ${dragging ? styles.dragging : ""}`}
+              className={`${styles.card} ${kind === "classe" ? styles.classPhoto : ""} ${centered ? styles.centered : ""} ${dragging ? styles.dragging : ""}`}
               style={{
                 transform: `translate3d(calc(-50% + ${x}px), ${Math.min(abs * 22, 56)}px, ${-abs * 105}px) rotateY(${-distance * 15}deg) scale(${Math.max(0.62, 1 - abs * 0.12)})`,
                 opacity: visible ? Math.max(0.25, 1 - abs * 0.22) : 0,
@@ -162,7 +162,7 @@ export default function CharacterCarousel({ title, items, kind }: Props) {
                 else go(Math.round(distance) || (distance > 0 ? 1 : -1));
               }}
             >
-              <Image className={`${styles.art} ${kind === "classe" ? styles.classArt : ""}`} src={item.image} alt="" fill sizes="(max-width: 600px) 60vw, 300px" draggable={false} />
+              <Image className={styles.art} src={item.image} alt="" fill sizes="(max-width: 600px) 60vw, 300px" draggable={false} />
               <span className={styles.cardShade} aria-hidden="true" />
               <span className={styles.cardName}>{item.name}</span>
             </button>

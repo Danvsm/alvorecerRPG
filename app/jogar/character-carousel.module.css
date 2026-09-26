@@ -40,7 +40,17 @@
 .card { position: absolute; top: 12px; left: 50%; width: clamp(190px, 54vw, 300px); aspect-ratio: .63; overflow: hidden; padding: 0; border: 1px solid #d2aa666b; border-radius: 14px; background: #0a1726; box-shadow: 0 15px 24px #0008, inset 0 0 0 1px #fff2; color: #fff2d1; cursor: pointer; backface-visibility: hidden; transform-style: preserve-3d; transition: transform 640ms cubic-bezier(.18,.8,.15,1), opacity 460ms ease, box-shadow 460ms ease; -webkit-tap-highlight-color: transparent; }
 .card.dragging { transition: none; }
 .card.centered { border-color: #efc878; box-shadow: 0 24px 48px #000b, 0 0 35px #d8a95425; }
+.classPhoto,
+.classPhoto.centered {
+  width: clamp(176px, 49vw, 230px);
+  aspect-ratio: .48;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .art { object-fit: cover; object-position: center 28%; pointer-events: none; -webkit-user-drag: none; }
+.classPhoto .art { object-position: center; transform: scale(1.045); }
 .classArt { object-fit: contain; background: #100d19; }
 .cardShade { position: absolute; inset: 40% 0 0; background: linear-gradient(transparent, #02111bbc 70%, #02111bf5); pointer-events: none; }
 .cardName { position: absolute; right: 8px; bottom: 22px; left: 8px; font-family: var(--font-lora), serif; font-size: clamp(1.15rem, 4vw, 1.65rem); text-align: center; text-shadow: 0 2px 10px #000; line-height: 1.15; pointer-events: none; }
