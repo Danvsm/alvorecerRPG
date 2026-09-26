@@ -527,7 +527,7 @@ export default function JogarLanding() {
 
       <section className={styles.formSection} id="inscricao">
         <div className={styles.formIntro} data-reveal>
-          <p className={styles.eyebrow}>INSCRIÇÃO</p>
+          <p className={styles.eyebrow}>PRÉ-INSCRIÇÃO</p>
           <h2>Conte um pouco sobre você.</h2>
           <p>
             Suas respostas serão vistas somente pelo Mestre e usadas para
@@ -541,10 +541,10 @@ export default function JogarLanding() {
               <span>
                 <Check aria-hidden="true" />
               </span>
-              <p className={styles.eyebrow}>INSCRIÇÃO RECEBIDA</p>
+              <p className={styles.eyebrow}>PRÉ-INSCRIÇÃO RECEBIDA</p>
               <h3>Seu primeiro passo foi registrado.</h3>
               <p>
-                Sua inscrição para {RECRUITMENT_CAMPAIGN} está como “Nova”. O
+                Sua pré-inscrição para {RECRUITMENT_CAMPAIGN} está como “Nova”. O
                 Mestre poderá analisar suas respostas e entrar em contato.
               </p>
               <button
@@ -554,7 +554,7 @@ export default function JogarLanding() {
                   setStep(1);
                 }}
               >
-                Enviar outra inscrição
+                Enviar outra pré-inscrição
               </button>
             </div>
           ) : (
@@ -847,7 +847,7 @@ export default function JogarLanding() {
                     className={styles.continueButton}
                     disabled={sending}
                   >
-                    {sending ? "Enviando..." : "Enviar inscrição"}
+                    {sending ? "Enviando..." : "Enviar pré-inscrição"}
                     {!sending && <ArrowRight aria-hidden="true" />}
                   </button>
                 )}
