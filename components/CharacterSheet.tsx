@@ -14,6 +14,7 @@ import ProgressionPanel from "./ProgressionPanel";
 import CharacterSkills from "./CharacterSkills";
 
 type SheetTab = "summary" | "attributes" | "skills" | "equipment";
+type SkillTab = "active" | "passive" | "advantages";
 
 export default function CharacterSheet({
   character,
@@ -45,6 +46,7 @@ export default function CharacterSheet({
   refresh: () => Promise<void>;
 }) {
   const [tab, setTab] = useState<SheetTab>("summary");
+  const [skillTab, setSkillTab] = useState<SkillTab>("active");
 
   const compactValue = (value: number) => {
     if (!Number.isFinite(value)) return "0";
@@ -215,8 +217,15 @@ export default function CharacterSheet({
             <Sparkles size={19} />
             <h2>Habilidades e vantagens</h2>
           </div>
-          <CharacterSkills key={String(character.id)} characterId={String(character.id)} />
-          <div className="character-advantages">
+          <nav className="character-skill-tabs" aria-label="Tipos de habilidades">
+            {([ ["active", "Ativas"], ["passive", "Passivas"], ["advantages", "Vantagens"] ] as const).map(([key, label]) => (
+              <button key={key} type="button" className={skillTab === key ? "active" : ""}
+                aria-current={skillTab === key ? "page" : undefined} onClick={() => setSkillTab(key)}>{label}</button>
+            ))}
+          </nav>
+          {skillTab !== "advantages" && <CharacterSkills key={`${character.id}-${skillTab}`}
+            characterId={String(character.id)} skillType={skillTab} />}
+          {skillTab === "advantages" && <div className="character-advantages">
             <h3>Vantagens adquiridas</h3>
           {characterAdvantages.length > 0 ? (
             <div className="sheet-skill-list">
@@ -232,7 +241,7 @@ export default function CharacterSheet({
           ) : (
             <p className="empty">Nenhuma vantagem adquirida.</p>
           )}
-          </div>
+          </div>}
 
           {effects.length > 0 && (
             <div className="sheet-effects">
