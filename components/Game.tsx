@@ -113,6 +113,7 @@ import {
 } from "./CharacterDeleteDialog";
 import MasterMobileGallery from "./MasterMobileGallery";
 import MasterCaptureSettings from "./MasterCaptureSettings";
+import ServerFeatureSettings from "./ServerFeatureSettings";
 import CharacterSlotSettings from "./CharacterSlotSettings";
 import InviteCharacterOptions from "./InviteCharacterOptions";
 import RecruitmentApplications from "./RecruitmentApplications";
@@ -3942,6 +3943,7 @@ export default function Game({ invite }: { invite?: string }) {
               />
               <SessionCountManager campaign={campaign} />
               <MasterCaptureSettings campaign={campaign} />
+              <ServerFeatureSettings campaign={campaign} />
               <CharacterSlotSettings campaign={campaign} />
               <section className="panel web-access-settings">
                 <div>
