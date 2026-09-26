@@ -119,7 +119,7 @@ export default function CharacterSlotSettings({
     const options = rows.filter((row) => row.option_kind === kind);
     return (
       <>
-        <option value="" disabled>Selecione {kind === "class" ? "uma classe" : "uma raça"}</option>
+        <option value="" disabled>?? — definir {kind === "class" ? "classe" : "raça"}</option>
         {currentValue && !options.some((row) => row.option_value === currentValue) && (
           <option value={currentValue}>{currentValue} (atual)</option>
         )}

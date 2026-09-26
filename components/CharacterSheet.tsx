@@ -140,8 +140,8 @@ export default function CharacterSheet({
           <h2>{character.name}</h2>
 
           <p className="sheet-character-meta">
-            {character.class || "Classe não definida"} ·{" "}
-            {character.race || "Raça não definida"} · Nível{" "}
+            {String(character.class || "").trim() || "??"} ·{" "}
+            {String(character.race || "").trim() || "??"} · Nível{" "}
             {character.level || 1} · XP atual{" "}
             {compactValue(Number(character.xp || 0))}
           </p>
